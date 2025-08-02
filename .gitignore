@@ -1,0 +1,21 @@
+# Build and Maven output
+target/
+*.class
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Uploaded files
+uploads/
+dogdaycare-uploads/
+**/uploads/
+
+# Sensitive configurations
+src/main/resources/application.properties
