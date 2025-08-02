@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -38,4 +39,6 @@ public class EvaluationRequest {
 
     @NotBlank(message = "Dog breed is required")
     private String dogBreed;
+
+    private LocalDateTime createdAt;
 }

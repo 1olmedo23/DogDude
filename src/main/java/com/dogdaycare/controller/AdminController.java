@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -33,8 +35,18 @@ public class AdminController {
     //admin dashboard
     @GetMapping
     public String adminDashboard(Model model) {
-        List<EvaluationRequest> evaluations = evaluationRepository.findAll();
-        List<User> users = userRepository.findAll();
+        LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
+
+        List<EvaluationRequest> evaluations = evaluationRepository.findAll()
+                .stream()
+                .filter(e -> !e.isApproved() || e.getCreatedAt().isAfter(threeDaysAgo))
+                .collect(Collectors.toList());
+
+        List<User> users = userRepository.findAll()
+                .stream()
+                .sorted((u1, u2) -> u1.getId().compareTo(u2.getId()))
+                .collect(Collectors.toList());
+
         model.addAttribute("evaluations", evaluations);
         model.addAttribute("users", users);
         return "admin";

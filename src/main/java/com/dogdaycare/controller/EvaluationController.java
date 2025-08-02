@@ -54,6 +54,8 @@ public class EvaluationController {
         }
 
         try {
+            // Set timestamp
+            evaluation.setCreatedAt(java.time.LocalDateTime.now());
             // Save to DB
             evaluationRepository.save(evaluation);
 
