@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Welcome to Dog Daycare</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/custom.css}">
+</head>
+<body class="bg-light">
+<div class="container text-center py-5">
+    <h1 class="display-4 mb-4">Welcome to Dog Daycare!</h1>
+    <p class="lead mb-5">Where tails wag and friendships are made.</p>
+    <a class="btn btn-primary btn-lg mb-3" th:href="@{/evaluation}">New Client Evaluation</a><br>
+    <a class="btn btn-outline-secondary btn-lg" th:href="@{/login}">Returning Customer Login</a>
+</div>
+</body>
+</html>

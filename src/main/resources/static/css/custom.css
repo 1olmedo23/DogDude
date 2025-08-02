@@ -1,0 +1,58 @@
+/* General */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Headings */
+h1, h2, h5 {
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #f4a261;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #e76f51;
+    transform: scale(1.05);
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #264653;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Cards */
+.card {
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+/* Form */
+form .form-control {
+    border-radius: 8px;
+    padding: 10px;
+}
+
+form button {
+    width: 100%;
+}
