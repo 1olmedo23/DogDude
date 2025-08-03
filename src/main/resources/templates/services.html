@@ -6,46 +6,76 @@
     <link rel="stylesheet" th:href="@{/css/custom.css}">
 </head>
 <body class="bg-light">
+<div th:replace="fragments/navbar :: navbar('services')"></div>
+
 <div class="container py-5">
-    <a class="btn btn-secondary mb-3" th:href="@{/}">Back to Homepage</a>
     <h1 class="mb-4 text-center">Our Services</h1>
-    <div class="row g-4">
+    <p class="text-center mb-5">
+        Only approved clients can book services. <br>
+        Returning customers: <a th:href="@{/login}">Log in to book.</a><br>
+        New clients: <a th:href="@{/evaluation}">Submit an evaluation</a> to become an approved client.
+    </p>
+    <div class="row g-4 justify-content-center">
 
-        <!-- Service 1 -->
+        <!-- Daycare 6am - 3pm -->
         <div class="col-md-4">
             <div class="card shadow-sm h-100 text-center">
-                <img th:src="@{/images/service-placeholder.jpg}" class="card-img-top" alt="Daycare">
+                <img th:src="@{/images/daycare-morning.jpg}" class="card-img-top" alt="Daycare Morning">
                 <div class="card-body">
-                    <h5 class="card-title">Daycare</h5>
-                    <p class="card-text">Safe, supervised playtime for your furry friends.</p>
-                    <a class="btn btn-primary me-2" th:href="@{/evaluation}">New Client</a>
-                    <a class="btn btn-outline-secondary" th:href="@{/login}">Returning Customer</a>
+                    <h5 class="card-title">Daycare (6am - 3pm)</h5>
+                    <p class="card-text">Safe, supervised playtime for your dog.</p>
+                    <p class="fw-bold">$45.00</p>
+                    <div class="mt-3">
+                        <a class="btn btn-primary me-2" th:href="@{/evaluation}">New Client</a>
+                        <a class="btn btn-outline-secondary" th:href="@{/login}">Returning Customer</a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Service 2 -->
+        <!-- Daycare 6am - 8pm -->
         <div class="col-md-4">
             <div class="card shadow-sm h-100 text-center">
-                <img th:src="@{/images/service-placeholder.jpg}" class="card-img-top" alt="Grooming">
+                <img th:src="@{/images/daycare-evening.jpg}" class="card-img-top" alt="Daycare Evening">
                 <div class="card-body">
-                    <h5 class="card-title">Grooming</h5>
-                    <p class="card-text">Professional grooming to keep your dog clean and happy.</p>
-                    <a class="btn btn-primary me-2" th:href="@{/evaluation}">New Client</a>
-                    <a class="btn btn-outline-secondary" th:href="@{/login}">Returning Customer</a>
+                    <h5 class="card-title">Daycare (6am - 8pm)</h5>
+                    <p class="card-text">Extended care for busy schedules.</p>
+                    <p class="fw-bold">$60.00</p>
+                    <div class="mt-3">
+                        <a class="btn btn-primary me-2" th:href="@{/evaluation}">New Client</a>
+                        <a class="btn btn-outline-secondary" th:href="@{/login}">Returning Customer</a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Service 3 -->
+        <!-- Boarding -->
         <div class="col-md-4">
             <div class="card shadow-sm h-100 text-center">
-                <img th:src="@{/images/service-placeholder.jpg}" class="card-img-top" alt="Training">
+                <img th:src="@{/images/boarding.jpg}" class="card-img-top" alt="Boarding">
                 <div class="card-body">
-                    <h5 class="card-title">Training</h5>
-                    <p class="card-text">Obedience and behavior training tailored to your dog’s needs.</p>
-                    <a class="btn btn-primary me-2" th:href="@{/evaluation}">New Client</a>
-                    <a class="btn btn-outline-secondary" th:href="@{/login}">Returning Customer</a>
+                    <h5 class="card-title">Boarding</h5>
+                    <p class="card-text">Overnight stays with round-the-clock care.</p>
+                    <p class="fw-bold">$80.00</p>
+                    <div class="mt-3">
+                        <a class="btn btn-primary me-2" th:href="@{/evaluation}">New Client</a>
+                        <a class="btn btn-outline-secondary" th:href="@{/login}">Returning Customer</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluation (Centered) -->
+        <div class="col-md-4 d-flex justify-content-center">
+            <div class="card shadow-sm h-100 text-center">
+                <img th:src="@{/images/evaluation.jpg}" class="card-img-top" alt="Evaluation">
+                <div class="card-body">
+                    <h5 class="card-title">Evaluation</h5>
+                    <p class="card-text">Required first step for all new clients.</p>
+                    <p class="fw-bold">Free</p>
+                    <div class="mt-3">
+                        <a class="btn btn-primary" th:href="@{/evaluation}">Submit Evaluation</a>
+                    </div>
                 </div>
             </div>
         </div>

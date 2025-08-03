@@ -43,7 +43,8 @@ h1, h2, h5 {
 }
 
 .card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-5px);
+    transition: transform 0.2s ease-in-out;
     box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 
@@ -55,4 +56,46 @@ form .form-control {
 
 form button {
     width: 100%;
+}
+
+/* Hero gradient */
+.hero-gradient {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+}
+
+/* Section backgrounds */
+.section-light {
+    background-color: #f8f9fa;
+}
+
+.section-accent {
+    background-color: #fff7f0;
+}
+
+/* Uniform service card images */
+.card-img-top {
+    height: 250px;       /* adjust as needed */
+    object-fit: cover;   /* crops images nicely without distortion */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+/* Make buttons full-width on small screens */
+@media (max-width: 768px) {
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .card-img-top {
+        height: 200px; /* slightly smaller for mobile */
+    }
+    .hero-gradient .container {
+        padding: 20px;
+    }
+    .hero-gradient h1 {
+        font-size: 2rem;
+    }
+    .hero-gradient p {
+        font-size: 1rem;
+    }
 }
