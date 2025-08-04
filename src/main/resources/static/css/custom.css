@@ -11,29 +11,55 @@ h1, h2, h5 {
 }
 
 /* Buttons */
-.btn {
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.btn-primary {
-    background-color: #f4a261;
+/* Global button styling */
+.btn-custom {
+    background-color: rgb(255, 131, 39); /* playful orange */
     border: none;
-}
-
-.btn-primary:hover {
-    background-color: #e76f51;
-    transform: scale(1.05);
-}
-
-.btn-outline-secondary {
-    border-radius: 8px;
-}
-
-.btn-outline-secondary:hover {
-    background-color: #264653;
     color: white;
-    transform: scale(1.05);
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-custom:hover {
+    background-color: #ff8e00;
+    color: #fff;
+    transform: translateY(-1px);
+    transition: transform 0.1s ease-in-out;
+}
+
+.btn-custom2 {
+    background-color: rgb(39, 100, 255); /* playful orange */
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-custom2:hover {
+    background-color: #0d64d5;
+    color: #fff;
+    transform: translateY(-1px);
+    transition: transform 0.1s ease-in-out;
+}
+
+/* For destructive actions like cancel/delete */
+.btn-danger-custom {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    transition: background-color 0.3s ease;
+}
+
+.btn-danger-custom:hover {
+    background-color: #bb2d3b;
+    color: #fff;
 }
 
 /* Cards */

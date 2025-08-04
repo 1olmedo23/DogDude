@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -27,7 +28,7 @@ public class BookingController {
                 "Daycare (6 AM - 8 PM)",
                 "Boarding"
         ));
-        model.addAttribute("activePage", "booking"); // ✅ Consistent with navbar
+        model.addAttribute("activePage", "booking");
         if (successMessage != null) {
             model.addAttribute("successMessage", successMessage);
         }
@@ -51,7 +52,7 @@ public class BookingController {
             @RequestParam String serviceType,
             @RequestParam String date,
             @RequestParam String time,
-            Model model
+            RedirectAttributes redirectAttributes
     ) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
         Booking booking = new Booking();
@@ -59,9 +60,21 @@ public class BookingController {
         booking.setServiceType(serviceType);
         booking.setDate(LocalDate.parse(date));
         booking.setTime(LocalTime.parse(time));
+        booking.setStatus("APPROVED"); // Default approved
         bookingRepository.save(booking);
 
-        prepareBookingPage(customer, model, "Booking submitted successfully!");
-        return "booking";
+        redirectAttributes.addFlashAttribute("successMessage", "Booking submitted successfully!");
+        return "redirect:/booking";
+    }
+
+    @PostMapping("/cancel/{id}")
+    public String cancelBooking(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+        Booking booking = bookingRepository.findById(id).orElse(null);
+        if (booking != null && booking.getCustomer().getUsername().equals(authentication.getName())) {
+            booking.setStatus("CANCELED");
+            bookingRepository.save(booking);
+            redirectAttributes.addFlashAttribute("successMessage", "Your booking has been canceled.");
+        }
+        return "redirect:/booking";
     }
 }

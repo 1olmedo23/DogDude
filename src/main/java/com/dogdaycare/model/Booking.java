@@ -23,5 +23,5 @@ public class Booking {
     private LocalDate date;
     private LocalTime time;
 
-    private String status = "PENDING"; // PENDING, APPROVED, CANCELED
+    private String status = "APPROVED"; // PENDING, APPROVED, CANCELED
 }
