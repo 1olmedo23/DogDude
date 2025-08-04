@@ -4,28 +4,55 @@
 <div th:fragment="navbar(activePage)">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" th:href="@{/}">Dog Daycare</a>
+            <!-- Brand -->
+            <a class="navbar-brand"
+               th:href="@{/}"
+               th:classappend="${activePage == 'booking'} ? 'confirm-logout' : ''">
+                Dog Daycare
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Home -->
                     <li class="nav-item">
-                        <a class="nav-link" th:classappend="${activePage == 'home'} ? 'active'" th:href="@{/}">Home</a>
+                        <a class="nav-link"
+                           th:href="@{/}"
+                           th:classappend="(${activePage == 'home'} ? 'active ' : '') + (${activePage == 'booking'} ? 'confirm-logout' : '')">
+                            Home
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:classappend="${activePage == 'services'} ? 'active'" th:href="@{/services}">Services</a>
+
+                    <!-- Services -->
+                    <li class="nav-item" th:if="${activePage != 'booking'}">
+                        <a class="nav-link" th:href="@{/services}" th:classappend="${activePage == 'services'} ? 'active'">Services</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:classappend="${activePage == 'about'} ? 'active'" th:href="@{/about}">About</a>
+
+                    <!-- About -->
+                    <li class="nav-item" th:if="${activePage != 'booking'}">
+                        <a class="nav-link" th:href="@{/about}" th:classappend="${activePage == 'about'} ? 'active'">About</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:classappend="${activePage == 'login'} ? 'active'" th:href="@{/login}">Login</a>
+
+                    <!-- Login -->
+                    <li class="nav-item" th:if="${activePage != 'booking'}">
+                        <a class="nav-link" th:href="@{/login}" th:classappend="${activePage == 'login'} ? 'active'">Login</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:classappend="${activePage == 'evaluation'} ? 'active'" th:href="@{/evaluation}">Evaluation</a>
+
+                    <!-- Evaluation -->
+                    <li class="nav-item" th:if="${activePage != 'booking'}">
+                        <a class="nav-link" th:href="@{/evaluation}" th:classappend="${activePage == 'evaluation'} ? 'active'">Evaluation</a>
                     </li>
                 </ul>
+
+                <!-- Logout button on booking page -->
+                <div th:if="${activePage == 'booking'}" class="ms-3">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="btn btn-outline-danger confirm-logout">Logout</button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>

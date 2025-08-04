@@ -4,6 +4,9 @@
     <title>Dog Daycare</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/custom.css}">
+    <div th:if="${param.logout}" class="alert alert-success text-center">
+        You have successfully logged out.
+    </div>
     <style>
         /* Hero image with overlay */
         .hero {
@@ -41,7 +44,7 @@
     </style>
 </head>
 <body class="bg-light">
-<div th:replace="fragments/navbar :: navbar('home')"></div>
+<div th:replace="~{fragments/navbar :: navbar('home')}"></div>
 
 <!-- Hero Section -->
 <div class="hero">
@@ -75,6 +78,7 @@
         </div>
     </div>
 </div>
+<script th:src="@{/js/custom.js}"></script>
 
 </body>
 </html>

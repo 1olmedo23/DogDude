@@ -46,7 +46,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/evaluation", "/evaluation/**", "/services", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/", "/evaluation", "/evaluation/**", "/services","/about", "/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/booking/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()
@@ -58,7 +58,7 @@ public class SecurityConfig {
                         .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/")
+                        .logoutSuccessUrl("/?logout")
                         .permitAll()
                 );
         return http.build();
