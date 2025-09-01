@@ -11,7 +11,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
-
 import java.util.List;
 
 @Controller
@@ -32,7 +31,8 @@ public class AdminController {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
     }
-    //admin dashboard
+
+    // Admin dashboard
     @GetMapping
     public String adminDashboard(Model model) {
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
@@ -71,12 +71,23 @@ public class AdminController {
             newUser.setEnabled(true);
             userRepository.save(newUser);
 
-            // Send email with credentials
-            String message = String.format(
-                    "Hello %s,\n\nYour evaluation has been approved! You can now log in to our booking system:\n\nUsername: %s\nPassword: %s\n\nPlease log in and change your password after your first login.",
-                    evaluation.getClientName(), evaluation.getEmail(), password
+            // Send polished approval email with credentials
+            String approvalMessage = String.format(
+                    "Hello %s,\n\n" +
+                            "Your evaluation has been approved! You can now log in to our Dog Daycare booking system:\n\n" +
+                            "Login: %s\nPassword: %s\n\n" +
+                            "We recommend changing your password after your first login.\n\n" +
+                            "Thank you,\nDog Daycare Team",
+                    evaluation.getClientName(),
+                    evaluation.getEmail(),
+                    password
             );
-            emailService.sendEmail(evaluation.getEmail(), "Your Dog Daycare Account", message);
+
+            emailService.sendEmail(
+                    evaluation.getEmail(),
+                    "Your Dog Daycare Account Has Been Approved",
+                    approvalMessage
+            );
         }
 
         return "redirect:/admin";

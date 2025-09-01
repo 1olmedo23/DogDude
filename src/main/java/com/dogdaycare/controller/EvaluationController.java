@@ -27,6 +27,9 @@ public class EvaluationController {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    @Value("${business.email}")
+    private String businessEmail;  // <-- Configurable business email
+
     public EvaluationController(EvaluationRepository evaluationRepository, EmailService emailService) {
         this.evaluationRepository = evaluationRepository;
         this.emailService = emailService;
@@ -77,7 +80,6 @@ public class EvaluationController {
             }
 
             // Send email to business
-            String businessEmail = "1olmedoj@gmail.com";
             String businessMessage = String.format(
                     "New Evaluation Request:\n\nClient: %s\nEmail: %s\nPhone: %s\nDog: %s (%s)\n\nFiles attached if provided.",
                     evaluation.getClientName(), evaluation.getEmail(), evaluation.getPhone(),
@@ -87,8 +89,9 @@ public class EvaluationController {
 
             // Send confirmation email to customer
             String customerMessage = String.format(
-                    "Hello %s,\n\nThank you for submitting your evaluation. We’ll review your request and contact you within 3-5 business days via email with further instructions.\n\n- Dog Daycare Team",
-                    evaluation.getClientName()
+                    "Hello %s,\n\nThank you for submitting your evaluation for %s (%s). " +
+                            "We’ll review your request and contact you within 3-5 business days via email with further instructions.\n\n- Dog Daycare Team",
+                    evaluation.getClientName(), evaluation.getDogName(), evaluation.getDogBreed()
             );
             emailService.sendEmail(evaluation.getEmail(), "Evaluation Received - Dog Daycare", customerMessage);
 
