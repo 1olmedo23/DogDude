@@ -4,12 +4,15 @@ import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.User;
 import com.dogdaycare.repository.BookingRepository;
 import com.dogdaycare.repository.UserRepository;
+import com.dogdaycare.service.BookingLimitService;
+import com.dogdaycare.service.CancelPolicyService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -20,8 +23,11 @@ public class BookingController {
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final BookingLimitService bookingLimitService;
+    private final CancelPolicyService cancelPolicyService;
+    private final Clock clock = Clock.systemDefaultZone();
 
-    private void prepareBookingPage(User customer, Model model, String successMessage) {
+    private void prepareBookingPage(User customer, Model model, String successMessage, String errorMessage) {
         model.addAttribute("bookings", bookingRepository.findByCustomer(customer));
         model.addAttribute("services", List.of(
                 "Daycare (6 AM - 3 PM)",
@@ -32,35 +38,60 @@ public class BookingController {
         if (successMessage != null) {
             model.addAttribute("successMessage", successMessage);
         }
+        if (errorMessage != null) {
+            model.addAttribute("errorMessage", errorMessage);
+        }
     }
 
-    public BookingController(BookingRepository bookingRepository, UserRepository userRepository) {
+    public BookingController(BookingRepository bookingRepository,
+                             UserRepository userRepository,
+                             BookingLimitService bookingLimitService,
+                             CancelPolicyService cancelPolicyService) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.bookingLimitService = bookingLimitService;
+        this.cancelPolicyService = cancelPolicyService;
     }
 
     @GetMapping
-    public String bookingPage(Authentication authentication, Model model) {
+    public String bookingPage(Authentication authentication, Model model,
+                              @ModelAttribute("successMessage") String successMessage,
+                              @ModelAttribute("errorMessage") String errorMessage) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
-        prepareBookingPage(customer, model, null);
+        prepareBookingPage(customer, model,
+                (successMessage != null && !successMessage.isBlank()) ? successMessage : null,
+                (errorMessage != null && !errorMessage.isBlank()) ? errorMessage : null);
         return "booking";
     }
 
     @PostMapping
-    public String createBooking(
-            Authentication authentication,
-            @RequestParam String serviceType,
-            @RequestParam String date,
-            @RequestParam String time,
-            RedirectAttributes redirectAttributes
-    ) {
+    public String createBooking(Authentication authentication,
+                                @RequestParam String serviceType,
+                                @RequestParam String date,
+                                @RequestParam String time,
+                                RedirectAttributes redirectAttributes) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        LocalDate localDate = LocalDate.parse(date);
+        LocalTime localTime = LocalTime.parse(time);
+
+        // Capacity check for customers
+        boolean canBook = bookingLimitService.canCustomerBook(localDate, serviceType);
+        if (!canBook) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "We’re full for this day. Please try a different date. " +
+                            "If this is an emergency, please contact the business at (XXX) XXX-XXXX."
+            );
+            return "redirect:/booking";
+        }
+
         Booking booking = new Booking();
         booking.setCustomer(customer);
         booking.setServiceType(serviceType);
-        booking.setDate(LocalDate.parse(date));
-        booking.setTime(LocalTime.parse(time));
-        booking.setStatus("APPROVED"); // Default approved
+        booking.setDate(localDate);
+        booking.setTime(localTime);
+        booking.setStatus("APPROVED"); // Default approved as per your current flow
         bookingRepository.save(booking);
 
         redirectAttributes.addFlashAttribute("successMessage", "Booking submitted successfully!");
@@ -68,9 +99,23 @@ public class BookingController {
     }
 
     @PostMapping("/cancel/{id}")
-    public String cancelBooking(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+    public String cancelBooking(@PathVariable Long id,
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
         Booking booking = bookingRepository.findById(id).orElse(null);
-        if (booking != null && booking.getCustomer().getUsername().equals(authentication.getName())) {
+        if (booking != null && booking.getCustomer() != null
+                && booking.getCustomer().getUsername().equals(authentication.getName())) {
+
+            // Enforce 72-hour rule for Boarding (customers only)
+            boolean canCancel = cancelPolicyService.canCustomerCancel(booking, clock);
+            if (!canCancel) {
+                redirectAttributes.addFlashAttribute(
+                        "errorMessage",
+                        cancelPolicyService.policyMessage(booking)
+                );
+                return "redirect:/booking";
+            }
+
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
             redirectAttributes.addFlashAttribute("successMessage", "Your booking has been canceled.");

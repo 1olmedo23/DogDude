@@ -8,7 +8,7 @@ function formatCurrency(n) {
 }
 
 // Auto-dismiss any Bootstrap alert after a delay
-function autoDismissAlerts(ms = 4000) {
+function autoDismissAlerts(ms = 6000) {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         // ensure it fades even if markup didn't include fade/show
@@ -18,7 +18,7 @@ function autoDismissAlerts(ms = 4000) {
             // remove from DOM after fade transition (~150–300ms)
             setTimeout(() => {
                 if (alert && alert.parentNode) alert.parentNode.removeChild(alert);
-            }, 300);
+            }, 400);
         }, ms);
     });
 }

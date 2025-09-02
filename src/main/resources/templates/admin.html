@@ -26,6 +26,9 @@
         <li class="nav-item">
             <button class="nav-link" id="invoicing-tab" data-bs-toggle="tab" data-bs-target="#invoicing" type="button" role="tab">Invoicing</button>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/admin/emergency}">Emergency</a>
+        </li>
     </ul>
 
     <div class="tab-content mt-3" id="adminTabsContent">
@@ -131,7 +134,9 @@
                     <button class="btn btn-custom" id="nextDayBtn">Next Day →</button>
                 </div>
             </div>
-            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div class="alert alert-success"
+                 th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
+                 th:text="${successMessage}"></div>
             <table class="table table-striped">
                 <thead>
                 <tr>
@@ -152,7 +157,9 @@
         <!-- Invoicing Tab -->
         <div class="tab-pane fade" id="invoicing" role="tabpanel">
             <h3 class="mb-3">Weekly Invoicing</h3>
-            <div th:if="${invoiceMessage}" class="alert alert-success" th:text="${invoiceMessage}"></div>
+            <div class="alert alert-success"
+                 th:if="${invoiceMessage != null and !#strings.isEmpty(invoiceMessage)}"
+                 th:text="${invoiceMessage}"></div>
 
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>

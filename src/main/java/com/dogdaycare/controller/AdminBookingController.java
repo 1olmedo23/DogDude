@@ -4,6 +4,7 @@ import com.dogdaycare.dto.BookingRowDto;
 import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.EvaluationRequest;
 import com.dogdaycare.repository.BookingRepository;
+import com.dogdaycare.repository.EmergencyAllocationRepository;
 import com.dogdaycare.repository.EvaluationRepository;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -21,11 +22,14 @@ public class AdminBookingController {
 
     private final BookingRepository bookingRepository;
     private final EvaluationRepository evaluationRepository;
+    private final EmergencyAllocationRepository emergencyAllocationRepository;
 
     public AdminBookingController(BookingRepository bookingRepository,
-                                  EvaluationRepository evaluationRepository) {
+                                  EvaluationRepository evaluationRepository,
+                                  EmergencyAllocationRepository emergencyAllocationRepository) {
         this.bookingRepository = bookingRepository;
         this.evaluationRepository = evaluationRepository;
+        this.emergencyAllocationRepository = emergencyAllocationRepository;
     }
 
     @GetMapping
@@ -68,6 +72,10 @@ public class AdminBookingController {
         bookingRepository.findById(id).ifPresent(booking -> {
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
+
+            // If this booking consumed an emergency spot, free it
+            emergencyAllocationRepository.deleteByBookingId(id);
+
             redirectAttributes.addFlashAttribute("successMessage", "Booking canceled successfully.");
         });
         return "redirect:/admin";

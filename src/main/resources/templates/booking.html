@@ -10,9 +10,15 @@
 
 <div class="container py-5">
     <h1 class="mb-4">Book a Service</h1>
-    <div th:if="${successMessage}" class="alert alert-success">
-        <span th:text="${successMessage}"></span>
-    </div>
+
+    <!-- Only show if not null/empty -->
+    <div class="alert alert-danger"
+         th:if="${errorMessage != null and !#strings.isEmpty(errorMessage)}"
+         th:text="${errorMessage}"></div>
+
+    <div class="alert alert-success"
+         th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
+         th:text="${successMessage}"></div>
 
     <!-- Booking Form -->
     <div class="row g-4">
@@ -32,6 +38,12 @@
                         </div>
                         <button type="submit" class="btn btn-custom w-100">Book</button>
                     </form>
+
+                    <!-- Boarding policy note -->
+                    <div class="form-text mt-2"
+                         th:if="${#strings.containsIgnoreCase(service, 'Boarding')}">
+                        <strong>Note:</strong> Boarding cancellations must be made at least 72 hours in advance.
+                    </div>
                 </div>
             </div>
         </div>
