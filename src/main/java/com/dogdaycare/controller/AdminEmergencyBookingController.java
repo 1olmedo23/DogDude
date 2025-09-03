@@ -7,6 +7,7 @@ import com.dogdaycare.model.User;
 import com.dogdaycare.repository.BookingRepository;
 import com.dogdaycare.repository.EmergencyAllocationRepository;
 import com.dogdaycare.repository.UserRepository;
+import com.dogdaycare.service.BookingLimitService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -33,13 +33,14 @@ public class AdminEmergencyBookingController {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final EmergencyAllocationRepository emergencyRepo;
+    private final BookingLimitService limitService;
 
     // --------- GET: page ----------
     @GetMapping
     public String page(@RequestParam(value = "date", required = false) String dateStr,
                        Model model) {
         LocalDate date = parseDateOrToday(dateStr);
-        EmergencyCounts counts = computeCounts(date);
+        EmergencyCounts counts = limitService.snapshot(date);
 
         model.addAttribute("date", date);
         model.addAttribute("counts", counts);
@@ -55,8 +56,8 @@ public class AdminEmergencyBookingController {
                          BindingResult binding,
                          Model model) {
 
-        LocalDate date = form.getDate() != null ? form.getDate() : LocalDate.now();
-        EmergencyCounts counts = computeCounts(date);
+        LocalDate date = (form.getDate() != null) ? form.getDate() : LocalDate.now();
+        EmergencyCounts counts = limitService.snapshot(date);
 
         // Basic form checks
         if (!StringUtils.hasText(form.getCustomerEmail())) {
@@ -66,7 +67,7 @@ public class AdminEmergencyBookingController {
             return withError("Service type is required.", date, counts, form, model);
         }
 
-        // 1) Daily total cap (70) includes emergency; if full, stop
+        // 1) Daily total cap (includes emergency)
         if (counts.getTotal() >= counts.totalCap()) {
             return withError("The daily total (including emergency) is full for this date.", date, counts, form, model);
         }
@@ -78,7 +79,7 @@ public class AdminEmergencyBookingController {
         }
         User customer = userOpt.get();
 
-        // 3) Emergency allowed only when the selected service's normal cap is full
+        // 3) Emergency can be used only if the selected service's normal capacity is already full
         String svc = form.getServiceType().toLowerCase();
         boolean isDaycare = svc.contains("daycare");
         boolean isBoarding = svc.contains("boarding");
@@ -90,8 +91,8 @@ public class AdminEmergencyBookingController {
             return withError("Boarding normal capacity isn’t full yet. Please use the standard booking flow.", date, counts, form, model);
         }
 
-        // 4) Emergency pool availability is derived from totals: max(0, total - 60) used, capped at 10
-        if (counts.emergencyRemaining() <= 0) {
+        // 4) Emergency pool availability
+        if (counts.getEmergencyRemaining() <= 0) {
             return withError("All emergency spots are taken for this date.", date, counts, form, model);
         }
 
@@ -105,44 +106,22 @@ public class AdminEmergencyBookingController {
 
         Booking saved = bookingRepository.save(booking);
 
-        // Optional audit row (not used for capacity math anymore)
+        // Optional audit row (kept for traceability; not used for capacity math)
         EmergencyAllocation ea = new EmergencyAllocation();
         ea.setDate(date);
-        ea.setBookingId(saved.getId());   // keep aligned with your entity (Long bookingId)
+        ea.setBookingId(saved.getId());
         ea.setCreatedAt(LocalDateTime.now());
         emergencyRepo.save(ea);
 
         // Refresh counts for UI after insert
-        EmergencyCounts updated = computeCounts(date);
-        return withMessage("Emergency booking created for " + customer.getUsername() + " (" + form.getServiceType() + ").",
-                date, updated, new EmergencyForm(date), model);
+        EmergencyCounts updated = limitService.snapshot(date);
+        return withMessage(
+                "Emergency booking created for " + customer.getUsername() + " (" + form.getServiceType() + ").",
+                date, updated, new EmergencyForm(date), model
+        );
     }
 
     // --------- Helpers ----------
-
-    private EmergencyCounts computeCounts(LocalDate date) {
-        List<Booking> todays = bookingRepository.findByDate(date);
-
-        // Only non-canceled bookings count toward capacity
-        List<Booking> active = todays.stream()
-                .filter(b -> b.getStatus() != null && !"CANCELED".equalsIgnoreCase(b.getStatus()))
-                .toList();
-
-        long daycare = active.stream()
-                .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("daycare"))
-                .count();
-
-        long boarding = active.stream()
-                .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("boarding"))
-                .count();
-
-        long total = daycare + boarding;
-
-        long normalCap = 40 + 20; // 60
-        long emergencyUsed = Math.max(0, Math.min(10, total - normalCap));
-
-        return new EmergencyCounts(daycare, boarding, total, emergencyUsed);
-    }
 
     private String withError(String msg, LocalDate date,
                              EmergencyCounts counts,
