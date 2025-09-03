@@ -7,12 +7,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableMethodSecurity // enables @PreAuthorize in controllers/services
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
@@ -45,22 +47,38 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/evaluation", "/evaluation/**", "/services","/about", "/css/**", "/js/**", "/images/**").permitAll()
+                        // Public pages & static assets
+                        .requestMatchers("/", "/login", "/evaluation", "/evaluation/**", "/services", "/about",
+                                "/css/**", "/js/**", "/images/**").permitAll()
+
+                        // Admin area
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // Customer area
                         .requestMatchers("/booking/**").hasRole("CUSTOMER")
+                        .requestMatchers("/uploads/**").hasRole("CUSTOMER")
+
+                        // Everything else requires auth
                         .anyRequest().authenticated()
                 )
+
+                // Form login
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .failureUrl("/login?error=true") // Show error on failed login
+                        .failureUrl("/login?error=true")
                         .successHandler(customAuthenticationSuccessHandler)
                         .permitAll()
                 )
+
+                // Logout
                 .logout(logout -> logout
                         .logoutSuccessUrl("/?logout")
                         .permitAll()
                 );
+
+        // CSRF remains enabled by default (good for forms), no extra config needed
         return http.build();
     }
 }

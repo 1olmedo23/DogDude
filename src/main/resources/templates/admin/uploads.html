@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin · Uploads</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/custom.css}">
+</head>
+<body class="bg-light">
+<div th:replace="~{fragments/navbar :: navbar('admin-uploads')}"></div>
+
+<div class="container py-4">
+    <h1 class="mb-3">Customer Uploads</h1>
+
+    <form class="row g-2 mb-3">
+        <div class="col-auto">
+            <input type="text" class="form-control" name="q" placeholder="Search by email" th:value="${q}">
+        </div>
+        <div class="col-auto">
+            <select class="form-select" name="filter">
+                <option value="all" th:selected="${filter == 'all'}">All</option>
+                <option value="expired" th:selected="${filter == 'expired'}">Expired</option>
+                <option value="expiring" th:selected="${filter == 'expiring'}">Expiring in 30 days</option>
+            </select>
+        </div>
+        <div class="col-auto"><button class="btn btn-primary">Filter</button></div>
+    </form>
+
+    <div th:if="${#maps.isEmpty(byUser)}" class="alert alert-secondary">No uploads found.</div>
+
+    <div th:each="u : ${users}">
+        <div th:if="${byUser.containsKey(u.id)}" class="card mb-3 shadow-sm">
+            <div class="card-header">
+                <strong th:text="${u.username}">customer@example.com</strong>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>File</th>
+                            <th>Display Name</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Expires</th>
+                            <th>Uploaded</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="f : ${byUser.get(u.id)}"
+                            th:classappend="${f.expirationDate != null && f.expirationDate.isBefore(@java.time.LocalDate@now())} ? 'table-danger' :
+                                (${f.expirationDate != null && !f.expirationDate.isAfter(@java.time.LocalDate@now().plusDays(30))} ? 'table-warning' : '')">
+                            <td th:text="${f.fileName}">VetRecord.pdf</td>
+                            <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies</td>
+                            <td th:text="${f.fileType != null ? f.fileType : '—'}">application/pdf</td>
+                            <td th:text="${f.sizeBytes != null ? f.sizeBytes + ' bytes' : '—'}">102400 bytes</td>
+                            <td th:text="${f.expirationDate != null ? f.expirationDate : '—'}">2026-05-01</td>
+                            <td th:text="${#temporals.format(f.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-03 10:15</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script th:src="@{/js/custom.js}"></script>
+</body>
+</html>

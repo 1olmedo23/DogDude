@@ -1,56 +1,65 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <div th:fragment="navbar(activePage)">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <!-- Brand -->
-            <a class="navbar-brand"
-               th:href="@{/}"
-               th:classappend="${activePage == 'booking'} ? 'confirm-logout' : ''">
-                Dog Daycare
-            </a>
+            <a class="navbar-brand" th:href="@{/}">Dog Daycare</a>
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <!-- Home -->
-                    <li class="nav-item">
+
+                    <!-- Public-only navigation (hidden once authenticated) -->
+                    <li class="nav-item" sec:authorize="isAnonymous()">
                         <a class="nav-link"
                            th:href="@{/}"
-                           th:classappend="(${activePage == 'home'} ? 'active ' : '') + (${activePage == 'booking'} ? 'confirm-logout' : '')">
+                           th:classappend="${activePage == 'home'} ? 'active'">
                             Home
                         </a>
                     </li>
-
-                    <!-- Services -->
-                    <li class="nav-item" th:if="${activePage != 'booking'}">
-                        <a class="nav-link" th:href="@{/services}" th:classappend="${activePage == 'services'} ? 'active'">Services</a>
+                    <li class="nav-item" sec:authorize="isAnonymous()">
+                        <a class="nav-link"
+                           th:href="@{/services}"
+                           th:classappend="${activePage == 'services'} ? 'active'">
+                            Services
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAnonymous()">
+                        <a class="nav-link"
+                           th:href="@{/about}"
+                           th:classappend="${activePage == 'about'} ? 'active'">
+                            About
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAnonymous()">
+                        <a class="nav-link"
+                           th:href="@{/login}"
+                           th:classappend="${activePage == 'login'} ? 'active'">
+                            Login
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAnonymous()">
+                        <a class="nav-link"
+                           th:href="@{/evaluation}"
+                           th:classappend="${activePage == 'evaluation'} ? 'active'">
+                            Evaluation
+                        </a>
                     </li>
 
-                    <!-- About -->
-                    <li class="nav-item" th:if="${activePage != 'booking'}">
-                        <a class="nav-link" th:href="@{/about}" th:classappend="${activePage == 'about'} ? 'active'">About</a>
-                    </li>
-
-                    <!-- Login -->
-                    <li class="nav-item" th:if="${activePage != 'booking'}">
-                        <a class="nav-link" th:href="@{/login}" th:classappend="${activePage == 'login'} ? 'active'">Login</a>
-                    </li>
-
-                    <!-- Evaluation -->
-                    <li class="nav-item" th:if="${activePage != 'booking'}">
-                        <a class="nav-link" th:href="@{/evaluation}" th:classappend="${activePage == 'evaluation'} ? 'active'">Evaluation</a>
-                    </li>
+                    <!-- When authenticated, hide public links; dashboard tabs live inside those pages -->
                 </ul>
 
-                <!-- Logout button on booking page -->
-                <div th:if="${activePage == 'booking'}" class="ms-3">
+                <!-- Logout for any authenticated user -->
+                <div class="ms-3" sec:authorize="isAuthenticated()">
                     <form th:action="@{/logout}" method="post" class="d-inline">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button type="submit" class="btn btn-outline-danger confirm-logout">Logout</button>
+                        <button type="submit" class="btn btn-outline-danger">Logout</button>
                     </form>
                 </div>
             </div>

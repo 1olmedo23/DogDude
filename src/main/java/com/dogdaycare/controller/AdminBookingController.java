@@ -8,10 +8,12 @@ import com.dogdaycare.repository.EmergencyAllocationRepository;
 import com.dogdaycare.repository.EvaluationRepository;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -32,6 +34,7 @@ public class AdminBookingController {
         this.emergencyAllocationRepository = emergencyAllocationRepository;
     }
 
+    // --- Existing JSON endpoint (unchanged) ---
     @GetMapping
     @ResponseBody
     public List<BookingRowDto> getBookingsByDate(
@@ -40,10 +43,8 @@ public class AdminBookingController {
         List<Booking> bookings = bookingRepository.findByDate(date);
 
         return bookings.stream().map(b -> {
-            // Email is the username for customers in your system
             String email = (b.getCustomer() != null) ? b.getCustomer().getUsername() : "N/A";
 
-            // Pull most recent evaluation for display name/dog
             Optional<EvaluationRequest> evalOpt =
                     (email == null || "N/A".equals(email))
                             ? Optional.empty()
@@ -52,7 +53,6 @@ public class AdminBookingController {
             String customerName = evalOpt.map(EvaluationRequest::getClientName).orElse(email != null ? email : "N/A");
             String dogName = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
 
-            // Time → string for JS
             String timeStr = (b.getTime() != null) ? b.getTime().toString() : "";
 
             return new BookingRowDto(
@@ -65,6 +65,31 @@ public class AdminBookingController {
                     b.getStatus()
             );
         }).collect(Collectors.toList());
+    }
+
+    // --- New server-rendered view grouped by service type ---
+    @GetMapping("/view")
+    public String viewByDate(
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Model model
+    ) {
+        List<Booking> bookings = bookingRepository.findByDate(date);
+
+        var daycare = bookings.stream()
+                .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("daycare"))
+                .sorted(Comparator.comparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        var boarding = bookings.stream()
+                .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("boarding"))
+                .sorted(Comparator.comparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        model.addAttribute("date", date);
+        model.addAttribute("bookingsDaycare", daycare);
+        model.addAttribute("bookingsBoarding", boarding);
+        model.addAttribute("activePage", "admin-bookings");
+        return "admin/bookings"; // templates/admin/bookings.html
     }
 
     @PostMapping("/cancel/{id}")

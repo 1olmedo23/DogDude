@@ -15,6 +15,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -27,22 +28,6 @@ public class BookingController {
     private final CancelPolicyService cancelPolicyService;
     private final Clock clock = Clock.systemDefaultZone();
 
-    private void prepareBookingPage(User customer, Model model, String successMessage, String errorMessage) {
-        model.addAttribute("bookings", bookingRepository.findByCustomer(customer));
-        model.addAttribute("services", List.of(
-                "Daycare (6 AM - 3 PM)",
-                "Daycare (6 AM - 8 PM)",
-                "Boarding"
-        ));
-        model.addAttribute("activePage", "booking");
-        if (successMessage != null) {
-            model.addAttribute("successMessage", successMessage);
-        }
-        if (errorMessage != null) {
-            model.addAttribute("errorMessage", errorMessage);
-        }
-    }
-
     public BookingController(BookingRepository bookingRepository,
                              UserRepository userRepository,
                              BookingLimitService bookingLimitService,
@@ -51,6 +36,40 @@ public class BookingController {
         this.userRepository = userRepository;
         this.bookingLimitService = bookingLimitService;
         this.cancelPolicyService = cancelPolicyService;
+    }
+
+    private void prepareBookingPage(User customer, Model model, String successMessage, String errorMessage) {
+        var all = bookingRepository.findByCustomer(customer);
+
+        // Group: Daycare vs Boarding (keeps existing look, just split for readability)
+        var daycare = all.stream()
+                .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("daycare"))
+                .sorted(Comparator.comparing(Booking::getDate)
+                        .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        var boarding = all.stream()
+                .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("boarding"))
+                .sorted(Comparator.comparing(Booking::getDate)
+                        .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        model.addAttribute("bookings", all); // keep original for compatibility
+        model.addAttribute("bookingsDaycare", daycare);
+        model.addAttribute("bookingsBoarding", boarding);
+
+        model.addAttribute("services", List.of(
+                "Daycare (6 AM - 3 PM)",
+                "Daycare (6 AM - 8 PM)",
+                "Boarding"
+        ));
+        model.addAttribute("activePage", "booking");
+        if (successMessage != null && !successMessage.isBlank()) {
+            model.addAttribute("successMessage", successMessage);
+        }
+        if (errorMessage != null && !errorMessage.isBlank()) {
+            model.addAttribute("errorMessage", errorMessage);
+        }
     }
 
     @GetMapping
@@ -91,7 +110,7 @@ public class BookingController {
         booking.setServiceType(serviceType);
         booking.setDate(localDate);
         booking.setTime(localTime);
-        booking.setStatus("APPROVED"); // Default approved as per your current flow
+        booking.setStatus("APPROVED"); // as per your current flow
         bookingRepository.save(booking);
 
         redirectAttributes.addFlashAttribute("successMessage", "Booking submitted successfully!");
