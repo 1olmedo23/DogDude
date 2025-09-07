@@ -11,11 +11,9 @@ function formatCurrency(n) {
 function autoDismissAlerts(ms = 6000) {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
-        // ensure it fades even if markup didn't include fade/show
         alert.classList.add('fade', 'show');
         setTimeout(() => {
-            alert.classList.remove('show'); // triggers fade-out
-            // remove from DOM after fade transition (~150–300ms)
+            alert.classList.remove('show');
             setTimeout(() => {
                 if (alert && alert.parentNode) alert.parentNode.removeChild(alert);
             }, 400);
@@ -23,41 +21,68 @@ function autoDismissAlerts(ms = 6000) {
     });
 }
 
-// ---------- Bookings ----------
+// ---------- Bookings (Admin) ----------
+function groupAndRenderAdminBookings(rows) {
+    const tbody = document.getElementById('bookingTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    const csrfInput = document.querySelector('input[name="_csrf"]');
+    const csrfToken = csrfInput ? csrfInput.value : '';
+
+    const groups = {
+        'Daycare (6 AM - 3 PM)': [],
+        'Daycare (6 AM - 8 PM)': [],
+        'Boarding': []
+    };
+
+    rows.forEach(r => {
+        const svc = (r.serviceType || '').toLowerCase();
+        if (svc.includes('daycare') && r.serviceType.includes('6 AM - 3 PM')) {
+            groups['Daycare (6 AM - 3 PM)'].push(r);
+        } else if (svc.includes('daycare') && r.serviceType.includes('6 AM - 8 PM')) {
+            groups['Daycare (6 AM - 8 PM)'].push(r);
+        } else if (svc.includes('boarding')) {
+            groups['Boarding'].push(r);
+        }
+    });
+
+    for (const [title, list] of Object.entries(groups)) {
+        tbody.insertAdjacentHTML('beforeend', `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`);
+        if (list.length === 0) {
+            tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
+        } else {
+            list.forEach(b => {
+                const row = `
+<tr>
+  <td>${b.customerName}</td>
+  <td>${b.dogName || 'N/A'}</td>
+  <td>${b.serviceType}</td>
+  <td>${b.time || ''}</td>
+  <td>${b.status}</td>
+  <td>
+    ${b.status === 'APPROVED' ? `
+      <form method="POST" action="/admin/bookings/cancel/${b.id}">
+        ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
+        <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
+      </form>` : ''
+                }
+  </td>
+</tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+    }
+
+    attachCancelConfirm();
+}
+
 function fetchBookings() {
     const dateStr = currentBookingDate.toISOString().split('T')[0];
     fetch(`/admin/bookings?date=${dateStr}`)
         .then(res => res.json())
-        .then(data => {
-            const tbody = document.getElementById('bookingTableBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            const csrfInput = document.querySelector('input[name="_csrf"]');
-            const csrfToken = csrfInput ? csrfInput.value : '';
-
-            data.forEach(b => {
-                const row = `
-    <tr>
-        <td>${b.customerName}</td>
-        <td>${b.dogName || 'N/A'}</td>
-        <td>${b.serviceType}</td>
-        <td>${b.time || ''}</td>
-        <td>${b.status}</td>
-        <td>
-            ${b.status === 'APPROVED' ? `
-                <form method="POST" action="/admin/bookings/cancel/${b.id}">
-                    ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
-                    <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
-                </form>
-            ` : ''}
-        </td>
-    </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-
-            attachCancelConfirm();
-        });
+        .then(data => groupAndRenderAdminBookings(data));
 }
 
 function updateBookingDateDisplay() {
@@ -82,12 +107,10 @@ function attachCancelConfirm() {
 // ---------- Invoicing ----------
 function getLastCompletedWeekStart() {
     const today = new Date();
-    // Get this week's Monday
     const day = today.getDay(); // Sun=0..Sat=6
     const monday = new Date(today);
     const diffToMonday = (day === 0 ? -6 : 1 - day);
     monday.setDate(today.getDate() + diffToMonday);
-    // Last completed week = previous Monday
     monday.setDate(monday.getDate() - 7);
     monday.setHours(0,0,0,0);
     return monday;
@@ -127,7 +150,6 @@ function renderInvoiceTotals(rows) {
     if (elPaid) elPaid.textContent = formatCurrency(paidTotal);
     if (elUnpaid) elUnpaid.textContent = formatCurrency(unpaidTotal);
 
-    // badges
     const badgeCustomers = document.getElementById('badgeCustomers');
     const badgePaid = document.getElementById('badgePaid');
     const badgeUnpaid = document.getElementById('badgeUnpaid');
@@ -152,49 +174,40 @@ function fetchWeeklyInvoices() {
                 const actionCell = r.paid
                     ? `<span class="badge bg-success">Paid</span>`
                     : `<form method="POST" action="/admin/invoices/mark-paid" onsubmit="return confirm('Mark this as PAID? This cannot be undone.');">
-                         ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
-                         <input type="hidden" name="email" value="${r.customerEmail}">
-                         <input type="hidden" name="start" value="${formatDateISO(currentInvoiceWeekStart)}">
-                         <button class="btn btn-custom btn-sm">Mark Paid</button>
-                       </form>`;
+               ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
+               <input type="hidden" name="email" value="${r.customerEmail}">
+               <input type="hidden" name="start" value="${formatDateISO(currentInvoiceWeekStart)}">
+               <button class="btn btn-custom btn-sm">Mark Paid</button>
+             </form>`;
 
                 const row = `
-    <tr>
-        <td>${r.customerName}</td>
-        <td>${r.dogName || 'N/A'}</td>
-        <td>${r.customerEmail}</td>
-        <td>${formatCurrency(r.amount)}</td>
-        <td>${r.paid ? 'Yes' : 'No'}</td>
-        <td>${actionCell}</td>
-    </tr>`;
+<tr>
+  <td>${r.customerName}</td>
+  <td>${r.dogName || 'N/A'}</td>
+  <td>${r.customerEmail}</td>
+  <td>${formatCurrency(r.amount)}</td>
+  <td>${r.paid ? 'Yes' : 'No'}</td>
+  <td>${actionCell}</td>
+</tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
 
-            // compute / display totals + counts
             renderInvoiceTotals(rows);
-
-            // auto-dismiss any alert in the Invoicing pane after refresh
             autoDismissAlerts();
         });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Logout confirmation
+    // Logout confirmation (only if you still use .confirm-logout anywhere)
     document.querySelectorAll(".confirm-logout").forEach(link => {
         link.addEventListener("click", function (e) {
-            if (!confirm("Are you sure you want to log out?")) {
-                e.preventDefault();
-            }
+            if (!confirm("Are you sure you want to log out?")) e.preventDefault();
         });
     });
 
-    // Auto-dismiss any server-rendered alerts present on initial load
     autoDismissAlerts();
 
-    // Customer page cancel confirm
-    attachCancelConfirm();
-
-    // Bookings tab controls
+    // Admin bookings controls
     document.getElementById('prevDayBtn')?.addEventListener('click', () => {
         currentBookingDate.setDate(currentBookingDate.getDate() - 1);
         updateBookingDateDisplay();
@@ -208,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateBookingDateDisplay();
     });
 
-    // Invoicing tab controls
+    // Invoicing controls
     document.getElementById('prevWeekBtn')?.addEventListener('click', () => {
         currentInvoiceWeekStart.setDate(currentInvoiceWeekStart.getDate() - 7);
         updateInvoiceWeekRangeDisplay();
@@ -220,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchWeeklyInvoices();
     });
 
-    // Initial loads for visible tabs
+    // Initial loads (admin page)
     updateBookingDateDisplay();
     updateInvoiceWeekRangeDisplay();
     fetchWeeklyInvoices();

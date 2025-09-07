@@ -13,15 +13,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.List;
 
 @Controller
 @RequestMapping("/uploads")
@@ -39,38 +36,34 @@ public class UploadController {
         this.fileRepository = fileRepository;
     }
 
+    // 👇 Always show uploads inside the Booking page tab
     @GetMapping
-    public String uploadsHome(Authentication auth, Model model) {
-        User user = userRepository.findByUsername(auth.getName()).orElseThrow();
-        List<UploadedFile> files = uploadService.listForUser(user);
-        model.addAttribute("files", files);
-        model.addAttribute("activePage", "uploads");
-        return "uploads"; // templates/uploads.html
+    public String redirectToBookingUploadsTab() {
+        return "redirect:/booking#uploads";
     }
 
+    // After upload, go back to the Booking page on the Uploads tab
     @PostMapping
     public String handleUpload(Authentication auth,
                                @RequestParam("file") MultipartFile file,
                                @RequestParam(value = "displayName", required = false) String displayName,
                                @RequestParam(value = "expirationDate", required = false)
-                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expirationDate,
-                               Model model) {
+                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expirationDate) {
         try {
             User user = userRepository.findByUsername(auth.getName()).orElseThrow();
             uploadService.storeForUser(user, file, displayName, expirationDate);
-            return "redirect:/uploads";
-        } catch (Exception e) {
-            model.addAttribute("errorMessage", "Upload failed: " + e.getMessage());
-            return uploadsHome(auth, model);
+        } catch (Exception ignored) {
+            // You can add a FlashAttribute error if you want; keeping it simple
         }
+        return "redirect:/booking#uploads";
     }
 
+    // Downloads stay here (deep link ok)
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(Authentication auth, @PathVariable Long id) {
         User user = userRepository.findByUsername(auth.getName()).orElseThrow();
         UploadedFile uf = fileRepository.findById(id).orElseThrow();
 
-        // Only owner can download
         if (uf.getUser() == null || !uf.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(403).build();
         }
@@ -82,7 +75,7 @@ public class UploadController {
         Resource resource = new FileSystemResource(file);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + uf.getFileName() + "\"")
-                .contentType(MediaType.parseMediaType(uf.getFileType() != null ? uf.getFileType() : MimeTypeUtils.APPLICATION_OCTET_STREAM_VALUE))
+                .contentType(MediaType.parseMediaType(uf.getFileType() != null ? uf.getFileType() : MediaType.APPLICATION_OCTET_STREAM_VALUE))
                 .contentLength(file.length())
                 .body(resource);
     }

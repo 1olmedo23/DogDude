@@ -27,6 +27,7 @@ public class BookingController {
     private final BookingLimitService bookingLimitService;
     private final CancelPolicyService cancelPolicyService;
     private final Clock clock = Clock.systemDefaultZone();
+    private static String safe(String s) { return s == null ? "" : s.trim(); }
 
     public BookingController(BookingRepository bookingRepository,
                              UserRepository userRepository,
@@ -41,22 +42,38 @@ public class BookingController {
     private void prepareBookingPage(User customer, Model model, String successMessage, String errorMessage) {
         var all = bookingRepository.findByCustomer(customer);
 
-        // Group: Daycare vs Boarding (keeps existing look, just split for readability)
+        Comparator<Booking> sortByDateThenTime =
+                Comparator.comparing(Booking::getDate)
+                        .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder()));
+
+        // Existing grouping
         var daycare = all.stream()
                 .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("daycare"))
-                .sorted(Comparator.comparing(Booking::getDate)
-                        .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(sortByDateThenTime)
                 .toList();
 
         var boarding = all.stream()
                 .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("boarding"))
-                .sorted(Comparator.comparing(Booking::getDate)
-                        .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(sortByDateThenTime)
                 .toList();
 
-        model.addAttribute("bookings", all); // keep original for compatibility
+        // ✳️ NEW: split daycare into Short vs Long, matching your exact service_type strings
+        var daycareShort = daycare.stream()
+                .filter(b -> "Daycare (6 AM - 3 PM)".equalsIgnoreCase(safe(b.getServiceType())))
+                .toList();
+
+        var daycareLong = daycare.stream()
+                .filter(b -> "Daycare (6 AM - 8 PM)".equalsIgnoreCase(safe(b.getServiceType())))
+                .toList();
+
+        // Keep originals for compatibility
+        model.addAttribute("bookings", all);
         model.addAttribute("bookingsDaycare", daycare);
         model.addAttribute("bookingsBoarding", boarding);
+
+        // ✅ Attributes the view actually renders
+        model.addAttribute("bookingsDaycareShort", daycareShort);
+        model.addAttribute("bookingsDaycareLong", daycareLong);
 
         model.addAttribute("services", List.of(
                 "Daycare (6 AM - 3 PM)",
@@ -64,6 +81,7 @@ public class BookingController {
                 "Boarding"
         ));
         model.addAttribute("activePage", "booking");
+
         if (successMessage != null && !successMessage.isBlank()) {
             model.addAttribute("successMessage", successMessage);
         }
