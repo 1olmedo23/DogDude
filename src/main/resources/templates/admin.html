@@ -233,6 +233,11 @@
                 </div>
             </form>
 
+            <div class="mt-2">
+                <div class="alert alert-success" th:if="${successMessage}" th:text="${successMessage}"></div>
+                <div class="alert alert-danger" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+            </div>
+
             <div th:if="${#maps.isEmpty(byUser)}" class="alert alert-secondary">No uploads found.</div>
 
             <div th:each="u : ${users}">
@@ -251,6 +256,7 @@
                                     <th>Size</th>
                                     <th>Expires</th>
                                     <th>Uploaded</th>
+                                    <th>Actions</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -264,6 +270,17 @@
                                     <td th:text="${f.sizeBytes != null ? f.sizeBytes + ' bytes' : '—'}">102400 bytes</td>
                                     <td th:text="${f.expirationDate != null ? f.expirationDate : '—'}">2026-05-01</td>
                                     <td th:text="${#temporals.format(f.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-03 10:15</td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-outline-secondary"
+                                           th:href="@{'/admin/uploads/' + ${f.id} + '/download'}">
+                                            Download
+                                        </a>
+                                        <form th:action="@{'/admin/uploads/' + ${f.id} + '/delete'}" method="post" class="d-inline"
+                                              onsubmit="return confirm('Delete this file? This cannot be undone.');">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
