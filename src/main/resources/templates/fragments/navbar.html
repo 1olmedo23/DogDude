@@ -6,17 +6,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
 
-            <!-- Brand: logs out (with confirm) when authenticated; otherwise links to / -->
-            <div sec:authorize="isAuthenticated()">
-                <form th:action="@{/logout}" method="post" class="d-inline">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <button type="submit"
-                            class="navbar-brand btn btn-link text-decoration-none p-0 m-0 align-baseline confirm-logout">
-                        Dog Daycare
-                    </button>
-                </form>
-            </div>
-            <a class="navbar-brand" th:href="@{/}" sec:authorize="isAnonymous()">Dog Daycare</a>
+            <!-- Brand always links home -->
+            <a class="navbar-brand" th:href="@{/}">Dog Daycare</a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -25,45 +16,40 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
 
-                    <!-- Public-only navigation -->
-                    <li class="nav-item" sec:authorize="isAnonymous()">
-                        <a class="nav-link"
-                           th:href="@{/}"
-                           th:classappend="${activePage == 'home'} ? 'active'">
-                            Home
-                        </a>
+                    <!-- ========== PUBLIC / ADMIN (keep public-first) ========== -->
+                    <!-- Show these items when anonymous OR admin (but hide for customer) -->
+                    <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/}" th:classappend="${activePage == 'home'} ? 'active'">Home</a>
                     </li>
-                    <li class="nav-item" sec:authorize="isAnonymous()">
-                        <a class="nav-link"
-                           th:href="@{/services}"
-                           th:classappend="${activePage == 'services'} ? 'active'">
-                            Services
-                        </a>
+                    <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/services}" th:classappend="${activePage == 'services'} ? 'active'">Services</a>
                     </li>
-                    <li class="nav-item" sec:authorize="isAnonymous()">
-                        <a class="nav-link"
-                           th:href="@{/about}"
-                           th:classappend="${activePage == 'about'} ? 'active'">
-                            About
-                        </a>
+                    <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/evaluation}" th:classappend="${activePage == 'evaluation'} ? 'active'">Evaluation</a>
                     </li>
-                    <li class="nav-item" sec:authorize="isAnonymous()">
-                        <a class="nav-link"
-                           th:href="@{/login}"
-                           th:classappend="${activePage == 'login'} ? 'active'">
-                            Login
-                        </a>
+
+                    <!-- About is available to everyone (including customers) -->
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/about}" th:classappend="${activePage == 'about'} ? 'active'">About</a>
                     </li>
+
+                    <!-- ========== ROLE SHORTCUTS ========== -->
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/admin}">Admin Dashboard</a>
+                    </li>
+
+                    <!-- Customer view: ONLY show My Bookings (+About is above) -->
+                    <li class="nav-item" sec:authorize="hasRole('CUSTOMER')">
+                        <a class="nav-link" th:href="@{/booking}" th:classappend="${activePage == 'booking'} ? 'active'">My Bookings</a>
+                    </li>
+
+                    <!-- Login only when anonymous -->
                     <li class="nav-item" sec:authorize="isAnonymous()">
-                        <a class="nav-link"
-                           th:href="@{/evaluation}"
-                           th:classappend="${activePage == 'evaluation'} ? 'active'">
-                            Evaluation
-                        </a>
+                        <a class="nav-link" th:href="@{/login}" th:classappend="${activePage == 'login'} ? 'active'">Login</a>
                     </li>
                 </ul>
 
-                <!-- Logout for any authenticated user (explicit button) -->
+                <!-- Logout only when authenticated (confirm handled by custom.js) -->
                 <div class="ms-3" sec:authorize="isAuthenticated()">
                     <form th:action="@{/logout}" method="post" class="d-inline">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
