@@ -4,6 +4,7 @@ import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.User;
 import com.dogdaycare.repository.BookingRepository;
 import com.dogdaycare.repository.UserRepository;
+import com.dogdaycare.repository.FileRepository;
 import com.dogdaycare.service.BookingLimitService;
 import com.dogdaycare.service.CancelPolicyService;
 import org.springframework.security.core.Authentication;
@@ -28,15 +29,18 @@ public class BookingController {
     private final CancelPolicyService cancelPolicyService;
     private final Clock clock = Clock.systemDefaultZone();
     private static String safe(String s) { return s == null ? "" : s.trim(); }
+    private final FileRepository fileRepository;
 
     public BookingController(BookingRepository bookingRepository,
                              UserRepository userRepository,
                              BookingLimitService bookingLimitService,
-                             CancelPolicyService cancelPolicyService) {
+                             CancelPolicyService cancelPolicyService,
+                             FileRepository fileRepository) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingLimitService = bookingLimitService;
         this.cancelPolicyService = cancelPolicyService;
+        this.fileRepository = fileRepository;
     }
 
     private void prepareBookingPage(User customer, Model model, String successMessage, String errorMessage) {
@@ -65,6 +69,9 @@ public class BookingController {
         var daycareLong = daycare.stream()
                 .filter(b -> "Daycare (6 AM - 8 PM)".equalsIgnoreCase(safe(b.getServiceType())))
                 .toList();
+
+        var files = fileRepository.findByUserIdOrderByCreatedAtDesc(customer.getId());
+        model.addAttribute("files", files);
 
         // Keep originals for compatibility
         model.addAttribute("bookings", all);

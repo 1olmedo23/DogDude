@@ -255,9 +255,10 @@
                                 </thead>
                                 <tbody>
                                 <tr th:each="f : ${byUser.get(u.id)}"
-                                    th:classappend="${f.expirationDate != null && f.expirationDate.isBefore(@java.time.LocalDate@now())} ? 'table-danger' :
-                                                    (${f.expirationDate != null && !f.expirationDate.isAfter(@java.time.LocalDate@now().plusDays(30))} ? 'table-warning' : '')">
-                                    <td th:text="${f.fileName}">VetRecord.pdf</td>
+                                    th:with="today=${T(java.time.LocalDate).now()}, soon=${T(java.time.LocalDate).now().plusDays(30)}"
+                                    th:classappend="${f.expirationDate != null and f.expirationDate.isBefore(today)} ? 'table-danger' :
+                    (${f.expirationDate != null and !f.expirationDate.isAfter(soon)} ? 'table-warning' : '')">
+                                <td th:text="${f.fileName}">VetRecord.pdf</td>
                                     <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies</td>
                                     <td th:text="${f.fileType != null ? f.fileType : '—'}">application/pdf</td>
                                     <td th:text="${f.sizeBytes != null ? f.sizeBytes + ' bytes' : '—'}">102400 bytes</td>
