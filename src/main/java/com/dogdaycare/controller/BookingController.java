@@ -113,13 +113,14 @@ public class BookingController {
                                 @RequestParam String serviceType,
                                 @RequestParam String date,
                                 @RequestParam String time,
+                                @RequestParam(name = "wantsAdvancePay", required = false, defaultValue = "false") boolean wantsAdvancePay,
                                 RedirectAttributes redirectAttributes) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
 
         LocalDate localDate = LocalDate.parse(date);
         LocalTime localTime = LocalTime.parse(time);
 
-        // Capacity check for customers
+        // Capacity check
         boolean canBook = bookingLimitService.canCustomerBook(localDate, serviceType);
         if (!canBook) {
             redirectAttributes.addFlashAttribute(
@@ -130,15 +131,38 @@ public class BookingController {
             return "redirect:/booking";
         }
 
+        // Compute advance eligibility (24h, daycare only)
+        boolean isDaycare = serviceType.toLowerCase().contains("daycare");
+        boolean advanceEligible = false;
+        if (isDaycare) {
+            var now = java.time.ZonedDateTime.now();
+            var bookingZdt = java.time.ZonedDateTime.of(localDate, localTime,
+                    now.getZone());
+            long hours = java.time.Duration.between(now, bookingZdt).toHours();
+            advanceEligible = hours >= 24;
+        }
+
         Booking booking = new Booking();
         booking.setCustomer(customer);
         booking.setServiceType(serviceType);
         booking.setDate(localDate);
         booking.setTime(localTime);
-        booking.setStatus("APPROVED"); // as per your current flow
+        booking.setStatus("APPROVED");
+
+        // Persist audit & flags (DB columns you added)
+        booking.setCreatedAt(java.time.LocalDateTime.now());
+        booking.setAdvanceEligible(advanceEligible);
+        // only store wantsAdvancePay=true if actually eligible
+        booking.setWantsAdvancePay(advanceEligible && wantsAdvancePay);
+
         bookingRepository.save(booking);
 
-        redirectAttributes.addFlashAttribute("successMessage", "Booking submitted successfully!");
+        // Friendly success
+        String msg = "Booking submitted successfully!";
+        if (booking.isWantsAdvancePay()) {
+            msg += " We’ll contact you to process the advance payment at the discounted rate.";
+        }
+        redirectAttributes.addFlashAttribute("successMessage", msg);
         return "redirect:/booking";
     }
 

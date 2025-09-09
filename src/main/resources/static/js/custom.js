@@ -54,11 +54,15 @@ function groupAndRenderAdminBookings(rows) {
             tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
         } else {
             list.forEach(b => {
+                const prepayBadge = (b.wantsAdvancePay && b.advanceEligible)
+                    ? ' <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>'
+                    : '';
+
                 const row = `
 <tr>
   <td>${b.customerName}</td>
   <td>${b.dogName || 'N/A'}</td>
-  <td>${b.serviceType}</td>
+  <td>${b.serviceType}${prepayBadge}</td>
   <td>${b.time || ''}</td>
   <td>${b.status}</td>
   <td>

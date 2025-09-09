@@ -53,16 +53,15 @@ public class AdminBookingController {
             String customerName = evalOpt.map(EvaluationRequest::getClientName).orElse(email != null ? email : "N/A");
             String dogName = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
 
-            String timeStr = (b.getTime() != null) ? b.getTime().toString() : "";
-
             return new BookingRowDto(
                     b.getId(),
                     customerName,
-                    email,
                     dogName,
                     b.getServiceType(),
-                    timeStr,
-                    b.getStatus()
+                    b.getTime(),
+                    b.getStatus(),
+                    b.isWantsAdvancePay(),
+                    b.isAdvanceEligible()
             );
         }).collect(Collectors.toList());
     }
