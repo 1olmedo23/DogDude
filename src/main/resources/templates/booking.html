@@ -59,18 +59,23 @@
                                     <input type="time" name="time" class="form-control" required>
                                 </div>
 
-                                <!-- Prepay (advance) checkbox + messaging -->
-                                <div class="mb-2" data-prepay-block>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" id="prepayChk"
-                                               disabled>
-                                        <label class="form-check-label" for="prepayChk">
-                                            Pay in advance & qualify for discounted daycare rates
-                                        </label>
-                                    </div>
+                                <!-- Daycare-only: advance-pay checkbox (enabled at ≥24h) -->
+                                <div class="form-check text-start my-2"
+                                     th:if="${#strings.containsIgnoreCase(service,'Daycare')}">
+                                    <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" id="prepayChk" disabled>
+                                    <label class="form-check-label" for="prepayChk">
+                                        I want to pay in advance and qualify for discounted daycare rates
+                                    </label>
                                     <div class="form-text" data-prepay-msg>
                                         Must be booked ≥ 24 hours in advance to qualify.
                                     </div>
+                                </div>
+
+                                <!-- Boarding-only: no checkbox, just the blurb -->
+                                <div class="form-text my-2"
+                                     th:if="${#strings.containsIgnoreCase(service,'Boarding')}">
+                                    <strong>Boarding discounts:</strong> lower per-night rates kick in after monthly stay thresholds
+                                    (e.g., 4, 10, 16 nights last month). We’ll apply this automatically.
                                 </div>
 
                                 <button type="submit" class="btn btn-custom w-100">Book</button>
@@ -98,6 +103,9 @@
                                 <span th:text="${b.date}"></span>
                                 <span th:if="${b.time != null}"> at <span th:text="${b.time}"></span></span>
                                 (<span th:text="${b.status}"></span>)
+                                <span th:if="${b.quotedRateAtLock != null}">
+                                    — <strong th:text="${'$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 2)}">$60.00</strong>
+                                </span>
                             </div>
                             <div th:if="${b.status == 'APPROVED'}">
                                 <form th:action="@{'/booking/cancel/' + ${b.id}}" method="post" class="ms-3">
@@ -119,6 +127,9 @@
                                 <span th:text="${b.date}"></span>
                                 <span th:if="${b.time != null}"> at <span th:text="${b.time}"></span></span>
                                 (<span th:text="${b.status}"></span>)
+                                <span th:if="${b.quotedRateAtLock != null}">
+                                    — <strong th:text="${'$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 2)}">$60.00</strong>
+                                </span>
                             </div>
                             <div th:if="${b.status == 'APPROVED'}">
                                 <form th:action="@{'/booking/cancel/' + ${b.id}}" method="post" class="ms-3">
@@ -140,6 +151,9 @@
                                 <span th:text="${b.date}"></span>
                                 <span th:if="${b.time != null}"> at <span th:text="${b.time}"></span></span>
                                 (<span th:text="${b.status}"></span>)
+                                <span th:if="${b.quotedRateAtLock != null}">
+                                    — <strong th:text="${'$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 2)}">$60.00</strong>
+                                </span>
                             </div>
                             <div th:if="${b.status == 'APPROVED'}">
                                 <form th:action="@{'/booking/cancel/' + ${b.id}}" method="post" class="ms-3">
@@ -214,8 +228,9 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Activate tab by hash (#uploads) and enable advance-pay checkbox when 24h+ -->
-<script>
+<script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function () {
+        // tabs by hash
         const activateFromHash = () => {
             const hash = window.location.hash;
             if (!hash) return;
@@ -229,46 +244,15 @@
         activateFromHash();
         window.addEventListener('hashchange', activateFromHash);
 
-        // Advance-pay checkbox UX (server still validates)
-        document.querySelectorAll('div.card form').forEach(form => {
-            const dateInput = form.querySelector('input[name="date"]');
-            const advanceBox = form.querySelector('.wants-advance');
-            const hint = form.querySelector('.advance-hint');
-            if (!dateInput || !advanceBox) return;
-
-            function is24hOrMoreOut(chosen) {
-                const now = new Date();
-                const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-                cutoff.setHours(0,0,0,0);
-                return chosen >= cutoff;
-            }
-
-            function updateAdvanceState() {
-                const v = dateInput.value;
-                if (!v) { advanceBox.disabled = true; return; }
-                const chosen = new Date(v + 'T00:00:00');
-                const eligible = is24hOrMoreOut(chosen);
-                advanceBox.disabled = !eligible;
-                if (hint) {
-                    hint.textContent = eligible
-                        ? 'Eligible for advance-pay discount.'
-                        : 'Must be booked 24+ hours in advance to enable this option.';
-                }
-            }
-
-            dateInput.addEventListener('change', updateAdvanceState);
-            updateAdvanceState();
-        });
-    });
-</script>
-<script th:inline="javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-        // For each booking card form, wire up the date/time -> prepay eligibility logic
+        // prepay eligibility (daycare only, ≥24h)
         document.querySelectorAll('form[action="/booking"]').forEach(form => {
             const dateEl = form.querySelector('input[name="date"]');
             const timeEl = form.querySelector('input[name="time"]');
             const chk    = form.querySelector('input[name="wantsAdvancePay"]');
             const msg    = form.querySelector('[data-prepay-msg]');
+            const serviceType = form.querySelector('input[name="serviceType"]')?.value || '';
+
+            const isDaycare = serviceType.toLowerCase().includes('daycare');
 
             function hoursUntil(dateStr, timeStr) {
                 if (!dateStr || !timeStr) return 0;
@@ -277,33 +261,23 @@
                 return (dt.getTime() - now.getTime()) / (1000*60*60);
             }
 
-            function isDaycare(serviceType) {
-                return (serviceType || '').toLowerCase().includes('daycare');
-            }
-
             function refresh() {
-                const serviceType = form.querySelector('input[name="serviceType"]').value;
                 const hrs = hoursUntil(dateEl.value, timeEl.value);
-                const eligible = isDaycare(serviceType) && hrs >= 24;
+                const eligible = isDaycare && hrs >= 24;
 
-                // Disable + clear when not eligible (prevents stale "checked" state)
-                chk.disabled = !eligible;
-                if (!eligible && chk.checked) chk.checked = false;
-
-                // Update helper text
-                if (eligible) {
-                    msg.textContent = 'Eligible for advance-pay discount.';
-                } else if (isDaycare(serviceType)) {
-                    msg.textContent = 'Must be booked ≥ 24 hours in advance to qualify.';
-                } else {
-                    msg.textContent = 'Boarding: advance-pay discount is based on prior-month stays (handled by admin).';
+                if (chk) {
+                    chk.disabled = !eligible;
+                    if (!eligible && chk.checked) chk.checked = false; // clear stale state
+                }
+                if (msg) {
+                    msg.textContent = eligible
+                        ? 'Eligible for advance-pay discount.'
+                        : 'Must be booked ≥ 24 hours in advance to qualify.';
                 }
             }
 
             dateEl?.addEventListener('change', refresh);
             timeEl?.addEventListener('change', refresh);
-
-            // Initial evaluation (in case the browser pre-fills values)
             refresh();
         });
     });

@@ -49,20 +49,28 @@ function groupAndRenderAdminBookings(rows) {
     });
 
     for (const [title, list] of Object.entries(groups)) {
-        tbody.insertAdjacentHTML('beforeend', `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`);
-        if (list.length === 0) {
-            tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
-        } else {
-            list.forEach(b => {
-                const prepayBadge = (b.wantsAdvancePay && b.advanceEligible)
-                    ? ' <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>'
-                    : '';
+        tbody.insertAdjacentHTML('beforeend',
+            `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`);
 
-                const row = `
+        if (list.length === 0) {
+            tbody.insertAdjacentHTML('beforeend',
+                `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
+            continue;
+        }
+
+        list.forEach(b => {
+            let badge = '';
+            if ((b.status || '').toUpperCase() === 'CANCELED') {
+                badge = ' <span class="badge bg-danger ms-1">Canceled</span>';
+            } else if (b.wantsAdvancePay && b.advanceEligible) {
+                badge = ' <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>';
+            }
+
+            const row = `
 <tr>
   <td>${b.customerName}</td>
   <td>${b.dogName || 'N/A'}</td>
-  <td>${b.serviceType}${prepayBadge}</td>
+  <td>${b.serviceType}${badge}</td>
   <td>${b.time || ''}</td>
   <td>${b.status}</td>
   <td>
@@ -71,12 +79,11 @@ function groupAndRenderAdminBookings(rows) {
         ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
         <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
       </form>` : ''
-                }
+            }
   </td>
 </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-        }
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
     }
 
     attachCancelConfirm();

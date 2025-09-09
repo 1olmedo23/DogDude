@@ -13,6 +13,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.dogdaycare.service.PricingService;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -30,17 +37,20 @@ public class BookingController {
     private final Clock clock = Clock.systemDefaultZone();
     private static String safe(String s) { return s == null ? "" : s.trim(); }
     private final FileRepository fileRepository;
+    private final PricingService pricingService;
 
     public BookingController(BookingRepository bookingRepository,
                              UserRepository userRepository,
                              BookingLimitService bookingLimitService,
                              CancelPolicyService cancelPolicyService,
-                             FileRepository fileRepository) {
+                             FileRepository fileRepository,
+                             PricingService pricingService) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingLimitService = bookingLimitService;
         this.cancelPolicyService = cancelPolicyService;
         this.fileRepository = fileRepository;
+        this.pricingService = pricingService;
     }
 
     private void prepareBookingPage(User customer, Model model, String successMessage, String errorMessage) {
@@ -132,16 +142,18 @@ public class BookingController {
         }
 
         // Compute advance eligibility (24h, daycare only)
-        boolean isDaycare = serviceType.toLowerCase().contains("daycare");
+        final boolean isDaycareFlag =
+                serviceType != null && serviceType.toLowerCase().contains("daycare");
+
         boolean advanceEligible = false;
-        if (isDaycare) {
+        if (isDaycareFlag) {
             var now = java.time.ZonedDateTime.now();
-            var bookingZdt = java.time.ZonedDateTime.of(localDate, localTime,
-                    now.getZone());
+            var bookingZdt = java.time.ZonedDateTime.of(localDate, localTime, now.getZone());
             long hours = java.time.Duration.between(now, bookingZdt).toHours();
             advanceEligible = hours >= 24;
         }
 
+        // Build + persist
         Booking booking = new Booking();
         booking.setCustomer(customer);
         booking.setServiceType(serviceType);
@@ -149,11 +161,14 @@ public class BookingController {
         booking.setTime(localTime);
         booking.setStatus("APPROVED");
 
-        // Persist audit & flags (DB columns you added)
+        // audit & flags
         booking.setCreatedAt(java.time.LocalDateTime.now());
         booking.setAdvanceEligible(advanceEligible);
-        // only store wantsAdvancePay=true if actually eligible
         booking.setWantsAdvancePay(advanceEligible && wantsAdvancePay);
+
+        // lock a quote (base rates for now; we’ll adjust at bundle/weekly lock later)
+        java.math.BigDecimal quoteNow = pricingService.priceFor(serviceType);
+        booking.setQuotedRateAtLock(quoteNow);
 
         bookingRepository.save(booking);
 
