@@ -1,4 +1,3 @@
-// src/main/java/com/dogdaycare/dto/BookingRowDto.java
 package com.dogdaycare.dto;
 
 import java.time.LocalTime;
@@ -6,7 +5,8 @@ import java.time.LocalTime;
 public class BookingRowDto {
     private Long id;
     private String customerName;
-    private String dogName;       // if you already return this; otherwise keep as you have
+    private String customerEmail;
+    private String dogName;
     private String serviceType;
     private LocalTime time;
     private String status;
@@ -15,24 +15,30 @@ public class BookingRowDto {
     private boolean wantsAdvancePay;
     private boolean advanceEligible;
 
+    private boolean paid;
+
     public BookingRowDto() {}
 
     public BookingRowDto(Long id,
                          String customerName,
+                         String customerEmail,
                          String dogName,
                          String serviceType,
                          LocalTime time,
                          String status,
                          boolean wantsAdvancePay,
-                         boolean advanceEligible) {
+                         boolean advanceEligible,
+                         boolean paid) {
         this.id = id;
         this.customerName = customerName;
+        this.customerEmail = customerEmail;
         this.dogName = dogName;
         this.serviceType = serviceType;
         this.time = time;
         this.status = status;
         this.wantsAdvancePay = wantsAdvancePay;
         this.advanceEligible = advanceEligible;
+        this.paid = paid;
     }
 
     // getters & setters …
@@ -42,6 +48,9 @@ public class BookingRowDto {
 
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getCustomerEmail() { return customerEmail; }   // NEW
+    public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
 
     public String getDogName() { return dogName; }
     public void setDogName(String dogName) { this.dogName = dogName; }
@@ -60,4 +69,7 @@ public class BookingRowDto {
 
     public boolean isAdvanceEligible() { return advanceEligible; }
     public void setAdvanceEligible(boolean advanceEligible) { this.advanceEligible = advanceEligible; }
+
+    public boolean isPaid() { return paid; }
+    public void setPaid(boolean paid) { this.paid = paid; }
 }

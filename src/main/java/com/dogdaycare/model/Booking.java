@@ -1,4 +1,3 @@
-// src/main/java/com/dogdaycare/model/Booking.java
 package com.dogdaycare.model;
 
 import jakarta.persistence.*;
@@ -22,13 +21,13 @@ public class Booking {
     @JoinColumn(name = "user_id")
     private User customer;
 
-    private String serviceType; // Daycare AM, Daycare Full, Boarding
+    private String serviceType; // Daycare..., Boarding
     private LocalDate date;
     private LocalTime time;
 
     private String status = "APPROVED"; // PENDING, APPROVED, CANCELED
 
-    // --- NEW — used by discounts / audit ---
+    // --- discounts / audit / prepay flags ---
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -43,4 +42,11 @@ public class Booking {
 
     @Column(name = "quoted_rate_at_lock", precision = 10, scale = 2)
     private BigDecimal quotedRateAtLock;
+
+    // --- NEW: day-level paid tracking ---
+    @Column(name = "paid")
+    private boolean paid;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
 }

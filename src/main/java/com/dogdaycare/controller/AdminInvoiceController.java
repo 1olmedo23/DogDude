@@ -74,7 +74,7 @@ public class AdminInvoiceController {
             @RequestParam(value = "start", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start) {
 
-        LocalDate ws = (start != null) ? weekStart(start) : lastCompletedWeekStart();
+        LocalDate ws = (start != null) ? start.with(DayOfWeek.MONDAY) : lastCompletedWeekStart();
         LocalDate we = weekEnd(ws);
 
         List<Booking> weekBookings = bookingRepository.findByDateBetween(ws, we).stream()
@@ -82,39 +82,43 @@ public class AdminInvoiceController {
                 .collect(Collectors.toList());
 
         Map<String, List<Booking>> byEmail = weekBookings.stream()
-                .collect(Collectors.groupingBy(b -> b.getCustomer() != null ? b.getCustomer().getUsername() : "N/A"));
+                .filter(b -> b.getCustomer() != null && b.getCustomer().getUsername() != null)
+                .collect(Collectors.groupingBy(b -> b.getCustomer().getUsername()));
 
         List<InvoiceRowDto> rows = new ArrayList<>();
-        for (Map.Entry<String, List<Booking>> entry : byEmail.entrySet()) {
+        for (var entry : byEmail.entrySet()) {
             String email = entry.getKey();
-            if ("N/A".equals(email)) continue;
-
-            BigDecimal total = entry.getValue().stream()
-                    .map(b -> pricingService.priceFor(b.getServiceType()))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            var bookings = entry.getValue();
 
             var evalOpt = evaluationRepository.findTopByEmailOrderByCreatedAtDesc(email);
             String name = evalOpt.map(EvaluationRequest::getClientName).orElse(email);
             String dog  = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
 
+            var amount = bookings.stream()
+                    .map(b -> pricingService.priceFor(b.getServiceType()))
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            boolean allDaysPaid = !bookings.isEmpty() && bookings.stream().allMatch(Booking::isPaid);
+
             var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(email, ws);
+            boolean invoicePaid = invOpt.map(Invoice::isPaid).orElse(false);
+
+            boolean rowPaid = invoicePaid || allDaysPaid;
+
+            // prefer persisted invoice values when present
             if (invOpt.isPresent()) {
                 var inv = invOpt.get();
-                rows.add(new InvoiceRowDto(
-                        inv.getId(),
-                        inv.getCustomerName(),
-                        inv.getCustomerEmail(),
-                        inv.getDogName(),
-                        inv.getAmount(),
-                        inv.isPaid()
+                rows.add(new com.dogdaycare.dto.InvoiceRowDto(
+                        inv.getId(), name, email, dog, inv.getAmount(), inv.isPaid()
                 ));
             } else {
-                rows.add(new InvoiceRowDto(
-                        null, name, email, dog, total, false
+                rows.add(new com.dogdaycare.dto.InvoiceRowDto(
+                        null, name, email, dog, amount, rowPaid
                 ));
             }
         }
-        rows.sort(Comparator.comparing(InvoiceRowDto::getCustomerName, String.CASE_INSENSITIVE_ORDER));
+
+        rows.sort(Comparator.comparing(com.dogdaycare.dto.InvoiceRowDto::getCustomerName, String.CASE_INSENSITIVE_ORDER));
         return rows;
     }
 
@@ -157,16 +161,19 @@ public class AdminInvoiceController {
             invoice.setPaidAt(LocalDateTime.now());
             invoiceRepository.save(invoice);
 
-            // Keep Bookings tab in sync for this user/week
-            User user = userRepository.findByUsername(customerEmail).orElse(null);
-            if (user != null) {
-                WeeklyBillingStatus wbs = weeklyRepo.findByUserAndWeekStart(user, ws)
-                        .orElseGet(() -> new WeeklyBillingStatus(user, ws));
-                wbs.setPaid(true);
-                weeklyRepo.save(wbs);
+            // *** NEW: mark all bookings for this week/customer as PAID
+            List<Booking> weekCustomerBookings = bookingRepository.findByDateBetween(ws, we).stream()
+                    .filter(b -> b.getCustomer() != null && customerEmail.equals(b.getCustomer().getUsername()))
+                    .collect(Collectors.toList());
+            for (Booking b : weekCustomerBookings) {
+                if (!"CANCELED".equalsIgnoreCase(b.getStatus())) {
+                    b.setPaid(true);
+                    b.setPaidAt(LocalDateTime.now());
+                }
             }
+            bookingRepository.saveAll(weekCustomerBookings);
 
-            ra.addFlashAttribute("invoiceMessage", "Invoice marked paid and locked.");
+            ra.addFlashAttribute("invoiceMessage", "Invoice marked paid and locked. All week bookings marked paid.");
         } else {
             ra.addFlashAttribute("invoiceMessage", "Invoice is already paid.");
         }
