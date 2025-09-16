@@ -21,13 +21,13 @@ public class Booking {
     @JoinColumn(name = "user_id")
     private User customer;
 
-    private String serviceType; // Daycare..., Boarding
+    private String serviceType; // "Daycare (6 AM - 3 PM)", "Daycare (6 AM - 8 PM)", "Boarding"
     private LocalDate date;
     private LocalTime time;
 
     private String status = "APPROVED"; // PENDING, APPROVED, CANCELED
 
-    // --- discounts / audit / prepay flags ---
+    // --- Discounts / audit / locking ---
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -43,7 +43,7 @@ public class Booking {
     @Column(name = "quoted_rate_at_lock", precision = 10, scale = 2)
     private BigDecimal quotedRateAtLock;
 
-    // --- NEW: day-level paid tracking ---
+    // --- Paid state (day-level) ---
     @Column(name = "paid")
     private boolean paid;
 

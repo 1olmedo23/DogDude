@@ -1,5 +1,6 @@
 package com.dogdaycare.controller;
 
+import java.math.BigDecimal;
 import com.dogdaycare.dto.BookingRowDto;
 import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.EvaluationRequest;
@@ -70,16 +71,17 @@ public class AdminBookingController {
             return new BookingRowDto(
                     b.getId(),
                     customerName,
-                    email,                  // <- NEW: customerEmail
+                    email,                   // <— include email
                     dogName,
                     b.getServiceType(),
                     b.getTime(),
                     b.getStatus(),
                     b.isWantsAdvancePay(),
                     b.isAdvanceEligible(),
-                    b.isPaid()              // <- NEW: paid
+                    b.isPaid(),              // <— include paid
+                    b.getQuotedRateAtLock()  // <— include price
             );
-        }).collect(Collectors.toList());
+        }).collect(java.util.stream.Collectors.toList());
     }
 
     // --- Server view (unchanged) ---
@@ -145,24 +147,29 @@ public class AdminBookingController {
 
                 // Load/create invoice for that week+customer
                 var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(customer.getUsername(), ws);
+
                 com.dogdaycare.model.Invoice inv = invOpt.orElseGet(() -> {
-                    // amount is a simple sum using current PricingService (we’ll plug in discount tiers next)
-                    java.math.BigDecimal amount = weekBookings.stream()
-                            .map(x -> pricingService.priceFor(x.getServiceType()))
+                    // scope to this customer + week + non-canceled
+                    java.util.List<com.dogdaycare.model.Booking> weekBookingsForCustomer =
+                            bookingRepository.findByDateBetween(ws, weekEnd(ws)).stream()
+                                    .filter(bk -> bk.getCustomer() != null
+                                            && customer.getUsername().equals(bk.getCustomer().getUsername()))
+                                    .filter(bk -> !"CANCELED".equalsIgnoreCase(bk.getStatus()))
+                                    .toList();
+
+                    java.math.BigDecimal amount = weekBookingsForCustomer.stream()
+                            .map(pricingService::priceFor)
                             .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
-                    var evalOpt = evaluationRepository.findTopByEmailOrderByCreatedAtDesc(customer.getUsername());
-                    String name = evalOpt.map(com.dogdaycare.model.EvaluationRequest::getClientName).orElse(customer.getUsername());
-                    String dog = evalOpt.map(com.dogdaycare.model.EvaluationRequest::getDogName).orElse("N/A");
-
-                    var tmp = new com.dogdaycare.model.Invoice();
-                    tmp.setCustomerEmail(customer.getUsername());
-                    tmp.setCustomerName(name);
-                    tmp.setDogName(dog);
-                    tmp.setWeekStart(ws);
-                    tmp.setWeekEnd(we);
-                    tmp.setAmount(amount);
-                    return tmp;
+                    // build a new invoice shell
+                    com.dogdaycare.model.Invoice i = new com.dogdaycare.model.Invoice();
+                    i.setCustomerEmail(customer.getUsername());
+                    i.setCustomerName(customer.getUsername());    // or look up Evaluation name if you prefer
+                    i.setDogName("N/A");                           // or pull from Evaluation
+                    i.setWeekStart(ws);
+                    i.setWeekEnd(weekEnd(ws));
+                    i.setAmount(amount);
+                    return i;
                 });
 
                 // Only flip to paid if all bookings are paid; never flip an already-paid invoice back to unpaid

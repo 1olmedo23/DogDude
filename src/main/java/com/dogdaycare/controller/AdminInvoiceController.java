@@ -95,7 +95,8 @@ public class AdminInvoiceController {
             String dog  = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
 
             var amount = bookings.stream()
-                    .map(b -> pricingService.priceFor(b.getServiceType()))
+                    .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                    .map(b -> b.getQuotedRateAtLock() != null ? b.getQuotedRateAtLock() : pricingService.priceFor(b))
                     .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
             boolean allDaysPaid = !bookings.isEmpty() && bookings.stream().allMatch(Booking::isPaid);
@@ -139,7 +140,8 @@ public class AdminInvoiceController {
                             .collect(Collectors.toList());
 
                     var amount = bookings.stream()
-                            .map(b -> pricingService.priceFor(b.getServiceType()))
+                            .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                            .map(b -> b.getQuotedRateAtLock() != null ? b.getQuotedRateAtLock() : pricingService.priceFor(b))
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                     var evalOpt = evaluationRepository.findTopByEmailOrderByCreatedAtDesc(customerEmail);

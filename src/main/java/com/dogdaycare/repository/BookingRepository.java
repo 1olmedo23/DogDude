@@ -12,10 +12,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByDate(LocalDate date);
     List<Booking> findByDateBetween(LocalDate start, LocalDate end);
 
-    // Week-scoped for a user
+    // Weekly filters (useful for daycare bundle counts)
     List<Booking> findByCustomerAndDateBetween(User customer, LocalDate startInclusive, LocalDate endInclusive);
 
-    // Filter by service type contains (case-insensitive) within a date range
     List<Booking> findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetween(
             User customer, String serviceTypeLike, LocalDate startInclusive, LocalDate endInclusive);
+
+    List<Booking> findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+            User customer,
+            String serviceTypeLike,
+            LocalDate startInclusive,
+            LocalDate endInclusive,
+            String status);
 }

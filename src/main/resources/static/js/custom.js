@@ -55,6 +55,11 @@ function groupAndRenderAdminBookings(rows) {
         } else {
             list.forEach(b => {
                 let badgeHtml = '';
+                // price chip (uses your formatCurrency helper)
+                const priceTag = b.quotedRateAtLock
+                    ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
+                    : '';
+
                 if (b.status && b.status.toUpperCase() === 'CANCELED') {
                     badgeHtml = ` <span class="badge bg-danger ms-1">Canceled</span>`;
                 } else if (b.paid) {
@@ -63,30 +68,28 @@ function groupAndRenderAdminBookings(rows) {
                     badgeHtml = ` <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>`;
                 }
 
-                // Show "Mark Paid (day)" only if not canceled and not paid
-                const showMarkDayPaid = !b.paid && (!b.status || b.status.toUpperCase() !== 'CANCELED');
-                const markPaidForm = showMarkDayPaid ? `
+                const markPaidForm = (!b.paid && (!b.status || b.status.toUpperCase() !== 'CANCELED')) ? `
 <form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline ms-2"
       onsubmit="return confirm('Mark this booking as PAID?');">
   ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
   <button class="btn btn-sm btn-outline-success">Mark Paid (day)</button>
 </form>` : '';
 
-                // Cancel button only when APPROVED and not paid
-                const cancelCellHtml = (b.status === 'APPROVED' && !b.paid) ? `
-      <form method="POST" action="/admin/bookings/cancel/${b.id}">
-        ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
-        <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
-      </form>` : '';
-
                 const row = `
 <tr>
   <td>${b.customerName}</td>
   <td>${b.dogName || 'N/A'}</td>
-  <td>${b.serviceType}${badgeHtml}${markPaidForm}</td>
+  <td>${b.serviceType}${badgeHtml}${priceTag}${markPaidForm}</td>
   <td>${b.time || ''}</td>
   <td>${b.status}</td>
-  <td>${cancelCellHtml}</td>
+  <td>
+    ${b.status === 'APPROVED' ? `
+      <form method="POST" action="/admin/bookings/cancel/${b.id}">
+        ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
+        <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
+      </form>` : ''
+                }
+  </td>
 </tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             });

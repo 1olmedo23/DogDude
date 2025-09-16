@@ -1,4 +1,4 @@
-package com.dogdaycare.controller;
+/* package com.dogdaycare.controller;
 
 import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.User;
@@ -103,3 +103,4 @@ public class AdminBillingController {
                 user, "boarding", prev[0], prev[1]).size();
     }
 }
+*/

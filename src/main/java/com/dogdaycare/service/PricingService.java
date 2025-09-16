@@ -1,119 +1,171 @@
 package com.dogdaycare.service;
 
 import com.dogdaycare.model.Booking;
+import com.dogdaycare.model.User;
+import com.dogdaycare.repository.BookingRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
+import java.util.List;
 
 @Service
 public class PricingService {
 
-    // Immediate rates (current behavior)
-    public static final BigDecimal DC_HALF_IMM = bd(50);
-    public static final BigDecimal DC_FULL_IMM = bd(60);
-    public static final BigDecimal DC_EXT_IMM  = bd(80);
+    private final BookingRepository bookingRepository;
 
-    public static final BigDecimal BR_NIGHT_IMM = bd(90);
-    public static final BigDecimal BR_LAST_IMM  = bd(45);
-
-    // Daycare discounted (1–3) and (≥4)
-    public static final BigDecimal DC_HALF_T1 = bd(45);
-    public static final BigDecimal DC_FULL_T1 = bd(50);
-    public static final BigDecimal DC_EXT_T1  = bd(70);
-
-    public static final BigDecimal DC_HALF_T4 = bd(40);
-    public static final BigDecimal DC_FULL_T4 = bd(45);
-    public static final BigDecimal DC_EXT_T4  = bd(60);
-
-    // Boarding tiers (prev month)
-    public static final BigDecimal BR_NIGHT_T4  = bd(80);    public static final BigDecimal BR_LAST_T4  = bd(40);
-    public static final BigDecimal BR_NIGHT_T10 = bd(75);    public static final BigDecimal BR_LAST_T10 = bd(37.5);
-    public static final BigDecimal BR_NIGHT_T16 = bd(65);    public static final BigDecimal BR_LAST_T16 = bd(32.5);
-
-    public enum DaycareBucket { HALF, FULL, EXT, UNKNOWN }
-
-    public boolean isDaycare(String serviceType) {
-        return serviceType != null && serviceType.toLowerCase().contains("daycare");
+    public PricingService(BookingRepository bookingRepository) {
+        this.bookingRepository = bookingRepository;
     }
 
-    public boolean isBoarding(String serviceType) {
-        return serviceType != null && serviceType.toLowerCase().contains("boarding");
+    // --- Base immediate rates ---
+    private static final BigDecimal DC_HALF_IMM = bd(50);
+    private static final BigDecimal DC_FULL_IMM = bd(60);
+    private static final BigDecimal DC_EXT_IMM  = bd(80);
+
+    // --- Daycare discounts (weekly prepay) ---
+    // 1–3 days prepay
+    private static final BigDecimal DC_HALF_PREPAY_1_3 = bd(45);
+    private static final BigDecimal DC_FULL_PREPAY_1_3 = bd(50);
+    private static final BigDecimal DC_EXT_PREPAY_1_3  = bd(70);
+    // ≥4 days prepay
+    private static final BigDecimal DC_HALF_PREPAY_4P = bd(40);
+    private static final BigDecimal DC_FULL_PREPAY_4P = bd(45);
+    private static final BigDecimal DC_EXT_PREPAY_4P  = bd(60);
+
+    // --- Boarding immediate + tiered (per-night) ---
+    private static final BigDecimal BRD_PERNIGHT_IMM = bd(90);
+
+    // Prior-month tier: ≥4
+    private static final BigDecimal BRD_PERNIGHT_T4  = bd(80);
+    // Prior-month tier: ≥10
+    private static final BigDecimal BRD_PERNIGHT_T10 = bd(75);
+    // Prior-month tier: ≥16
+    private static final BigDecimal BRD_PERNIGHT_T16 = bd(65);
+
+    private static BigDecimal bd(double v) { return BigDecimal.valueOf(v); }
+
+    private boolean isDaycare(Booking b) {
+        String s = b.getServiceType();
+        return s != null && s.toLowerCase().contains("daycare");
     }
 
-    public DaycareBucket bucketForService(String serviceType) {
-        if (serviceType == null) return DaycareBucket.UNKNOWN;
-        String s = serviceType.toLowerCase();
-        if (s.contains("6 am - 3 pm")) return DaycareBucket.HALF;
-        if (s.contains("6 am - 8 pm")) return DaycareBucket.FULL;
-        if (s.contains("extended") || s.contains("9:30")) return DaycareBucket.EXT;
-        return DaycareBucket.UNKNOWN;
+    private boolean isBoarding(Booking b) {
+        String s = b.getServiceType();
+        return s != null && s.toLowerCase().contains("boarding");
     }
 
-    // === Existing immediate price (keeps AdminInvoiceController working as-is) ===
-    public BigDecimal priceFor(String serviceType) {
-        if (isDaycare(serviceType)) {
-            switch (bucketForService(serviceType)) {
-                case HALF: return DC_HALF_IMM;
-                case FULL: return DC_FULL_IMM;
-                case EXT:  return DC_EXT_IMM;
-                default:   return DC_FULL_IMM;
-            }
-        } else if (isBoarding(serviceType)) {
-            // Default per-night immediate (last-day logic can be added if you store it)
-            return BR_NIGHT_IMM;
+    private boolean isHalfDay(Booking b) {
+        // Your strings: "Daycare (6 AM - 3 PM)" is the half-day
+        String s = b.getServiceType();
+        return s != null && s.contains("6 AM - 3 PM");
+    }
+
+    private boolean isExtended(Booking b) {
+        // Extended is “till 9:30PM” in your spec; your label is "6 AM - 8 PM".
+        // If you later add "Extended" variant string, adjust here.
+        String s = b.getServiceType();
+        return s != null && s.contains("8 PM"); // treating 6AM–8PM as the long/“full” block
+    }
+
+    private boolean isFullDay(Booking b) {
+        // In your current 2 daycare SKUs you have 6–3 and 6–8.
+        // We'll treat 6–8 as FULL for pricing selection (not Extended).
+        // If you add a real Extended SKU later, update detection accordingly.
+        return isDaycare(b) && isExtended(b); // map 6–8 to the “full-day” price band
+    }
+
+    private LocalDate weekStart(LocalDate any) {
+        return any.with(DayOfWeek.MONDAY);
+    }
+    private LocalDate weekEnd(LocalDate ws) {
+        return ws.plusDays(6);
+    }
+
+    private LocalDate priorMonthStart(LocalDate any) {
+        LocalDate firstOfThisMonth = any.withDayOfMonth(1);
+        LocalDate lastMonth = firstOfThisMonth.minusMonths(1);
+        return lastMonth.withDayOfMonth(1);
+    }
+    private LocalDate priorMonthEnd(LocalDate any) {
+        LocalDate pms = priorMonthStart(any);
+        return pms.withDayOfMonth(pms.lengthOfMonth());
+    }
+
+    /**
+     * Compute price for a single booking at evaluation time.
+     * Uses locked weekly daycare prepay bundle + prior-month boarding tiers.
+     * For daycare discount: booking must be 24h+ out, daycare, and customer opted-in (wantsAdvancePay).
+     */
+    public BigDecimal priceFor(Booking b) {
+        if (b == null || b.getCustomer() == null) return BigDecimal.ZERO;
+
+        // If we already locked a quote, prefer it (idempotent behavior)
+        if (b.getQuotedRateAtLock() != null) return b.getQuotedRateAtLock();
+
+        if (isDaycare(b)) {
+            return priceDaycare(b);
+        } else if (isBoarding(b)) {
+            return priceBoarding(b);
         }
-        return DC_FULL_IMM;
+        return BigDecimal.ZERO;
     }
 
-    // === Discount helpers we’ll use as we finish the weekly bundle ===
-    public BigDecimal daycareImmediate(DaycareBucket b) {
-        return switch (b) {
-            case HALF -> DC_HALF_IMM;
-            case FULL -> DC_FULL_IMM;
-            case EXT  -> DC_EXT_IMM;
-            default   -> DC_FULL_IMM;
-        };
+    private BigDecimal priceDaycare(Booking b) {
+        // If not in advance or not opted in, immediate rates
+        boolean qualifies = b.isAdvanceEligible() && b.isWantsAdvancePay();
+
+        if (!qualifies) {
+            if (isHalfDay(b)) return DC_HALF_IMM;
+            if (isFullDay(b)) return DC_FULL_IMM;
+            // If you add “Extended” distinct SKU later: return DC_EXT_IMM
+            // For now, your two SKUs map: 6–3 => Half, 6–8 => Full
+            return DC_FULL_IMM; // default to full for safety
+        }
+
+        // Count customer’s prepay daycare bookings that fall in the same Mon–Sun week
+        User u = b.getCustomer();
+        LocalDate ws = weekStart(b.getDate());
+        LocalDate we = weekEnd(ws);
+
+        List<Booking> weekDaycare = bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        u, "daycare", ws, we, "CANCELED");
+
+        long prepayCount = weekDaycare.stream()
+                .filter(x -> x.isWantsAdvancePay() && x.isAdvanceEligible())
+                .count();
+
+        boolean atLeast4 = prepayCount >= 4;
+
+        if (atLeast4) {
+            if (isHalfDay(b)) return DC_HALF_PREPAY_4P;
+            if (isFullDay(b)) return DC_FULL_PREPAY_4P;
+            return DC_EXT_PREPAY_4P; // if you add extended explicitly later
+        } else {
+            if (isHalfDay(b)) return DC_HALF_PREPAY_1_3;
+            if (isFullDay(b)) return DC_FULL_PREPAY_1_3;
+            return DC_EXT_PREPAY_1_3;
+        }
     }
 
-    public BigDecimal daycareDiscounted(int prepaidCountInWeek, DaycareBucket b) {
-        boolean tier4 = prepaidCountInWeek >= 4;
-        return switch (b) {
-            case HALF -> tier4 ? DC_HALF_T4 : DC_HALF_T1;
-            case FULL -> tier4 ? DC_FULL_T4 : DC_FULL_T1;
-            case EXT  -> tier4 ? DC_EXT_T4  : DC_EXT_T1;
-            default   -> DC_FULL_T1;
-        };
-    }
+    private BigDecimal priceBoarding(Booking b) {
+        // Prior-month boarding nights determine current per-night price
+        User u = b.getCustomer();
+        LocalDate pms = priorMonthStart(b.getDate());
+        LocalDate pme = priorMonthEnd(b.getDate());
 
-    public static class BoardingTier {
-        public final BigDecimal perNight;
-        public final BigDecimal lastDay;
-        public BoardingTier(BigDecimal night, BigDecimal last) { this.perNight = night; this.lastDay = last; }
-    }
+        List<Booking> prevMonthBoarding = bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        u, "boarding", pms, pme, "CANCELED");
 
-    public BoardingTier boardingTierForPrevMonth(int staysPrevMonth) {
-        if (staysPrevMonth >= 16) return new BoardingTier(BR_NIGHT_T16, BR_LAST_T16);
-        if (staysPrevMonth >= 10) return new BoardingTier(BR_NIGHT_T10, BR_LAST_T10);
-        if (staysPrevMonth >= 4)  return new BoardingTier(BR_NIGHT_T4,  BR_LAST_T4);
-        return new BoardingTier(BR_NIGHT_IMM, BR_LAST_IMM);
-    }
+        long nights = prevMonthBoarding.size();
 
-    public static LocalDate weekStartMonday(LocalDate any) {
-        return any.minusDays((any.getDayOfWeek().getValue() + 6) % 7); // Monday as start
-    }
+        if (nights >= 16) return BRD_PERNIGHT_T16;
+        if (nights >= 10) return BRD_PERNIGHT_T10;
+        if (nights >= 4)  return BRD_PERNIGHT_T4;
 
-    public static LocalDate weekEndSunday(LocalDate weekStart) {
-        return weekStart.plusDays(6);
+        return BRD_PERNIGHT_IMM;
     }
-
-    public static LocalDate[] previousMonthRange(LocalDate anchorWeekStart) {
-        LocalDate prev = anchorWeekStart.minusMonths(1);
-        LocalDate start = prev.with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate end   = prev.with(TemporalAdjusters.lastDayOfMonth());
-        return new LocalDate[]{start, end};
-    }
-
-    private static BigDecimal bd(double v){ return BigDecimal.valueOf(v); }
 }

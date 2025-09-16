@@ -72,10 +72,8 @@
                                 </div>
 
                                 <!-- Boarding-only: no checkbox, just the blurb -->
-                                <div class="form-text my-2"
-                                     th:if="${#strings.containsIgnoreCase(service,'Boarding')}">
-                                    <strong>Boarding discounts:</strong> lower per-night rates kick in after monthly stay thresholds
-                                    (e.g., 4, 10, 16 nights last month). We’ll apply this automatically.
+                                <div class="form-text mt-2" th:if="${#strings.containsIgnoreCase(service, 'Boarding')}">
+                                    Discounted boarding begins after <strong>4</strong>, <strong>10</strong>, and <strong>16</strong> prior-month nights.
                                 </div>
 
                                 <button type="submit" class="btn btn-custom w-100">Book</button>
@@ -103,8 +101,8 @@
                                 <span th:text="${b.date}"></span>
                                 <span th:if="${b.time != null}"> at <span th:text="${b.time}"></span></span>
                                 (<span th:text="${b.status}"></span>)
-                                <span th:if="${b.quotedRateAtLock != null}">
-                                    — <strong th:text="${'$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 2)}">$60.00</strong>
+                                <span class="badge bg-light text-dark ms-2"
+                                      th:text="${b.quotedRateAtLock != null ? '$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 'COMMA', 2, 'POINT') : 'est.'}">
                                 </span>
                             </div>
                             <div th:if="${b.status == 'APPROVED'}">
@@ -122,13 +120,14 @@
                     <h5 class="mb-2">Daycare (6 AM - 8 PM)</h5>
                     <ul class="list-group">
                         <li th:each="b : ${bookingsDaycareLong}" class="list-group-item d-flex justify-content-between align-items-center">
+                            <!-- Daycare (6 AM - 3 PM) item block -->
                             <div>
                                 <strong th:text="${b.serviceType}"></strong> —
                                 <span th:text="${b.date}"></span>
                                 <span th:if="${b.time != null}"> at <span th:text="${b.time}"></span></span>
                                 (<span th:text="${b.status}"></span>)
-                                <span th:if="${b.quotedRateAtLock != null}">
-                                    — <strong th:text="${'$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 2)}">$60.00</strong>
+                                <span class="badge bg-light text-dark ms-2"
+                                      th:text="${b.quotedRateAtLock != null ? '$' + #numbers.formatDecimal(b.quotedRateAtLock, 1, 'COMMA', 2, 'POINT') : 'est.'}">
                                 </span>
                             </div>
                             <div th:if="${b.status == 'APPROVED'}">

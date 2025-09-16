@@ -1,5 +1,6 @@
 package com.dogdaycare.controller;
 
+import com.dogdaycare.service.PricingService;
 import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.User;
 import com.dogdaycare.repository.BookingRepository;
@@ -161,14 +162,14 @@ public class BookingController {
         booking.setTime(localTime);
         booking.setStatus("APPROVED");
 
-        // audit & flags
-        booking.setCreatedAt(java.time.LocalDateTime.now());
+// audit/flags
+        booking.setCreatedAt(LocalDateTime.now());
         booking.setAdvanceEligible(advanceEligible);
         booking.setWantsAdvancePay(advanceEligible && wantsAdvancePay);
+        booking.setInPrepayBundle(booking.isWantsAdvancePay()); // purely informational
 
         // lock a quote (base rates for now; we’ll adjust at bundle/weekly lock later)
-        java.math.BigDecimal quoteNow = pricingService.priceFor(serviceType);
-        booking.setQuotedRateAtLock(quoteNow);
+        booking.setQuotedRateAtLock(pricingService.priceFor(booking));
 
         bookingRepository.save(booking);
 

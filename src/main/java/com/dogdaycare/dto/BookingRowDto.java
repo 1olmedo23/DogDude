@@ -1,5 +1,6 @@
 package com.dogdaycare.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 
 public class BookingRowDto {
@@ -11,11 +12,15 @@ public class BookingRowDto {
     private LocalTime time;
     private String status;
 
-    // NEW: prepay signal
+    // Prepay signals
     private boolean wantsAdvancePay;
     private boolean advanceEligible;
 
+    // Paid (day-level)
     private boolean paid;
+
+    // Locked price (if present)
+    private BigDecimal quotedRateAtLock;
 
     public BookingRowDto() {}
 
@@ -28,7 +33,8 @@ public class BookingRowDto {
                          String status,
                          boolean wantsAdvancePay,
                          boolean advanceEligible,
-                         boolean paid) {
+                         boolean paid,
+                         BigDecimal quotedRateAtLock) {
         this.id = id;
         this.customerName = customerName;
         this.customerEmail = customerEmail;
@@ -39,17 +45,17 @@ public class BookingRowDto {
         this.wantsAdvancePay = wantsAdvancePay;
         this.advanceEligible = advanceEligible;
         this.paid = paid;
+        this.quotedRateAtLock = quotedRateAtLock;
     }
 
-    // getters & setters …
-
+    // getters/setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
 
-    public String getCustomerEmail() { return customerEmail; }   // NEW
+    public String getCustomerEmail() { return customerEmail; }
     public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
 
     public String getDogName() { return dogName; }
@@ -72,4 +78,7 @@ public class BookingRowDto {
 
     public boolean isPaid() { return paid; }
     public void setPaid(boolean paid) { this.paid = paid; }
+
+    public BigDecimal getQuotedRateAtLock() { return quotedRateAtLock; }
+    public void setQuotedRateAtLock(BigDecimal quotedRateAtLock) { this.quotedRateAtLock = quotedRateAtLock; }
 }
