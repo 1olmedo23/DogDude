@@ -24,4 +24,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDate startInclusive,
             LocalDate endInclusive,
             String status);
+
+    List<Booking> findByCustomerAndDateBetweenAndStatusNotIgnoreCase(
+            User customer,
+            LocalDate startDateInclusive,
+            LocalDate endDateInclusive,
+            String statusToExclude
+    );
 }

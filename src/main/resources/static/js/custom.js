@@ -7,19 +7,40 @@ function formatCurrency(n) {
     const num = Number(n || 0);
     return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
+// ---- Legacy shim: we now handle alert timing elsewhere;
+function autoDismissAlerts() { /* no-op on purpose */ }
 
-function autoDismissAlerts(ms = 6000) {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        alert.classList.add('fade', 'show');
+
+// Auto-dismiss ALL alerts by default, EXCEPT those marked permanent.
+// - Default delay: 4000ms
+// - Override per alert with data-autoclose="7000" (ms) or data-autoclose (uses default)
+// - Prevent closing by adding data-permanent or the class .alert-static
+document.addEventListener('DOMContentLoaded', function () {
+    const allAlerts = document.querySelectorAll('.alert');
+
+    allAlerts.forEach(el => {
+        // Skip permanent/sticky banners
+        if (el.hasAttribute('data-permanent') || el.classList.contains('alert-static')) return;
+
+        // Read delay (ms) or fall back to default
+        const msRaw = el.getAttribute('data-autoclose');
+        const delay = msRaw && !isNaN(+msRaw) ? parseInt(msRaw, 10) : 4000;
+
         setTimeout(() => {
-            alert.classList.remove('show');
-            setTimeout(() => {
-                if (alert && alert.parentNode) alert.parentNode.removeChild(alert);
-            }, 400);
-        }, ms);
+            try {
+                if (!document.body.contains(el)) return;
+                // Re-check permanence in case it was toggled later
+                if (el.hasAttribute('data-permanent') || el.classList.contains('alert-static')) return;
+
+                if (window.bootstrap?.Alert) {
+                    window.bootstrap.Alert.getOrCreateInstance(el).close();
+                } else {
+                    el.style.display = 'none';
+                }
+            } catch (_) { /* no-op */ }
+        }, delay);
     });
-}
+});
 
 // ---------- Bookings (Admin) ----------
 function groupAndRenderAdminBookings(rows) {

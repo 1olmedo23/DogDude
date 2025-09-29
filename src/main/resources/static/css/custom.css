@@ -106,6 +106,15 @@ form button {
     border-top-right-radius: 12px;
 }
 
+/* Keep the weekly banner permanently visible */
+.alert.alert-static {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    max-height: none !important;
+}
+
 /* Make buttons full-width on small screens */
 @media (max-width: 768px) {
     .btn {

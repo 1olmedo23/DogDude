@@ -7,6 +7,10 @@
 </head>
 <body class="bg-light">
 <div class="container py-5">
+    <!-- CSRF hook for dynamic forms -->
+    <div id="csrf-hook"
+         th:attr="data-name=${_csrf.parameterName},data-token=${_csrf.token}"
+         style="display:none;"></div>
     <div class="d-flex justify-content-end gap-2 mb-3">
         <!-- Back to Home (logs out) -->
         <form th:action="@{/logout}" method="post" class="d-inline">
@@ -182,31 +186,34 @@
                 <span class="badge bg-warning text-dark" id="badgeUnpaid">Unpaid: 0</span>
             </div>
 
-            <table class="table table-striped">
+            <div class="alert alert-success" th:if="${invoiceMessage}" th:text="${invoiceMessage}"></div>
+            <table id="invoicesWeeklyTable" class="table table-striped align-middle">
                 <thead>
                 <tr>
                     <th>Customer</th>
                     <th>Dog</th>
                     <th>Email</th>
-                    <th>Amount</th>
-                    <th>Paid</th>
+                    <th>Total (live)</th>
+                    <th>Paid to date</th>
+                    <th>New since paid</th>
+                    <th>Status</th>
                     <th>Action</th>
                 </tr>
                 </thead>
-                <tbody id="invoiceTableBody"></tbody>
-                <tfoot id="invoiceTableFoot">
+                <tbody id="invoicesWeeklyTbody"><!-- populated by JS --></tbody>
+                <tfoot>
                 <tr class="fw-bold">
-                    <td colspan="2">Totals</td>
-                    <td class="text-end">Grand Total:</td>
+                    <td colspan="3">Totals</td>
                     <td id="invoiceGrandTotal">$0.00</td>
+                    <td id="invoicePaidToDateTotal">$0.00</td>
+                    <td id="invoiceNewSincePaidTotal">$0.00</td>
                     <td colspan="2">
-                        <span class="me-3">Paid: <span id="invoicePaidTotal">$0.00</span></span>
-                        <span>Unpaid: <span id="invoiceUnpaidTotal">$0.00</span></span>
+                        <span class="me-3">Paid rows: <span id="badgePaidRows">0</span></span>
+                        <span>Unpaid rows: <span id="badgeUnpaidRows">0</span></span>
                     </td>
                 </tr>
                 </tfoot>
             </table>
-
             <div class="alert alert-info">
                 Only non-canceled bookings are included. Weeks are Monday–Sunday. Paid rows are locked.
             </div>
@@ -315,6 +322,240 @@
             if (btn && window.bootstrap) new bootstrap.Tab(btn).show();
         }
     });
+</script>
+<script>
+    // ===== Weekly invoicing table (live totals + paid to date + new since paid) =====
+
+    (function() {
+        const tbody = document.getElementById('invoicesWeeklyTbody');
+        const weekRangeEl = document.getElementById('invoiceWeekRange');
+        const prevBtn = document.getElementById('prevWeekBtn');
+        const nextBtn = document.getElementById('nextWeekBtn');
+
+        const grandTotalEl = document.getElementById('invoiceGrandTotal');
+        const paidToDateTotalEl = document.getElementById('invoicePaidToDateTotal');
+        const newSincePaidTotalEl = document.getElementById('invoiceNewSincePaidTotal');
+
+        const badgeCustomers = document.getElementById('badgeCustomers');
+        const badgePaid = document.getElementById('badgePaid');
+        const badgeUnpaid = document.getElementById('badgeUnpaid');
+        const badgePaidRows = document.getElementById('badgePaidRows');
+        const badgeUnpaidRows = document.getElementById('badgeUnpaidRows');
+
+        const csrfHook = document.getElementById('csrf-hook');
+        const CSRF_NAME = csrfHook?.dataset?.name || '_csrf';
+        const CSRF_TOKEN = csrfHook?.dataset?.token || '';
+
+        function fmtMoney(n) {
+            try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(n); }
+            catch { return '$' + Number(n || 0).toFixed(2); }
+        }
+
+        // Monday of the week for a given Date
+        function mondayOf(d) {
+            const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const dow = (dt.getDay() + 6) % 7; // Mon=0
+            dt.setDate(dt.getDate() - dow);
+            dt.setHours(0,0,0,0);
+            return dt;
+        }
+        function sundayOf(monday) {
+            const s = new Date(monday);
+            s.setDate(s.getDate() + 6);
+            return s;
+        }
+        function iso(d) { return d.toISOString().slice(0,10); }
+        function fmtRange(monday) {
+            const s = sundayOf(monday);
+            const fmt = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            return `${fmt(monday)} – ${fmt(s)}`;
+        }
+
+        // State: which week are we showing?
+        let currentMonday = mondayOf(new Date()); // default to current week
+
+        async function loadWeekly() {
+            const params = new URLSearchParams({ start: iso(currentMonday) });
+            const res = await fetch('/admin/invoices/weekly?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+            const rows = await res.json();
+            renderWeekly(rows);
+        }
+
+        function renderWeekly(rows) {
+            // Header label
+            if (weekRangeEl) weekRangeEl.textContent = fmtRange(currentMonday);
+
+            // Reset table body
+            tbody.innerHTML = '';
+
+            // Totals
+            let grandTotal = 0;
+            let paidToDateTotal = 0;
+            let newSincePaidTotal = 0;
+            let paidCount = 0;
+
+            // Customers badge
+            if (badgeCustomers) badgeCustomers.textContent = `Customers: ${rows.length}`;
+
+            rows.forEach(r => {
+                // numbers
+                const amount = Number(r.amount || 0);
+                const previouslyPaid = Number(r.previouslyPaidAmount || 0);
+                const delta = Math.max(0, Number(r.deltaUnpaid || 0));
+                const isPaid = !!r.paid;
+
+                grandTotal += amount;
+                paidToDateTotal += previouslyPaid;
+                newSincePaidTotal += delta;
+                if (isPaid) paidCount++;
+
+                // build row
+                const tr = document.createElement('tr');
+
+                const tdCustomer = document.createElement('td');
+                tdCustomer.textContent = r.customerName || r.customerEmail || '—';
+                tr.appendChild(tdCustomer);
+
+                const tdDog = document.createElement('td');
+                tdDog.textContent = r.dogName || 'N/A';
+                tr.appendChild(tdDog);
+
+                const tdEmail = document.createElement('td');
+                tdEmail.textContent = r.customerEmail || '—';
+                tr.appendChild(tdEmail);
+
+                const tdTotal = document.createElement('td');
+                tdTotal.textContent = fmtMoney(amount);
+                tr.appendChild(tdTotal);
+
+                const tdPaidToDate = document.createElement('td');
+                tdPaidToDate.textContent = fmtMoney(previouslyPaid);
+                tr.appendChild(tdPaidToDate);
+
+                const tdDelta = document.createElement('td');
+                tdDelta.textContent = fmtMoney(delta);
+                if (delta > 0) {
+                    tdDelta.classList.add('text-warning', 'fw-semibold');
+                    tdDelta.title = r.invoicePaid ? 'Added after invoice was paid' : 'Recently added';
+                }
+                tr.appendChild(tdDelta);
+
+                const tdStatus = document.createElement('td');
+                const badge = document.createElement('span');
+
+                const isRowPaid = !!r.paid;               // all bookings paid AND invoice paid
+                const isInvoicePaid = !!r.invoicePaid;    // invoice paid flag
+                const deltaNum = Math.max(0, Number(r.deltaUnpaid || 0));
+
+                let statusLabel = 'Unpaid';
+                let statusClass = 'badge text-bg-secondary';
+                let actionLabel = 'Mark as paid';
+
+                if (isRowPaid) {
+                    statusLabel = 'Paid';
+                    statusClass = 'badge text-bg-success';
+                    actionLabel = null; // no action
+                } else if (isInvoicePaid && deltaNum > 0) {
+                    statusLabel = 'Partial';
+                    statusClass = 'badge text-bg-warning text-dark';
+                    actionLabel = 'Mark new as paid';
+                } else if (isInvoicePaid) {
+                    // Edge case: invoice paid but no delta and not all days marked paid
+                    statusLabel = 'Partial';
+                    statusClass = 'badge text-bg-warning text-dark';
+                    actionLabel = 'Mark new as paid';
+                }
+
+                badge.className = statusClass;
+                badge.textContent = statusLabel;
+                tdStatus.appendChild(badge);
+                tr.appendChild(tdStatus);
+
+                // ----- Action button -----
+                const tdAction = document.createElement('td');
+                if (!isRowPaid) {
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = '/admin/invoices/mark-paid';
+                    form.className = 'd-inline';
+
+                    // Prefer invoiceId if available
+                    if (r.invoiceId) {
+                        const inpInvoiceId = document.createElement('input');
+                        inpInvoiceId.type = 'hidden';
+                        inpInvoiceId.name = 'invoiceId';
+                        inpInvoiceId.value = r.invoiceId;
+                        form.appendChild(inpInvoiceId);
+                    } else {
+                        const inpEmail = document.createElement('input');
+                        inpEmail.type = 'hidden';
+                        inpEmail.name = 'email';
+                        inpEmail.value = r.customerEmail || '';
+                        form.appendChild(inpEmail);
+
+                        const inpStart = document.createElement('input');
+                        inpStart.type = 'hidden';
+                        inpStart.name = 'start';
+                        inpStart.value = iso(currentMonday);
+                        form.appendChild(inpStart);
+                    }
+
+                    if (CSRF_NAME && CSRF_TOKEN) {
+                        const inpCsrf = document.createElement('input');
+                        inpCsrf.type = 'hidden';
+                        inpCsrf.name = CSRF_NAME;
+                        inpCsrf.value = CSRF_TOKEN;
+                        form.appendChild(inpCsrf);
+                    }
+
+                    const btn = document.createElement('button');
+                    btn.type = 'submit';
+                    btn.className = 'btn btn-sm btn-primary';
+                    btn.textContent = actionLabel || 'Mark as paid';
+                    form.appendChild(btn);
+
+                    form.addEventListener('submit', () => {
+                        btn.disabled = true;
+                        btn.textContent = 'Processing...';
+                    });
+
+                    tdAction.appendChild(form);
+                } else {
+                    tdAction.innerHTML = '<span class="text-muted">—</span>';
+                }
+                tr.appendChild(tdAction);
+
+                tbody.appendChild(tr);
+            });
+
+
+            // Totals row
+            if (grandTotalEl) grandTotalEl.textContent = fmtMoney(grandTotal);
+            if (paidToDateTotalEl) paidToDateTotalEl.textContent = fmtMoney(paidToDateTotal);
+            if (newSincePaidTotalEl) newSincePaidTotalEl.textContent = fmtMoney(newSincePaidTotal);
+
+            // Header badges
+            if (badgePaid)   badgePaid.textContent   = `Paid: ${paidCount}`;
+            if (badgeUnpaid) badgeUnpaid.textContent = `Unpaid: ${rows.length - paidCount}`;
+
+            // Footer counts
+            if (badgePaidRows)   badgePaidRows.textContent   = paidCount;
+            if (badgeUnpaidRows) badgeUnpaidRows.textContent = (rows.length - paidCount);
+        }
+
+        // Week nav
+        prevBtn?.addEventListener('click', () => {
+            currentMonday.setDate(currentMonday.getDate() - 7);
+            loadWeekly();
+        });
+        nextBtn?.addEventListener('click', () => {
+            currentMonday.setDate(currentMonday.getDate() + 7);
+            loadWeekly();
+        });
+
+        // Initial load (controller defaults also handle “last completed week” if desired)
+        document.addEventListener('DOMContentLoaded', loadWeekly);
+    })();
 </script>
 </body>
 </html>

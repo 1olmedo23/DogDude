@@ -94,6 +94,23 @@ public class PricingService {
     }
 
     /**
+     * Monday of the week for a given date (Mon–Sun window).
+     */
+    public LocalDate weekStartMonday(LocalDate date) {
+        DayOfWeek dow = date.getDayOfWeek();
+        int shiftBack = (dow.getValue() - DayOfWeek.MONDAY.getValue() + 7) % 7;
+        return date.minusDays(shiftBack);
+    }
+
+    /**
+     * Sunday of the same Mon–Sun week.
+     */
+    public LocalDate weekEndSunday(LocalDate date) {
+        LocalDate start = weekStartMonday(date);
+        return start.plusDays(6);
+    }
+
+    /**
      * Compute price for a single booking at evaluation time.
      * Uses locked weekly daycare prepay bundle + prior-month boarding tiers.
      * For daycare discount: booking must be 24h+ out, daycare, and customer opted-in (wantsAdvancePay).
@@ -126,8 +143,8 @@ public class PricingService {
 
         // Count customer’s prepay daycare bookings that fall in the same Mon–Sun week
         User u = b.getCustomer();
-        LocalDate ws = weekStart(b.getDate());
-        LocalDate we = weekEnd(ws);
+        LocalDate ws = weekStartMonday(b.getDate());
+        LocalDate we = weekEndSunday(b.getDate());
 
         List<Booking> weekDaycare = bookingRepository
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
@@ -167,5 +184,22 @@ public class PricingService {
         if (nights >= 4)  return BRD_PERNIGHT_T4;
 
         return BRD_PERNIGHT_IMM;
+    }
+
+    /**
+     * Return the daycare price for this booking at a specific tier.
+     * @param atLeast4 true => use ≥4 prepay tier, false => use 1–3 prepay tier
+     */
+    public BigDecimal quoteDaycareAtTier(Booking b, boolean atLeast4) {
+        // mirror your priceDaycare() bands: half vs full (6–3 vs 6–8)
+        if (atLeast4) {
+            if (isHalfDay(b)) return DC_HALF_PREPAY_4P;
+            if (isFullDay(b)) return DC_FULL_PREPAY_4P;
+            return DC_EXT_PREPAY_4P;
+        } else {
+            if (isHalfDay(b)) return DC_HALF_PREPAY_1_3;
+            if (isFullDay(b)) return DC_FULL_PREPAY_1_3;
+            return DC_EXT_PREPAY_1_3;
+        }
     }
 }
