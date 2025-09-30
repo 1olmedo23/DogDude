@@ -39,7 +39,7 @@ public class BookingController {
     private final PricingService pricingService;
     private final BundleService bundleService;
 
-    private final Clock clock = Clock.systemDefaultZone();
+    private final Clock clock;
 
     public BookingController(BookingRepository bookingRepository,
                              UserRepository userRepository,
@@ -47,7 +47,8 @@ public class BookingController {
                              CancelPolicyService cancelPolicyService,
                              FileRepository fileRepository,
                              PricingService pricingService,
-                             BundleService bundleService) {
+                             BundleService bundleService,
+                             Clock clock) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingLimitService = bookingLimitService;
@@ -55,6 +56,7 @@ public class BookingController {
         this.fileRepository = fileRepository;
         this.pricingService = pricingService;
         this.bundleService = bundleService;
+        this.clock = clock;
     }
 
     private static String safe(String s) { return s == null ? "" : s.trim(); }
@@ -65,17 +67,22 @@ public class BookingController {
                                     String errorMessage) {
 
         var all = bookingRepository.findByCustomer(customer);
+        // Show only CURRENT week (Mon–Sun) and future on the customer page
+        LocalDate visibleFrom = pricingService.weekStartMonday(LocalDate.now(clock));
+        var allVisible = all.stream()
+                .filter(b -> b.getDate() == null || !b.getDate().isBefore(visibleFrom))
+                .collect(Collectors.toList());
 
         Comparator<Booking> sortByDateThenTime =
                 Comparator.comparing(Booking::getDate)
                         .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder()));
 
-        var daycare = all.stream()
+        var daycare = allVisible.stream()
                 .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("daycare"))
                 .sorted(sortByDateThenTime)
                 .toList();
 
-        var boarding = all.stream()
+        var boarding = allVisible.stream()
                 .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("boarding"))
                 .sorted(sortByDateThenTime)
                 .toList();
@@ -91,7 +98,7 @@ public class BookingController {
         var files = fileRepository.findByUserIdOrderByCreatedAtDesc(customer.getId());
         model.addAttribute("files", files);
 
-        model.addAttribute("bookings", all);
+        model.addAttribute("bookings", allVisible);
         model.addAttribute("bookingsDaycare", daycare);
         model.addAttribute("bookingsBoarding", boarding);
         model.addAttribute("bookingsDaycareShort", daycareShort);
@@ -112,7 +119,7 @@ public class BookingController {
         }
 
         // Permanent weekly banner flags (THIS week: Mon–Sun of today)
-        LocalDate selected = LocalDate.now();
+        LocalDate selected = LocalDate.now(clock);
         boolean hasWeekPaid = bundleService.hasWeekPaid(customer, selected);
         model.addAttribute("hasWeekPaidThisWeek", hasWeekPaid);
         model.addAttribute("weekStart", pricingService.weekStartMonday(selected));
@@ -171,7 +178,7 @@ public class BookingController {
                 (errorMessage != null && !errorMessage.isBlank()) ? errorMessage : null);
 
         // === New: two-week calendar support ===
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         LocalDate anchor = (startIso != null && !startIso.isBlank())
                 ? LocalDate.parse(startIso)
                 : today;
@@ -202,7 +209,7 @@ public class BookingController {
         model.addAttribute("dropoffTimes", dropoffTimes);
 
         // Keep this for banner logic on the current week (already used in your JS)
-        model.addAttribute("hasWeekPaidThisWeek", bundleService.hasWeekPaid(customer, today));
+        model.addAttribute("hasWeekPaidThisWeek", bundleService.hasWeekPaid(customer,LocalDate.now(clock)));
 
         return "booking";
     }
@@ -240,9 +247,10 @@ public class BookingController {
         boolean isDaycareFlag = serviceType != null && serviceType.toLowerCase().contains("daycare");
         boolean advanceEligible = false;
         if (isDaycareFlag) {
-            ZonedDateTime now = ZonedDateTime.now();
-            ZonedDateTime bookingZdt = ZonedDateTime.of(localDate, localTime, now.getZone());
-            long hours = Duration.between(now, bookingZdt).toHours();
+            var now = java.time.ZonedDateTime.now(clock);
+            var zone = clock.getZone();
+            var bookingZdt = java.time.ZonedDateTime.of(localDate, localTime, zone);
+            long hours = java.time.Duration.between(now, bookingZdt).toHours();
             advanceEligible = hours >= 24;
         }
         // 🔒 NEW: block prepay if this customer's week is already paid
@@ -260,7 +268,7 @@ public class BookingController {
         booking.setTime(localTime);
         booking.setStatus("APPROVED");
 
-        booking.setCreatedAt(LocalDateTime.now());
+        booking.setCreatedAt(LocalDateTime.now(clock));
         booking.setAdvanceEligible(advanceEligible);
         booking.setWantsAdvancePay(wantsAdvancePayFinal);
 

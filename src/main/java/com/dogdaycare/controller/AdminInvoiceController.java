@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,6 +34,7 @@ public class AdminInvoiceController {
     private final EvaluationRepository evaluationRepository;
     private final InvoiceRepository invoiceRepository;
     private final PricingService pricingService;
+    private final Clock clock;
 
     private final UserRepository userRepository;
     private final WeeklyBillingStatusRepository weeklyRepo;
@@ -46,7 +48,8 @@ public class AdminInvoiceController {
                                   PricingService pricingService,
                                   UserRepository userRepository,
                                   WeeklyBillingStatusRepository weeklyRepo,
-                                  BundleService bundleService) {
+                                  BundleService bundleService,
+                                  Clock clock) {
         this.bookingRepository = bookingRepository;
         this.evaluationRepository = evaluationRepository;
         this.invoiceRepository = invoiceRepository;
@@ -54,13 +57,14 @@ public class AdminInvoiceController {
         this.userRepository = userRepository;
         this.weeklyRepo = weeklyRepo;
         this.bundleService = bundleService;
+        this.clock = clock;
     }
 
     private LocalDate weekStart(LocalDate any) { return any.with(DayOfWeek.MONDAY); }
     private LocalDate weekEnd(LocalDate start) { return start.plusDays(6); }
     private LocalDate lastCompletedWeekStart() {
-        LocalDate today = LocalDate.now();
-        return today.with(DayOfWeek.MONDAY).minusWeeks(1);
+        LocalDate today = LocalDate.now(clock);
+        return today.with(java.time.DayOfWeek.MONDAY).minusWeeks(1);
     }
 
     @GetMapping
@@ -197,7 +201,7 @@ public class AdminInvoiceController {
             for (Booking b : weekCustomerBookings) {
                 if (!b.isPaid()) {
                     b.setPaid(true);
-                    b.setPaidAt(LocalDateTime.now());
+                    b.setPaidAt(LocalDateTime.now(clock));
                 }
             }
             bookingRepository.saveAll(weekCustomerBookings);
@@ -209,7 +213,7 @@ public class AdminInvoiceController {
 
             invoice.setAmount(amountAfter);
             invoice.setPaid(true);
-            invoice.setPaidAt(LocalDateTime.now());
+            invoice.setPaidAt(LocalDateTime.now(clock));
             invoiceRepository.save(invoice);
 
             ra.addFlashAttribute("invoiceMessage", "Invoice marked paid. Week finalized and all bookings marked paid.");
@@ -226,7 +230,7 @@ public class AdminInvoiceController {
 
             for (Booking b : unpaid) {
                 b.setPaid(true);
-                b.setPaidAt(LocalDateTime.now());
+                b.setPaidAt(LocalDateTime.now(clock));
             }
             bookingRepository.saveAll(unpaid);
 
@@ -236,7 +240,7 @@ public class AdminInvoiceController {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             invoice.setAmount(amountAfter);
             // invoice remains paid; update timestamp to reflect additional payment applied
-            invoice.setPaidAt(LocalDateTime.now());
+            invoice.setPaidAt(LocalDateTime.now(clock));
             invoiceRepository.save(invoice);
 
             ra.addFlashAttribute("invoiceMessage", "Additional bookings marked paid for this week.");

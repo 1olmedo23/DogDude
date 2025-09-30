@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
+import java.math.RoundingMode;
 
 @Service
 public class PricingService {
@@ -179,11 +180,19 @@ public class PricingService {
 
         long nights = prevMonthBoarding.size();
 
-        if (nights >= 16) return BRD_PERNIGHT_T16;
-        if (nights >= 10) return BRD_PERNIGHT_T10;
-        if (nights >= 4)  return BRD_PERNIGHT_T4;
+        BigDecimal nightly;
+        if (nights >= 16) nightly = BRD_PERNIGHT_T16;
+        else if (nights >= 10) nightly = BRD_PERNIGHT_T10;
+        else if (nights >= 4) nightly = BRD_PERNIGHT_T4;
+        else nightly = BRD_PERNIGHT_IMM;
 
-        return BRD_PERNIGHT_IMM;
+        // 👇 NEW: if there is NO boarding tomorrow (contiguous next day), this is the last night → add half day
+        boolean isLastOfBlock = !hasBoardingOnNextDay(u, b.getDate());
+        BigDecimal price = isLastOfBlock
+                ? nightly.multiply(BigDecimal.valueOf(1.5))
+                : nightly;
+
+        return price.setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -201,5 +210,12 @@ public class PricingService {
             if (isFullDay(b)) return DC_FULL_PREPAY_1_3;
             return DC_EXT_PREPAY_1_3;
         }
+    }
+
+    private boolean hasBoardingOnNextDay(User u, LocalDate date) {
+        return !bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                        u, "boarding", date.plusDays(1), "CANCELED")
+                .isEmpty();
     }
 }

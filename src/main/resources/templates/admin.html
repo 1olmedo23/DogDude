@@ -473,7 +473,9 @@
 
                 // ----- Action button -----
                 const tdAction = document.createElement('td');
-                if (!isRowPaid) {
+                const allowAction = (!isRowPaid) && !(isInvoicePaid && deltaNum === 0);
+
+                if (allowAction) {                            // <-- use allowAction here
                     const form = document.createElement('form');
                     form.method = 'post';
                     form.action = '/admin/invoices/mark-paid';
@@ -521,7 +523,7 @@
 
                     tdAction.appendChild(form);
                 } else {
-                    tdAction.innerHTML = '<span class="text-muted">—</span>';
+                    tdAction.innerHTML = '<span class="text-muted" title="No new charges to apply">—</span>';
                 }
                 tr.appendChild(tdAction);
 
