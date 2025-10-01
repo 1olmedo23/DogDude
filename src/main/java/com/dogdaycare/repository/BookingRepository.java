@@ -32,10 +32,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             String statusToExclude
     );
 
+    // A) Exact-day, any service (we’ll use this to block double-booking)
+    List<Booking> findByCustomerAndDate(User customer, LocalDate date);
+
     List<Booking> findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
             User customer,
             String serviceTypeLike,
             LocalDate date,
             String statusToExclude
     );
+
 }

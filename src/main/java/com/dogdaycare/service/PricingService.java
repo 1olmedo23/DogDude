@@ -186,11 +186,16 @@ public class PricingService {
         else if (nights >= 4) nightly = BRD_PERNIGHT_T4;
         else nightly = BRD_PERNIGHT_IMM;
 
-        // 👇 NEW: if there is NO boarding tomorrow (contiguous next day), this is the last night → add half day
+        // Last-of-block if there is NO boarding the next day
         boolean isLastOfBlock = !hasBoardingOnNextDay(u, b.getDate());
-        BigDecimal price = isLastOfBlock
-                ? nightly.multiply(BigDecimal.valueOf(1.5))
-                : nightly;
+
+        // 👇 NEW: if pickup day (date+1) has daycare, do NOT add the half-day
+        boolean pickupDayHasDaycare = hasDaycareOnDate(u, b.getDate().plusDays(1));
+
+        BigDecimal price = nightly; // default
+        if (isLastOfBlock && !pickupDayHasDaycare) {
+            price = nightly.multiply(BigDecimal.valueOf(1.5));
+        }
 
         return price.setScale(2, RoundingMode.HALF_UP);
     }
@@ -216,6 +221,13 @@ public class PricingService {
         return !bookingRepository
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
                         u, "boarding", date.plusDays(1), "CANCELED")
+                .isEmpty();
+    }
+
+    private boolean hasDaycareOnDate(User u, LocalDate date) {
+        return !bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                        u, "daycare", date, "CANCELED")
                 .isEmpty();
     }
 }

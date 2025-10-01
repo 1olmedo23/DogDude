@@ -232,6 +232,19 @@ public class BookingController {
         LocalDate localDate = LocalDate.parse(date);
         LocalTime localTime = LocalTime.parse(time);
 
+        // Prevent double-booking on the same calendar day (any service)
+        var sameDay = bookingRepository.findByCustomerAndDate(customer, localDate);
+        boolean hasAnyServiceSameDay = sameDay.stream()
+                .anyMatch(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()));
+
+        if (hasAnyServiceSameDay) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "You have already booked a service for this day."
+            );
+            return "redirect:/booking";
+        }
+
         // Capacity check
         boolean canBook = bookingLimitService.canCustomerBook(localDate, serviceType);
         if (!canBook) {
