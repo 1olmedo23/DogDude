@@ -230,4 +230,36 @@ public class PricingService {
                         u, "daycare", date, "CANCELED")
                 .isEmpty();
     }
+
+    public BigDecimal previewDaycarePrice(User u,
+                                          LocalDate date,
+                                          String serviceType,
+                                          boolean advanceEligible,
+                                          boolean wantsAdvancePay) {
+        // If not qualifying for prepay, use immediate bands
+        boolean qualifies = advanceEligible && wantsAdvancePay;
+        Booking temp = new Booking();
+        temp.setServiceType(serviceType);
+
+        if (!qualifies) {
+            // mirror your immediate daycare mapping
+            if (isHalfDay(temp)) return DC_HALF_IMM;
+            if (isFullDay(temp)) return DC_FULL_IMM;
+            return DC_EXT_IMM;
+        }
+
+        // Count existing eligible daycare in the same week
+        LocalDate ws = weekStartMonday(date);
+        LocalDate we = weekEndSunday(date);
+        List<Booking> weekDaycare = bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        u, "daycare", ws, we, "CANCELED");
+
+        long existingEligible = weekDaycare.stream()
+                .filter(x -> x.isWantsAdvancePay() && x.isAdvanceEligible())
+                .count();
+
+        boolean atLeast4 = (existingEligible + 1) >= 4; // include THIS booking
+        return quoteDaycareAtTier(temp, atLeast4);
+    }
 }

@@ -131,6 +131,9 @@
                                             Must be booked ≥ 24 hours in advance to qualify.
                                         </div>
                                     </div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <small class="text-muted" data-quote>Est. —</small>
+                                    </div>
                                     <div class="d-grid">
                                         <button type="submit" class="btn btn-custom btn-sm">Book</button>
                                     </div>
@@ -143,7 +146,7 @@
 
             <!-- WEEK 2 (full width) -->
             <div class="card shadow-sm mb-4">
-                <div class="card-body" th:with="weekPaid=${week1Paid}">
+                <div class="card-body" th:with="weekPaid=${week2Paid}">
                 <div class="alert alert-static mb-3"
                          data-permanent="true"
                          th:classappend="${week2Paid} ? ' alert-info' : ' alert-secondary'">
@@ -204,6 +207,9 @@
                                              th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
                                             Must be booked ≥ 24 hours in advance to qualify.
                                         </div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <small class="text-muted" data-quote>Est. —</small>
                                     </div>
                                     <div class="d-grid">
                                         <button type="submit" class="btn btn-custom btn-sm">Book</button>
@@ -579,6 +585,80 @@
             });
         });
     });
+</script>
+<script th:inline="javascript">
+    (function () {
+        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance }) {
+            const params = new URLSearchParams({
+                serviceType: svc,
+                date: dateStr,
+                wantsAdvancePay: wantsAdvance ? 'true' : 'false'
+            });
+            if (timeStr) params.set('time', timeStr);
+
+            try {
+                const res = await fetch('/booking/quote?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return null;
+                return await res.json();
+            } catch {
+                return null;
+            }
+        }
+
+        function fmtMoneyUSD(n) {
+            try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
+            catch { return '$' + Number(n || 0).toFixed(2); }
+        }
+
+        // augment your existing wireDayTile
+        function wireDayTile(tile) {
+            const svcButtons = tile.querySelectorAll('.svc-btn');
+            const form = tile.querySelector('.day-form');
+            if (!form) return;
+
+            const svcInput  = form.querySelector('input[name="serviceType"]');
+            const dateInput = form.querySelector('input[name="date"]');
+            const timeSel   = form.querySelector('select[name="time"]');
+            const prepayChk = form.querySelector('input[name="wantsAdvancePay"]');
+            const quoteEl   = form.querySelector('[data-quote]'); // <small data-quote>
+
+            // call AFTER you update svc/date/time/checkbox
+            async function refreshQuote() {
+                if (!quoteEl) return;
+                const svc = svcInput.value;
+                const d   = dateInput.value;
+                const t   = timeSel?.value || '';
+                const wants = !!(prepayChk && prepayChk.checked);
+
+                if (!svc || !d) { quoteEl.textContent = 'Est. —'; return; }
+
+                const q = await fetchQuote({ svc, dateStr: d, timeStr: t, wantsAdvance: wants });
+                if (!q || !q.amount) { quoteEl.textContent = 'Est. —'; return; }
+
+                quoteEl.textContent = 'Est. ' + fmtMoneyUSD(Number(q.amount));
+                quoteEl.title = q.note || '';
+            }
+
+            // hook into your existing listeners
+            // (These lines go near where you already set up events in your code.)
+            svcButtons.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    // ... your existing logic that sets svcInput/dateInput etc.
+                    await refreshQuote();
+                });
+            });
+
+            timeSel?.addEventListener('change', refreshQuote);
+            prepayChk?.addEventListener('change', refreshQuote);
+
+            // optional: first render
+            refreshQuote();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.border.rounded.h-100.p-2').forEach(wireDayTile);
+        });
+    })();
 </script>
 </body>
 </html>

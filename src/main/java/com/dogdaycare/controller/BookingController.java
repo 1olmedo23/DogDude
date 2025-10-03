@@ -18,6 +18,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.format.annotation.DateTimeFormat;
 import static org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import java.time.*;
@@ -218,6 +220,72 @@ public class BookingController {
         return java.util.stream.IntStream.range(0, 7)
                 .mapToObj(monday::plusDays)
                 .toList();
+    }
+
+    @GetMapping("/quote")
+    @ResponseBody
+    public Map<String, Object> quote(Authentication authentication,
+                                     @RequestParam String serviceType,
+                                     @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate date,
+                                     @RequestParam(required = false) String time,
+                                     @RequestParam(name = "wantsAdvancePay", defaultValue = "false") boolean wantsAdvancePay) {
+        User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        // Parse time (optional)
+        LocalTime localTime = null;
+        if (time != null && !time.isBlank()) {
+            localTime = LocalTime.parse(time);
+        }
+
+        // Build a dummy booking shell for shared helpers
+        Booking probe = new Booking();
+        probe.setCustomer(customer);
+        probe.setServiceType(serviceType);
+        probe.setDate(date);
+        probe.setTime(localTime);
+
+        boolean isDaycare = serviceType != null && serviceType.toLowerCase().contains("daycare");
+        boolean isBoarding = serviceType != null && serviceType.toLowerCase().contains("boarding");
+
+        // Daycare: compute 24h rule & week-paid guard
+        boolean advanceEligible = false;
+        if (isDaycare && localTime != null) {
+            var now = java.time.ZonedDateTime.now(clock);
+            var zone = clock.getZone();
+            var zdt = java.time.ZonedDateTime.of(date, localTime, zone);
+            long hours = java.time.Duration.between(now, zdt).toHours();
+            advanceEligible = hours >= 24;
+        }
+        boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, pricingService.weekStartMonday(date));
+        boolean wantsAdvancePayFinal = isDaycare && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
+
+        BigDecimal amount;
+        String note;
+
+        if (isDaycare) {
+            amount = pricingService.previewDaycarePrice(
+                    customer, date, serviceType, advanceEligible, wantsAdvancePayFinal
+            );
+            note = wantsAdvancePayFinal
+                    ? "Daycare prepay preview."
+                    : (advanceEligible ? "Daycare immediate preview." : "Daycare (not eligible for prepay).");
+        } else if (isBoarding) {
+            // For boarding, your existing priceFor covers prior-month tiers and last-night logic
+            amount = pricingService.priceFor(probe);
+            note = "Boarding preview (prior-month tier & last-night logic).";
+        } else {
+            amount = BigDecimal.ZERO;
+            note = "Unknown service.";
+        }
+
+        return Map.of(
+                "amount", amount.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+                "currency", "USD",
+                "advanceEligible", advanceEligible,
+                "wantsAdvancePayApplied", wantsAdvancePayFinal,
+                "weekAlreadyPaid", weekAlreadyPaid,
+                "note", note
+        );
     }
 
     @PostMapping
