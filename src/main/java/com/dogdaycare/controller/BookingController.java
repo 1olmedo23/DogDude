@@ -20,13 +20,13 @@ import static org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-
 import java.time.*;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 
 @Controller
@@ -75,8 +75,40 @@ public class BookingController {
                 .filter(b -> b.getDate() == null || !b.getDate().isBefore(visibleFrom))
                 .collect(Collectors.toList());
 
+// Build a date -> service label map for non-canceled bookings in that window
+        Map<LocalDate, String> bookedByDate = allVisible.stream()
+                .filter(b -> b.getDate() != null)
+                .filter(b -> {
+                    Object st = b.getStatus();
+                    return st == null || !"CANCELED".equalsIgnoreCase(String.valueOf(st));
+                })
+                .collect(Collectors.groupingBy(
+                        Booking::getDate,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                b -> safe(b.getServiceType()),
+                                Collectors.toCollection(LinkedHashSet::new)
+                        )
+                ))
+                .entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            var services = e.getValue().stream()
+                                    .filter(s -> s != null && !s.isBlank())
+                                    .toList();
+                            if (services.isEmpty()) return "Booked";
+                            if (services.size() == 1) return services.get(0);
+                            return "Multiple";
+                        },
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
+
+        model.addAttribute("bookedByDate", bookedByDate);
+
         Comparator<Booking> sortByDateThenTime =
-                Comparator.comparing(Booking::getDate)
+                Comparator.comparing(Booking::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder()));
 
         var daycare = allVisible.stream()
@@ -105,6 +137,7 @@ public class BookingController {
         model.addAttribute("bookingsBoarding", boarding);
         model.addAttribute("bookingsDaycareShort", daycareShort);
         model.addAttribute("bookingsDaycareLong", daycareLong);
+        model.addAttribute("today", LocalDate.now(clock));
 
         model.addAttribute("services", List.of(
                 "Daycare (6 AM - 3 PM)",
@@ -128,11 +161,14 @@ public class BookingController {
         model.addAttribute("weekEnd", pricingService.weekEndSunday(selected));
 
         // === Provisional daycare quotes (always dynamic; no locking) ===
-// For each Mon–Sun week, compute provisional quotes for ALL eligible, opted-in daycare bookings.
-// We INCLUDE paid bookings here so customers still see prices after payment.
-        Map<Long, java.math.BigDecimal> provisionalQuotes = new HashMap<>();
+        // For each Mon–Sun week, compute provisional quotes for ALL eligible, opted-in daycare bookings.
+        // We INCLUDE paid bookings here so customers still see prices after payment.
+        Map<Long, BigDecimal> provisionalQuotes = new HashMap<>();
         var byWeek = daycare.stream()
-                .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                .filter(b -> {
+                    Object st = b.getStatus();
+                    return st == null || !"CANCELED".equalsIgnoreCase(String.valueOf(st));
+                })
                 .collect(Collectors.groupingBy(b -> pricingService.weekStartMonday(b.getDate())));
 
         for (var entry : byWeek.entrySet()) {
@@ -179,7 +215,7 @@ public class BookingController {
                 (successMessage != null && !successMessage.isBlank()) ? successMessage : null,
                 (errorMessage != null && !errorMessage.isBlank()) ? errorMessage : null);
 
-        // === New: two-week calendar support ===
+        // === Two-week calendar support ===
         LocalDate today = LocalDate.now(clock);
         LocalDate anchor = (startIso != null && !startIso.isBlank())
                 ? LocalDate.parse(startIso)
@@ -211,7 +247,7 @@ public class BookingController {
         model.addAttribute("dropoffTimes", dropoffTimes);
 
         // Keep this for banner logic on the current week (already used in your JS)
-        model.addAttribute("hasWeekPaidThisWeek", bundleService.hasWeekPaid(customer,LocalDate.now(clock)));
+        model.addAttribute("hasWeekPaidThisWeek", bundleService.hasWeekPaid(customer, LocalDate.now(clock)));
 
         return "booking";
     }
@@ -250,10 +286,10 @@ public class BookingController {
         // Daycare: compute 24h rule & week-paid guard
         boolean advanceEligible = false;
         if (isDaycare && localTime != null) {
-            var now = java.time.ZonedDateTime.now(clock);
+            var now = ZonedDateTime.now(clock);
             var zone = clock.getZone();
-            var zdt = java.time.ZonedDateTime.of(date, localTime, zone);
-            long hours = java.time.Duration.between(now, zdt).toHours();
+            var zdt = ZonedDateTime.of(date, localTime, zone);
+            long hours = Duration.between(now, zdt).toHours();
             advanceEligible = hours >= 24;
         }
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, pricingService.weekStartMonday(date));
@@ -328,13 +364,13 @@ public class BookingController {
         boolean isDaycareFlag = serviceType != null && serviceType.toLowerCase().contains("daycare");
         boolean advanceEligible = false;
         if (isDaycareFlag) {
-            var now = java.time.ZonedDateTime.now(clock);
+            var now = ZonedDateTime.now(clock);
             var zone = clock.getZone();
-            var bookingZdt = java.time.ZonedDateTime.of(localDate, localTime, zone);
-            long hours = java.time.Duration.between(now, bookingZdt).toHours();
+            var bookingZdt = ZonedDateTime.of(localDate, localTime, zone);
+            long hours = Duration.between(now, bookingZdt).toHours();
             advanceEligible = hours >= 24;
         }
-        // 🔒 NEW: block prepay if this customer's week is already paid
+        // 🔒 Block prepay if this customer's week is already paid
         LocalDate weekStart = pricingService.weekStartMonday(localDate);
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, weekStart);
 

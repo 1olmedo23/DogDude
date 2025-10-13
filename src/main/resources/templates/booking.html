@@ -4,28 +4,64 @@
     <title>Book a Service</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/custom.css}">
-    <!-- Keep our banners from auto-hiding -->
     <style>
-        .alert.alert-static {
-            animation: none !important;
-            opacity: 1 !important;
-            transition: none !important;
+        /* --- small UX polish --- */
+        .alert.alert-static{animation:none!important;opacity:1!important;transition:none!important}
+        .svc-btn.active{box-shadow:0 0 0 .2rem rgba(0,0,0,.08)}
+        .badge-status{font-weight:500}
+
+        /* --- new layout accents --- */
+        .section-card{
+            border:1px solid var(--bs-border-color);
+            border-radius:1rem;
+            background:var(--bs-body-bg);
         }
-        .alert.alert-static { animation: none !important; opacity: 1 !important; }
-        /* Service button active styles */
-        .svc-btn.active { box-shadow: 0 0 0 .2rem rgba(0,0,0,.08); }
-        /* Compact badges in booking lists */
-        .badge-status { font-weight: 500; }
+        .section-card .section-head{
+            border-bottom:1px dashed var(--bs-border-color);
+            padding: .9rem 1.1rem;
+            background:var(--bs-body-tertiary);
+            border-top-left-radius:1rem;
+            border-top-right-radius:1rem;
+        }
+        .section-card .section-body{ padding:1rem; }
+
+        .planner-banner{
+            border:1px solid var(--bs-info-border-subtle, #b6e0fe);
+            background: var(--bs-info-bg-subtle, #e7f5ff);
+            color: var(--bs-info-text-emphasis, #055160);
+            border-radius:.75rem;
+        }
+
+        /* day tiles */
+        .day-tile{ border:1px solid var(--bs-border-color); border-radius:.75rem; padding:.75rem; height:100%; }
+        .day-tile .tile-head{ border-bottom:1px dashed var(--bs-border-color); padding-bottom:.35rem; margin-bottom:.6rem; }
+
+        /* “Your Bookings” area */
+        .bookings-wrap{ background:var(--bs-body-secondary); border:1px solid var(--bs-border-color); border-radius:1rem; }
+        .bookings-wrap .wrap-head{
+            border-bottom:1px dashed var(--bs-border-color);
+            padding: .9rem 1.1rem;
+            background:var(--bs-body-tertiary);
+            border-top-left-radius:1rem;
+            border-top-right-radius:1rem;
+        }
+        .bookings-wrap .wrap-body{ padding:1rem; }
+
+        /* subtle horizontal separators */
+        .hr-dashed{ border-top:1px dashed var(--bs-border-color); opacity:.7; }
+
+        /* small helper */
+        .text-compact{ max-width:70ch; margin-inline:auto; }
     </style>
 </head>
 <body class="bg-light">
 <div th:replace="~{fragments/navbar :: navbar('booking')}"></div>
 
-<div class="container py-5">
-    <h1 class="mb-4">Book a Service</h1>
+<div class="container-xxl py-5">
+    <h1 id="pageTitle" class="mb-4 text-center">Book a Service</h1>
 
     <!-- Tabs -->
-    <ul class="nav nav-pills mb-4" id="custTabs" role="tablist">
+    <ul class="nav nav-tabs mb-4" id="custTabs" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="tab-booking" data-bs-toggle="tab" data-bs-target="#pane-booking" type="button" role="tab">
                 Booking
@@ -51,338 +87,414 @@
         <!-- Booking pane -->
         <div class="tab-pane fade show active" id="pane-booking" role="tabpanel" aria-labelledby="tab-booking">
 
-            <!-- Two-week navigator -->
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <a class="btn btn-outline-secondary" th:href="@{|/booking?start=${prevStart}|}">← Previous 2 Weeks</a>
-                <div class="text-muted small">
-                    Showing weeks of
-                    <strong th:text="${#temporals.format(week1Monday, 'MMM d')}">Mar 1</strong>
-                    and
-                    <strong th:text="${#temporals.format(week2Monday, 'MMM d')}">Mar 8</strong>
+            <!-- Pricing / planning message (BOOKING TAB ONLY) -->
+            <div class="planner-banner p-3 p-md-4 mb-4 text-center">
+                <div class="fw-semibold mb-1">Pay for daycare in advance to unlock discounts!</div>
+                <div class="small text-compact">
+                    Prepay <strong>1–3 days</strong> → $45/Daycare &amp; $50/Daycare +Plus.<br>
+                    Prepay <strong>4+ days</strong> → $40/Daycare &amp; $45/Daycare +Plus.<br>
+                    <strong>Regular Rate</strong> → $50/Daycare &amp; $60/Daycare +Plus.<br>
+                    To activate your discount, select your desired daycare date below and check the<br>
+                    "Pay in advance" box.<br>
+                    <strong>Note: </strong>Daycare booked within 24 hours of drop off will not count towards the discounted rate.<br>
+                    Payment will be collected separately via phone.<br>
+                    Once a week has been paid, any additional services that week are regular rate.
+                    <br/><br/>
+                    Boarding is priced per night based on your <strong>prior-month</strong> boarding history (more nights → lower per-night).
                 </div>
-                <a class="btn btn-outline-secondary" th:href="@{|/booking?start=${nextStart}|}">Next 2 Weeks →</a>
             </div>
 
-            <!-- WEEK 1 (full width) -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body" th:with="weekPaid=${week1Paid}">
-                <div class="alert alert-static mb-3"
-                         data-permanent="true"
-                         th:classappend="${week1Paid} ? ' alert-info' : ' alert-secondary'">
-                        <div th:if="${!week1Paid}">
-                            <strong>Plan your week:</strong> Book daycare days <em>≥24h in advance</em> to unlock discounted weekly rates.<br/>
-                            Week:
-                            <span th:text="${#temporals.format(week1Monday, 'MMM d')}"></span>
-                            –
-                            <span th:text="${#temporals.format(week1Monday.plusDays(6), 'MMM d')}"></span>
-                        </div>
-                        <div th:if="${week1Paid}">
-                            <strong>Week planned:</strong> You’ve already paid for this week’s daycare bundle. Additional daycare this week is regular rate.<br/>
-                            Week:
-                            <span th:text="${#temporals.format(week1Monday, 'MMM d')}"></span>
-                            –
-                            <span th:text="${#temporals.format(week1Monday.plusDays(6), 'MMM d')}"></span>
+            <!-- Two-week navigator (framed) -->
+            <div class="section-card mb-4">
+                <div class="section-head d-flex align-items-center justify-content-between">
+                    <a class="btn btn-outline-secondary" th:href="@{|/booking?start=${prevStart}|}">← Previous 2 Weeks</a>
+
+                    <a class="btn btn-outline-secondary" th:href="@{|/booking?start=${nextStart}|}">Next 2 Weeks →</a>
+                </div>
+                <div class="section-body pt-3">
+
+                    <!-- WEEK 1 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body" th:with="weekPaid=${week1Paid}">
+                            <div class="alert alert-static mb-3 text-center"
+                                 th:classappend="${week1Paid} ? ' alert-info' : ' alert-secondary'">
+                                <div th:if="${!week1Paid}">
+                                    <strong>Plan your week to unlock discounted rates.</strong><br/>
+                                    Week:
+                                    <span th:text="${#temporals.format(week1Monday, 'MMM d')}"></span>
+                                    –
+                                    <span th:text="${#temporals.format(week1Monday.plusDays(6), 'MMM d')}"></span>
+                                </div>
+                                <div th:if="${week1Paid}">
+                                    <strong>Week planned:</strong> You’ve already paid for this week’s daycare bundle. Additional daycare this week is regular rate.<br/>
+                                    Week:
+                                    <span th:text="${#temporals.format(week1Monday, 'MMM d')}"></span>
+                                    –
+                                    <span th:text="${#temporals.format(week1Monday.plusDays(6), 'MMM d')}"></span>
+                                </div>
+                            </div>
+
+                            <!-- Days grid -->
+                            <div class="calendar-head">
+                                <h5 class="mb-0"
+                                    th:text="${#temporals.format(week1Monday, 'MMMM yyyy')}">March 2025</h5>
+                            </div>
+                            <!-- 7-column calendar grid -->
+                            <div class="calendar-grid">
+                                <!-- Optional weekday labels row -->
+                                <div class="calendar-label">Mon</div>
+                                <div class="calendar-label">Tue</div>
+                                <div class="calendar-label">Wed</div>
+                                <div class="calendar-label">Thu</div>
+                                <div class="calendar-label">Fri</div>
+                                <div class="calendar-label">Sat</div>
+                                <div class="calendar-label">Sun</div>
+
+                                <!-- Days -->
+                                <div class="calendar-cell" th:each="d : ${week1Days}">
+                                    <span class="badge text-bg-secondary small badge-booked"
+                                          th:if="${#maps.containsKey(bookedByDate, d)}"
+                                          th:text="${#strings.defaultString(bookedByDate[d], 'Booked')}">Booked</span>
+                                    <div th:class="${'day-tile'
+                                                      + (d.equals(today) ? ' is-today' : '')
+                                                      + (#maps.containsKey(bookedByDate, d) ? ' is-booked' : '')}"
+                                         th:attr="aria-current=${d.equals(today)} ? 'date' : null">
+                                    <div class="tile-head d-flex justify-content-between align-items-center">
+                                            <strong th:text="${#temporals.format(d, 'EEE MMM d')}">Mon Mar 1</strong>
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <span class="badge bg-primary-subtle text-primary small"
+                                                      th:if="${d.equals(today)}">Today</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-primary btn-sm svc-btn"
+                                                    data-variant="primary"
+                                                    data-service="Daycare (6 AM - 3 PM)" th:attr="data-date=${d}">Daycare</button>
+                                            <button class="btn btn-outline-primary btn-sm svc-btn"
+                                                    data-variant="primary"
+                                                    data-service="Daycare (6 AM - 8 PM)" th:attr="data-date=${d}">Daycare +Plus</button>
+                                            <button class="btn btn-outline-secondary btn-sm svc-btn"
+                                                    data-variant="secondary"
+                                                    data-service="Boarding" th:attr="data-date=${d}">Boarding</button>
+                                        </div>
+
+                                        <!-- inline booking form -->
+                                        <form class="mt-2 d-none day-form" method="post" th:action="@{/booking}">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="hidden" name="serviceType">
+                                            <input type="hidden" name="date">
+                                            <div class="mb-2">
+                                                <label class="form-label small">Drop-off time</label>
+                                                <select name="time" class="form-select form-select-sm" required>
+                                                    <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
+                                                </select>
+                                            </div>
+                                            <!-- Daycare-only prepay -->
+                                            <div class="form-check mb-2 small daycare-only"
+                                                 th:classappend="${weekPaid} ? ' opacity-50' : ''">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       name="wantsAdvancePay"
+                                                       value="true"
+                                                       th:disabled="${weekPaid}">
+                                                <label class="form-check-label">Pay in advance</label>
+                                                <div class="form-text" data-prepay-msg
+                                                     th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
+                                                    Must be booked ≥ 24 hours in advance to qualify.
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <small class="text-muted" data-quote>Est. —</small>
+                                            </div>
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-custom btn-sm">Book</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div><!-- /col -->
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Days grid -->
-                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-                        <div class="col" th:each="d : ${week1Days}">
-                            <div class="border rounded h-100 p-2">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong th:text="${#temporals.format(d, 'EEE MMM d')}">Mon Mar 1</strong>
+                    <!-- WEEK 2 -->
+                    <div class="card shadow-sm mb-2">
+                        <div class="card-body" th:with="weekPaid=${week2Paid}">
+                            <div class="alert alert-static mb-3 text-center"
+                                 th:classappend="${week2Paid} ? ' alert-info' : ' alert-secondary'">
+                                <div th:if="${!week2Paid}">
+                                    <strong>Plan your week to unlock discounted rates.</strong><br/>
+                                    Week:
+                                    <span th:text="${#temporals.format(week2Monday, 'MMM d')}"></span>
+                                    –
+                                    <span th:text="${#temporals.format(week2Monday.plusDays(6), 'MMM d')}"></span>
                                 </div>
-
-                                <!-- 3 service buttons (now sticky-active) -->
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary btn-sm svc-btn"
-                                            data-variant="primary"
-                                            data-service="Daycare (6 AM - 3 PM)" th:attr="data-date=${d}">Daycare</button>
-                                    <button class="btn btn-outline-primary btn-sm svc-btn"
-                                            data-variant="primary"
-                                            data-service="Daycare (6 AM - 8 PM)" th:attr="data-date=${d}">Daycare Evening</button>
-                                    <button class="btn btn-outline-secondary btn-sm svc-btn"
-                                            data-variant="secondary"
-                                            data-service="Boarding" th:attr="data-date=${d}">Boarding</button>
+                                <div th:if="${week2Paid}">
+                                    <strong>Week planned:</strong> You’ve already paid for this week’s daycare bundle. Additional daycare this week is regular rate.<br/>
+                                    Week:
+                                    <span th:text="${#temporals.format(week2Monday, 'MMM d')}"></span>
+                                    –
+                                    <span th:text="${#temporals.format(week2Monday.plusDays(6), 'MMM d')}"></span>
                                 </div>
+                            </div>
 
-                                <!-- hidden inline booking form -->
-                                <form class="mt-2 d-none day-form" method="post" th:action="@{/booking}">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                    <input type="hidden" name="serviceType">
-                                    <input type="hidden" name="date">
-                                    <div class="mb-2">
-                                        <label class="form-label small">Drop-off time</label>
-                                        <select name="time" class="form-select form-select-sm" required>
-                                            <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
-                                        </select>
+                            <div class="calendar-head">
+                                <!-- Week 2 header -->
+                                <h5 class="mb-0" th:text="${#temporals.format(week2Monday, 'MMMM yyyy')}">March 2025</h5>
+                            </div>
+                            <!-- 7-column calendar grid -->
+                            <div class="calendar-grid">
+                                <!-- Optional weekday labels row -->
+                                <div class="calendar-label">Mon</div>
+                                <div class="calendar-label">Tue</div>
+                                <div class="calendar-label">Wed</div>
+                                <div class="calendar-label">Thu</div>
+                                <div class="calendar-label">Fri</div>
+                                <div class="calendar-label">Sat</div>
+                                <div class="calendar-label">Sun</div>
+
+                                <!-- Days -->
+                                <div class="calendar-cell" th:each="d : ${week2Days}">
+                                    <span class="badge text-bg-secondary small badge-booked"
+                                          th:if="${#maps.containsKey(bookedByDate, d)}"
+                                          th:text="${#strings.defaultString(bookedByDate[d], 'Booked')}">Booked</span>
+                                    <div th:class="${'day-tile'
+                                                      + (d.equals(today) ? ' is-today' : '')
+                                                      + (#maps.containsKey(bookedByDate, d) ? ' is-booked' : '')}"
+                                         th:attr="aria-current=${d.equals(today)} ? 'date' : null">
+                                        <div class="tile-head d-flex justify-content-between align-items-center">
+                                            <strong th:text="${#temporals.format(d, 'EEE MMM d')}">Mon Mar 1</strong>
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <span class="badge bg-primary-subtle text-primary small"
+                                                      th:if="${d.equals(today)}">Today</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-primary btn-sm svc-btn"
+                                                    data-variant="primary"
+                                                    data-service="Daycare (6 AM - 3 PM)" th:attr="data-date=${d}">Daycare</button>
+                                            <button class="btn btn-outline-primary btn-sm svc-btn"
+                                                    data-variant="primary"
+                                                    data-service="Daycare (6 AM - 8 PM)" th:attr="data-date=${d}">Daycare +Plus</button>
+                                            <button class="btn btn-outline-secondary btn-sm svc-btn"
+                                                    data-variant="secondary"
+                                                    data-service="Boarding" th:attr="data-date=${d}">Boarding</button>
+                                        </div>
+
+                                        <form class="mt-2 d-none day-form" method="post" th:action="@{/booking}">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="hidden" name="serviceType">
+                                            <input type="hidden" name="date">
+                                            <div class="mb-2">
+                                                <label class="form-label small">Drop-off time</label>
+                                                <select name="time" class="form-select form-select-sm" required>
+                                                    <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-check mb-2 small daycare-only"
+                                                 th:classappend="${weekPaid} ? ' opacity-50' : ''">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       name="wantsAdvancePay"
+                                                       value="true"
+                                                       th:disabled="${weekPaid}">
+                                                <label class="form-check-label">Pay in advance</label>
+                                                <div class="form-text" data-prepay-msg
+                                                     th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
+                                                    Must be booked ≥ 24 hours in advance to qualify.
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <small class="text-muted" data-quote>Est. —</small>
+                                            </div>
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-custom btn-sm">Book</button>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <!-- Daycare-only prepay -->
-                                    <div class="form-check mb-2 small daycare-only"
-                                         th:classappend="${weekPaid} ? ' opacity-50' : ''">
-                                        <input class="form-check-input"
-                                               type="checkbox"
-                                               name="wantsAdvancePay"
-                                               value="true"
-                                               th:disabled="${weekPaid}">
-                                        <label class="form-check-label">Pay in advance for discounted weekly rate</label>
-                                        <div class="form-text" data-prepay-msg
-                                             th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
-                                            Must be booked ≥ 24 hours in advance to qualify.
+                                </div><!-- /col -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Your Bookings -->
+            <div class="bookings-wrap mt-5">
+                <div class="wrap-head d-flex align-items-center justify-content-between">
+                    <span class="badge text-bg-secondary">Tip: plan Mon–Sun for best weekly rate</span>
+                    <h3 class="mb-0 text-center">Your Bookings</h3>
+                </div>
+                <div class="wrap-body">
+                    <div class="row gy-4">
+                        <div class="col-md-4">
+                            <h5 class="mb-2">Daycare (6 AM - 3 PM)</h5>
+                            <ul class="list-group">
+                                <li th:each="b : ${bookingsDaycareShort}" class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold" th:text="${b.serviceType}">Daycare (6 AM - 3 PM)</div>
+                                        <div class="text-muted small">
+                                            <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
+                                            • Drop-off at
+                                            <span th:text="${b.time != null ? #temporals.format(b.time, 'h:mm a') : '—'}">6:00 AM</span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge badge-status"
+                                                  th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
+                                                                  (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
+                                                  th:text="${b.status}">APPROVED</span>
+                                            <span class="badge bg-light text-dark ms-2">
+                                                <span th:if="${provisionalQuotes != null and provisionalQuotes[b.id] != null}"
+                                                      th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
+                                                <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <small class="text-muted" data-quote>Est. —</small>
+                                    <div th:if="${b.status == 'APPROVED'}">
+                                        <form th:action="@{'/booking/cancel/' + ${b.id}}"
+                                              method="post"
+                                              class="ms-3 confirm-cancel">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
+                                        </form>
                                     </div>
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-custom btn-sm">Book</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div><!-- /col -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- WEEK 2 (full width) -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body" th:with="weekPaid=${week2Paid}">
-                <div class="alert alert-static mb-3"
-                         data-permanent="true"
-                         th:classappend="${week2Paid} ? ' alert-info' : ' alert-secondary'">
-                        <div th:if="${!week2Paid}">
-                            <strong>Plan your week:</strong> Book daycare days <em>≥24h in advance</em> to unlock discounted weekly rates.<br/>
-                            Week:
-                            <span th:text="${#temporals.format(week2Monday, 'MMM d')}"></span>
-                            –
-                            <span th:text="${#temporals.format(week2Monday.plusDays(6), 'MMM d')}"></span>
+                                </li>
+                                <li th:if="${#lists.isEmpty(bookingsDaycareShort)}" class="list-group-item text-muted">No bookings.</li>
+                            </ul>
                         </div>
-                        <div th:if="${week2Paid}">
-                            <strong>Week planned:</strong> You’ve already paid for this week’s daycare bundle. Additional daycare this week is regular rate.<br/>
-                            Week:
-                            <span th:text="${#temporals.format(week2Monday, 'MMM d')}"></span>
-                            –
-                            <span th:text="${#temporals.format(week2Monday.plusDays(6), 'MMM d')}"></span>
-                        </div>
-                    </div>
 
-                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-                        <div class="col" th:each="d : ${week2Days}">
-                            <div class="border rounded h-100 p-2">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong th:text="${#temporals.format(d, 'EEE MMM d')}">Mon Mar 8</strong>
-                                </div>
-
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary btn-sm svc-btn"
-                                            data-variant="primary"
-                                            data-service="Daycare (6 AM - 3 PM)" th:attr="data-date=${d}">Daycare</button>
-                                    <button class="btn btn-outline-primary btn-sm svc-btn"
-                                            data-variant="primary"
-                                            data-service="Daycare (6 AM - 8 PM)" th:attr="data-date=${d}">Daycare Evening</button>
-                                    <button class="btn btn-outline-secondary btn-sm svc-btn"
-                                            data-variant="secondary"
-                                            data-service="Boarding" th:attr="data-date=${d}">Boarding</button>
-                                </div>
-
-                                <form class="mt-2 d-none day-form" method="post" th:action="@{/booking}">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                    <input type="hidden" name="serviceType">
-                                    <input type="hidden" name="date">
-                                    <div class="mb-2">
-                                        <label class="form-label small">Drop-off time</label>
-                                        <select name="time" class="form-select form-select-sm" required>
-                                            <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-check mb-2 small daycare-only"
-                                         th:classappend="${weekPaid} ? ' opacity-50' : ''">
-                                        <input class="form-check-input"
-                                               type="checkbox"
-                                               name="wantsAdvancePay"
-                                               value="true"
-                                               th:disabled="${weekPaid}">
-                                        <label class="form-check-label">Pay in advance for discounted weekly rate</label>
-                                        <div class="form-text" data-prepay-msg
-                                             th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
-                                            Must be booked ≥ 24 hours in advance to qualify.
+                        <div class="col-md-4">
+                            <h5 class="mb-2">Daycare (6 AM - 8 PM)</h5>
+                            <ul class="list-group">
+                                <li th:each="b : ${bookingsDaycareLong}" class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold" th:text="${b.serviceType}">Daycare (6 AM - 8 PM)</div>
+                                        <div class="text-muted small">
+                                            <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
+                                            • Drop-off at
+                                            <span th:text="${b.time != null ? #temporals.format(b.time, 'h:mm a') : '—'}">6:00 AM</span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge badge-status"
+                                                  th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
+                                                                  (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
+                                                  th:text="${b.status}">APPROVED</span>
+                                            <span class="badge bg-light text-dark ms-2">
+                                                <span th:if="${provisionalQuotes != null and provisionalQuotes[b.id] != null}"
+                                                      th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
+                                                <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <small class="text-muted" data-quote>Est. —</small>
+                                    <div th:if="${b.status == 'APPROVED'}">
+                                        <form th:action="@{'/booking/cancel/' + ${b.id}}"
+                                              method="post"
+                                              class="ms-3 confirm-cancel">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
+                                        </form>
                                     </div>
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-custom btn-sm">Book</button>
+                                </li>
+                                <li th:if="${#lists.isEmpty(bookingsDaycareLong)}" class="list-group-item text-muted">No bookings.</li>
+                            </ul>
+                        </div>
+
+                        <div class="col-md-4">
+                            <h5 class="mb-2">Boarding</h5>
+                            <ul class="list-group">
+                                <li th:each="b : ${bookingsBoarding}" class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold" th:text="${b.serviceType}">Boarding</div>
+                                        <div class="text-muted small">
+                                            <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
+                                            <span th:if="${b.time != null}"> • Drop-off at <span th:text="${#temporals.format(b.time, 'h:mm a')}">6:00 AM</span></span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge badge-status"
+                                                  th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
+                                                                  (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
+                                                  th:text="${b.status}">APPROVED</span>
+                                            <span th:if="${b.quotedRateAtLock != null}" class="badge bg-light text-dark ms-2"
+                                                  th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+                                        </div>
                                     </div>
-                                </form>
-                            </div>
-                        </div><!-- /col -->
+                                    <div th:if="${b.status == 'APPROVED'}">
+                                        <form th:action="@{'/booking/cancel/' + ${b.id}}"
+                                              method="post"
+                                              class="ms-3 confirm-cancel">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
+                                        </form>
+                                    </div>
+                                </li>
+                                <li th:if="${#lists.isEmpty(bookingsBoarding)}" class="list-group-item text-muted">No bookings.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Your Bookings (tidied) -->
-            <h3 class="mt-5">Your Bookings</h3>
-            <div class="row gy-4">
-                <div class="col-md-4">
-                    <h5 class="mb-2">Daycare (6 AM - 3 PM)</h5>
-                    <ul class="list-group">
-                        <li th:each="b : ${bookingsDaycareShort}" class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-semibold" th:text="${b.serviceType}">Daycare (6 AM - 3 PM)</div>
-                                <div class="text-muted small">
-                                    <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
-                                    • Drop-off at
-                                    <span th:text="${b.time != null ? #temporals.format(b.time, 'h:mm a') : '—'}">6:00 AM</span>
-                                </div>
-                                <div class="mt-1">
-                                    <span class="badge badge-status"
-                                          th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
-                                                          (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
-                                          th:text="${b.status}">APPROVED</span>
-                                    <span class="badge bg-light text-dark ms-2">
-                                        <span th:if="${provisionalQuotes != null and provisionalQuotes[b.id] != null}"
-                                              th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
-                                        <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div th:if="${b.status == 'APPROVED'}">
-                                <form th:action="@{'/booking/cancel/' + ${b.id}}"
-                                      method="post"
-                                      class="ms-3 confirm-cancel">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                    <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
-                                </form>
-
-                            </div>
-                        </li>
-                        <li th:if="${#lists.isEmpty(bookingsDaycareShort)}" class="list-group-item text-muted">No bookings.</li>
-                    </ul>
-                </div>
-
-                <div class="col-md-4">
-                    <h5 class="mb-2">Daycare (6 AM - 8 PM)</h5>
-                    <ul class="list-group">
-                        <li th:each="b : ${bookingsDaycareLong}" class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-semibold" th:text="${b.serviceType}">Daycare (6 AM - 8 PM)</div>
-                                <div class="text-muted small">
-                                    <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
-                                    • Drop-off at
-                                    <span th:text="${b.time != null ? #temporals.format(b.time, 'h:mm a') : '—'}">6:00 AM</span>
-                                </div>
-                                <div class="mt-1">
-                                    <span class="badge badge-status"
-                                          th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
-                                                          (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
-                                          th:text="${b.status}">APPROVED</span>
-                                    <span class="badge bg-light text-dark ms-2">
-                                        <span th:if="${provisionalQuotes != null and provisionalQuotes[b.id] != null}"
-                                              th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
-                                        <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div th:if="${b.status == 'APPROVED'}">
-                                <form th:action="@{'/booking/cancel/' + ${b.id}}"
-                                      method="post"
-                                      class="ms-3 confirm-cancel">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                    <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
-                                </form>
-                            </div>
-                        </li>
-                        <li th:if="${#lists.isEmpty(bookingsDaycareLong)}" class="list-group-item text-muted">No bookings.</li>
-                    </ul>
-                </div>
-
-                <div class="col-md-4">
-                    <h5 class="mb-2">Boarding</h5>
-                    <ul class="list-group">
-                        <li th:each="b : ${bookingsBoarding}" class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-semibold" th:text="${b.serviceType}">Boarding</div>
-                                <div class="text-muted small">
-                                    <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
-                                    <span th:if="${b.time != null}"> • Drop-off at <span th:text="${#temporals.format(b.time, 'h:mm a')}">6:00 AM</span></span>
-                                </div>
-                                <div class="mt-1">
-                                    <span class="badge badge-status"
-                                          th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
-                                                          (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
-                                          th:text="${b.status}">APPROVED</span>
-                                    <span th:if="${b.quotedRateAtLock != null}" class="badge bg-light text-dark ms-2"
-                                          th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
-                                </div>
-                            </div>
-                            <div th:if="${b.status == 'APPROVED'}">
-                                <form th:action="@{'/booking/cancel/' + ${b.id}}"
-                                      method="post"
-                                      class="ms-3 confirm-cancel">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                    <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
-                                </form>
-                            </div>
-                        </li>
-                        <li th:if="${#lists.isEmpty(bookingsBoarding)}" class="list-group-item text-muted">No bookings.</li>
-                    </ul>
-                </div>
-            </div>
+            <!-- /Your Bookings -->
         </div>
 
         <!-- Uploads pane -->
         <div class="tab-pane fade" id="pane-uploads" role="tabpanel" aria-labelledby="tab-uploads">
-            <h3 class="mb-3">Upload Vaccine/Records</h3>
+            <div class="section-card">
+                <div class="section-head">
+                    <h3 class="mb-0">Upload Vaccine/Records</h3>
+                </div>
+                <div class="section-body">
+                    <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <div class="col-md-4">
+                            <label class="form-label">File</label>
+                            <input type="file" class="form-control" name="file" required>
+                            <div class="form-text">Allowed: PDF, JPG, PNG (max 10MB)</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Display name (optional)</label>
+                            <input type="text" class="form-control" name="displayName" placeholder="Rabies Vaccine">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Expiration date (optional)</label>
+                            <input type="date" class="form-control" name="expirationDate">
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-custom">Upload</button>
+                        </div>
+                    </form>
 
-            <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <div class="col-md-4">
-                    <label class="form-label">File</label>
-                    <input type="file" class="form-control" name="file" required>
-                    <div class="form-text">Allowed: PDF, JPG, PNG (max 10MB)</div>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Display name (optional)</label>
-                    <input type="text" class="form-control" name="displayName" placeholder="Rabies Vaccine">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Expiration date (optional)</label>
-                    <input type="date" class="form-control" name="expirationDate">
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-custom">Upload</button>
-                </div>
-            </form>
+                    <hr class="my-4 hr-dashed"/>
 
-            <hr class="my-4"/>
-
-            <h4>Your Files</h4>
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-light">
-                    <tr>
-                        <th>File</th>
-                        <th>Display Name</th>
-                        <th>Expires</th>
-                        <th>Uploaded</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="f : ${files}">
-                        <td th:text="${f.fileName}">VetRecord.pdf</td>
-                        <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies Vaccine</td>
-                        <td th:text="${f.expirationDate != null ? f.expirationDate : '—'}">2026-05-01</td>
-                        <td th:text="${#temporals.format(f.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-03 10:15</td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-secondary" th:href="@{'/uploads/' + ${f.id} + '/download'}">Download</a>
-                        </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(files)}"><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>
-                    </tbody>
-                </table>
-            </div>
+                    <h4>Your Files</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>File</th>
+                                <th>Display Name</th>
+                                <th>Expires</th>
+                                <th>Uploaded</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="f : ${files}">
+                                <td th:text="${f.fileName}">VetRecord.pdf</td>
+                                <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies Vaccine</td>
+                                <td th:text="${f.expirationDate != null ? f.expirationDate : '—'}">2026-05-01</td>
+                                <td th:text="${#temporals.format(f.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-03 10:15</td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-secondary" th:href="@{'/uploads/' + ${f.id} + '/download'}">Download</a>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(files)}"><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /section-card -->
         </div>
     </div>
 </div>
@@ -433,7 +545,6 @@
         function setActive(btn, isActive) {
             const variant = btn.getAttribute('data-variant') || 'primary';
             btn.classList.toggle('active', isActive);
-            // swap outline → solid when active, and back when inactive
             if (variant === 'secondary') {
                 btn.classList.toggle('btn-outline-secondary', !isActive);
                 btn.classList.toggle('btn-secondary', isActive);
@@ -445,6 +556,27 @@
 
         function clearActiveSiblings(buttons) {
             buttons.forEach(b => setActive(b, false));
+        }
+
+        // --- NEW: keep only one day expanded at a time ---
+        function closeAllDayForms(exceptTile){
+            document.querySelectorAll('.day-form').forEach(f=>{
+                if(!exceptTile || !exceptTile.contains(f)){
+                    f.classList.add('d-none');
+                }
+            });
+            document.querySelectorAll('.svc-btn.active').forEach(b=>{
+                // remove "active" styling from buttons in other tiles
+                const variant = b.getAttribute('data-variant') || 'primary';
+                b.classList.remove('active');
+                if (variant === 'secondary') {
+                    b.classList.add('btn-outline-secondary');
+                    b.classList.remove('btn-secondary');
+                } else {
+                    b.classList.add('btn-outline-primary');
+                    b.classList.remove('btn-primary');
+                }
+            });
         }
 
         function wireDayTile(tile) {
@@ -473,26 +605,32 @@
                 if (prepayMsg) {
                     prepayMsg.textContent = weekPaid
                         ? 'This week is already paid. Additional daycare bookings are regular rate.'
-                        : (hrs >= 24 ? 'Eligible for advance-pay discount.' : 'Must be booked ≥ 24 hours in advance to qualify.');
+                        : (hrs >= 24 ? '' : 'Must be booked ≥ 24 hours in advance to qualify.');
                 }
             }
 
-            // On service click: reveal form, mark button active
+            // click handlers
             svcButtons.forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const svc = btn.getAttribute('data-service');
                     const d = btn.getAttribute('data-date');
+
+                    // NEW: collapse others first
+                    closeAllDayForms(tile);
+
+                    // open this form and activate this service
                     form.classList.remove('d-none');
                     svcInput.value = svc;
                     dateInput.value = d;
 
-                    // Visual selection
                     clearActiveSiblings(Array.from(svcButtons));
                     setActive(btn, true);
 
-                    // Reset prepay and check eligibility
                     prepayChk.checked = false;
                     await refreshPrepay(svc, d, timeSelect.value);
+
+                    // optional: keep the opened tile in view on small screens
+                    try { tile.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch {}
                 });
             });
 
@@ -502,7 +640,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.border.rounded.h-100.p-2').forEach(wireDayTile);
+            document.querySelectorAll('.day-tile').forEach(wireDayTile);
         });
     })();
 </script>
@@ -511,7 +649,6 @@
 <script>
     (function () {
         const SELECTOR = '.alert.alert-static';
-
         function isActuallyHidden(el) {
             const cs = window.getComputedStyle(el);
             return el.hasAttribute('hidden') ||
@@ -520,11 +657,8 @@
                 cs.visibility === 'hidden' ||
                 parseFloat(cs.opacity || '1') < 0.99;
         }
-
         function KEEP_VISIBLE(banner) {
-            // Only act if truly hidden; otherwise do nothing
             if (!isActuallyHidden(banner)) return;
-
             banner.classList.add('alert-static');
             banner.removeAttribute('hidden');
             banner.removeAttribute('aria-hidden');
@@ -533,48 +667,80 @@
             banner.style.opacity = '1';
             banner.style.removeProperty('animation');
             banner.style.removeProperty('transition');
-
-            // Mark as pinned so we won't touch again
             banner.dataset.pinned = '1';
         }
-
-        // Initial pass: fix any hidden banners
         document.querySelectorAll(SELECTOR).forEach(KEEP_VISIBLE);
-
-        // Observe for third-party scripts trying to hide alerts later
         const observer = new MutationObserver((mutations, obs) => {
-            // If everything already pinned/visible, bail quickly
             const banners = document.querySelectorAll(SELECTOR);
             let needsFix = false;
             banners.forEach(b => {
-                if (b.dataset.pinned === '1') return; // we already fixed it once
+                if (b.dataset.pinned === '1') return;
                 if (isActuallyHidden(b)) needsFix = true;
             });
             if (!needsFix) return;
-
-            // Disconnect while fixing to avoid self-trigger loops
             obs.disconnect();
-            banners.forEach(b => {
-                if (b.dataset.pinned === '1') return;
-                KEEP_VISIBLE(b);
-            });
-            // Reconnect for future external changes
+            banners.forEach(b => { if (b.dataset.pinned !== '1') KEEP_VISIBLE(b); });
             obs.observe(document.documentElement, {
-                attributes: true,
-                childList: true,
-                subtree: true,
-                attributeFilter: ['hidden', 'aria-hidden', 'class', 'style']
+                attributes: true, childList: true, subtree: true,
+                attributeFilter: ['hidden','aria-hidden','class','style']
             });
         });
-
         observer.observe(document.documentElement, {
-            attributes: true,
-            childList: true,
-            subtree: true,
-            attributeFilter: ['hidden', 'aria-hidden', 'class', 'style']
+            attributes: true, childList: true, subtree: true,
+            attributeFilter: ['hidden','aria-hidden','class','style']
         });
     })();
 </script>
+
+<!-- Live quote hook -->
+<script th:inline="javascript">
+    (function () {
+        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance }) {
+            const params = new URLSearchParams({
+                serviceType: svc,
+                date: dateStr,
+                wantsAdvancePay: wantsAdvance ? 'true' : 'false'
+            });
+            if (timeStr) params.set('time', timeStr);
+            try {
+                const res = await fetch('/booking/quote?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return null;
+                return await res.json();
+            } catch { return null; }
+        }
+        function fmtMoneyUSD(n){
+            try{ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
+            catch{ return '$'+Number(n||0).toFixed(2); }
+        }
+        function wireDayTile(tile){
+            const form = tile.querySelector('.day-form'); if(!form) return;
+            const svcInput=form.querySelector('input[name="serviceType"]');
+            const dateInput=form.querySelector('input[name="date"]');
+            const timeSel=form.querySelector('select[name="time"]');
+            const prepayChk=form.querySelector('input[name="wantsAdvancePay"]');
+            const quoteEl=form.querySelector('[data-quote]');
+            async function refreshQuote(){
+                if(!quoteEl) return;
+                const svc=svcInput.value, d=dateInput.value, t=timeSel?.value||'', wants=!!(prepayChk&&prepayChk.checked);
+                if(!svc||!d){ quoteEl.textContent='Est. —'; return; }
+                const q=await fetchQuote({svc,dateStr:d,timeStr:t,wantsAdvance:wants});
+                if(!q||!q.amount){ quoteEl.textContent='Est. —'; return; }
+                quoteEl.textContent='Est. '+fmtMoneyUSD(Number(q.amount));
+                quoteEl.title=q.note||'';
+            }
+            tile.querySelectorAll('.svc-btn').forEach(btn=>{
+                btn.addEventListener('click', refreshQuote);
+            });
+            timeSel?.addEventListener('change', refreshQuote);
+            prepayChk?.addEventListener('change', refreshQuote);
+            refreshQuote();
+        }
+        document.addEventListener('DOMContentLoaded', ()=>{
+            document.querySelectorAll('.day-tile').forEach(wireDayTile);
+        });
+    })();
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('form.confirm-cancel').forEach(function (f) {
@@ -586,79 +752,41 @@
         });
     });
 </script>
-<script th:inline="javascript">
-    (function () {
-        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance }) {
-            const params = new URLSearchParams({
-                serviceType: svc,
-                date: dateStr,
-                wantsAdvancePay: wantsAdvance ? 'true' : 'false'
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const titleEl = document.getElementById('pageTitle');
+        if (!titleEl) return;
+
+        const TITLE_BOOKING = 'Book a Service';
+        const TITLE_UPLOADS = 'Upload Files';
+
+        function setTitlesFor(targetPane) {
+            const isUploads = (targetPane === '#pane-uploads');
+            const text = isUploads ? TITLE_UPLOADS : TITLE_BOOKING;
+            // page title
+            titleEl.textContent = text;
+            // browser tab title
+            document.title = text + ' | Dog Plaza';
+        }
+
+        // On tab change (Bootstrap event)
+        const tabsEl = document.getElementById('custTabs');
+        if (tabsEl) {
+            tabsEl.addEventListener('shown.bs.tab', function (ev) {
+                const target = ev.target?.getAttribute('data-bs-target');
+                if (target) setTitlesFor(target);
             });
-            if (timeStr) params.set('time', timeStr);
-
-            try {
-                const res = await fetch('/booking/quote?' + params.toString(), { headers: { 'Accept': 'application/json' } });
-                if (!res.ok) return null;
-                return await res.json();
-            } catch {
-                return null;
-            }
         }
 
-        function fmtMoneyUSD(n) {
-            try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
-            catch { return '$' + Number(n || 0).toFixed(2); }
-        }
+        // On initial load (with or without hash)
+        const initialHash = window.location.hash || '#pane-booking';
+        setTitlesFor(initialHash);
 
-        // augment your existing wireDayTile
-        function wireDayTile(tile) {
-            const svcButtons = tile.querySelectorAll('.svc-btn');
-            const form = tile.querySelector('.day-form');
-            if (!form) return;
-
-            const svcInput  = form.querySelector('input[name="serviceType"]');
-            const dateInput = form.querySelector('input[name="date"]');
-            const timeSel   = form.querySelector('select[name="time"]');
-            const prepayChk = form.querySelector('input[name="wantsAdvancePay"]');
-            const quoteEl   = form.querySelector('[data-quote]'); // <small data-quote>
-
-            // call AFTER you update svc/date/time/checkbox
-            async function refreshQuote() {
-                if (!quoteEl) return;
-                const svc = svcInput.value;
-                const d   = dateInput.value;
-                const t   = timeSel?.value || '';
-                const wants = !!(prepayChk && prepayChk.checked);
-
-                if (!svc || !d) { quoteEl.textContent = 'Est. —'; return; }
-
-                const q = await fetchQuote({ svc, dateStr: d, timeStr: t, wantsAdvance: wants });
-                if (!q || !q.amount) { quoteEl.textContent = 'Est. —'; return; }
-
-                quoteEl.textContent = 'Est. ' + fmtMoneyUSD(Number(q.amount));
-                quoteEl.title = q.note || '';
-            }
-
-            // hook into your existing listeners
-            // (These lines go near where you already set up events in your code.)
-            svcButtons.forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    // ... your existing logic that sets svcInput/dateInput etc.
-                    await refreshQuote();
-                });
-            });
-
-            timeSel?.addEventListener('change', refreshQuote);
-            prepayChk?.addEventListener('change', refreshQuote);
-
-            // optional: first render
-            refreshQuote();
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.border.rounded.h-100.p-2').forEach(wireDayTile);
+        // If the hash changes later (e.g., user types URL hash)
+        window.addEventListener('hashchange', function () {
+            setTitlesFor(window.location.hash || '#pane-booking');
         });
-    })();
+    });
 </script>
 </body>
 </html>

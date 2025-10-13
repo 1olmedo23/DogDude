@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Dog Daycare</title>
+    <title>Fremont Dog Plaza</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/custom.css}">
     <style>
         /* Hero image with overlay */
         .hero {
             position: relative;
-            background: url('/images/hero.jpg') center/cover no-repeat;
+            background: url('/images/daycare-evening.jpg') center/cover no-repeat;
             height: 95vh;
             display: flex;
             align-items: center;
@@ -21,7 +21,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.2);
         }
         .hero-content {
             position: relative;
@@ -31,51 +31,55 @@
             border-radius: 12px;
             object-fit: cover;
             width: 100%;
-            height: 450px; /* was 250px, now taller */
+            height: 450px;
         }
         @media (max-width: 768px) {
             .playful-images img {
-                height: 250px; /* slightly shorter on small screens */
+                height: 250px;
             }
         }
     </style>
 </head>
 <body class="bg-light">
-<div th:if="${param.logout}" class="alert alert-success text-center">
-    You have successfully logged out.
-</div>
 <div th:replace="~{fragments/navbar :: navbar('home')}"></div>
-
+<div class="hero hero--top">
 <!-- Hero Section -->
-<div class="hero">
     <div class="hero-content">
-        <h1 class="display-4 fw-bold">Where Dogs Come to Play, Stay, and Shine</h1>
-        <p class="lead mt-3">Providing safe, loving, and playful experiences for your four-legged family members.</p>
-        <div class="d-flex flex-column align-items-center mt-4">
-            <a class="btn btn-custom btn-lg mb-3 w-50" th:href="@{/evaluation}">Get Started - Submit Evaluation</a>
-            <a class="btn btn-custom2 btn-lg w-50" th:href="@{/login}">Returning Customer Login</a>
+        <div th:if="${param.logout}" class="alert alert-success text-center">
+            You have successfully logged out.
+        </div>
+        <h1 class="display-5 fw-bold lh-1 mb-0">Welcome To Fremont Dog Plaza!</h1>
+
+        <p class="hero-lead fs-6 bg-secondary p-3 text-white bg-opacity-25">
+            <br>
+            Hello folks! If this is your first time with us, we kindly ask that you complete an evaluation form.<br>
+            If you have your pup’s records available, feel free to include them with your evaluation form.<br>
+            If not, no need to worry. Please bring it to the evaluation meeting.<br>
+            An email will be sent after you submit the evaluation with further instructions.<br>
+            <br>
+        </p>
+
+        <div class="hero-ctas">
+            <a class="btn btn-custom btn-lg mb-3 w-45" th:href="@{/evaluation}">Get Started - Submit Evaluation</a>
+            <a class="btn btn-custom2 btn-lg w-45" th:href="@{/login}">Returning Customer Login</a>
         </div>
     </div>
 </div>
 
 <!-- Playful Section -->
-<div class="container text-center my-5">
-    <h2 class="fw-bold mb-4">Why Choose Our Daycare?</h2>
-    <p class="mb-5">From sunrise playdates to bedtime cuddles, we make every moment safe, fun, and full of tail wags.
-        Our staff is dedicated to giving your pup a home away from home.</p>
-    <div class="mb-4">
-        <a class="btn btn-custom2 btn-lg w-25" th:href="@{/services}">Services</a>
+<div class="container text-center my-4 section-tight">
+    <h2 class="h3 fw-semibold mb-2">Fremont Dog Plaza is the place to be!</h2>
+    <p class="text-muted measure mx-auto mb-4">
+        We make every moment safe, fun, and full of wags.
+        Our staff is dedicated to giving your pup a home away from home.
+    </p>
+    <div class="mb-3">
+        <a class="btn btn-custom2 btn-sleek" th:href="@{/services}">Services</a>
     </div>
-    <div class="row g-4 playful-images">
-        <div class="col-md-4">
-            <img th:src="@{/images/play1.jpg}" alt="Happy dog 1">
-        </div>
-        <div class="col-md-4">
-            <img th:src="@{/images/play2.jpg}" alt="Happy dog 2">
-        </div>
-        <div class="col-md-4">
-            <img th:src="@{/images/play3.jpg}" alt="Happy dog 3">
-        </div>
+    <div class="row g-3 playful-images">
+        <div class="col-md-4"><img th:src="@{/images/play1.jpg}" alt="Happy dog 1"></div>
+        <div class="col-md-4"><img th:src="@{/images/play2.jpg}" alt="Happy dog 2"></div>
+        <div class="col-md-4"><img th:src="@{/images/play3.jpg}" alt="Happy dog 3"></div>
     </div>
 </div>
 <script th:src="@{/js/custom.js}"></script>

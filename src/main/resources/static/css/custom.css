@@ -1,136 +1,267 @@
-/* General */
+/* ================================
+   Editor-only fallbacks for Bootstrap CSS variables
+   (keeps linters quiet; won't override Bootstrap at runtime)
+   ================================ */
+@layer bootstrap-var-fallbacks {
+    :root{
+        --bs-border-color: #dee2e6;
+        --bs-body-bg: #ffffff;
+        --bs-body-tertiary: #f8f9fa;
+        --bs-body-secondary: #f0f2f5;
+        --bs-info-border-subtle: #b6e0fe;
+        --bs-info-bg-subtle: #e7f5ff;
+        --bs-info-text-emphasis: #055160;
+        --bs-primary: #0d6efd;
+        --bs-secondary-color: #6c757d;
+    }
+}
+
+/* ================================
+   Global / shared styles
+   ================================ */
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
     background-color: #f8f9fa;
     color: #333;
 }
 
-/* Headings */
-h1, h2, h5 {
-    font-weight: 600;
-}
+h1, h2, h5 { font-weight: 600; }
 
 /* Buttons */
-/* Global button styling */
 .btn-custom {
-    background-color: rgb(255, 131, 39); /* playful orange */
-    border: none;
-    color: white;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 0.5rem 1.2rem;
-    transition: transform 0.3s ease;
+    background-color: rgb(255, 131, 39);
+    border: none; color: #fff; font-weight: bold;
+    border-radius: 8px; padding: .5rem 1.2rem;
+    transition: transform .3s ease;
 }
-
 .btn-custom:hover {
-    background-color: #ff8e00;
-    color: #fff;
+    background: #ff8e00; color: #fff;
     transform: translateY(-1px);
-    transition: transform 0.1s ease-in-out;
+    transition: transform .1s ease-in-out;
 }
-
 .btn-custom2 {
-    background-color: rgb(39, 100, 255); /* playful orange */
-    border: none;
-    color: white;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 0.5rem 1.2rem;
-    transition: transform 0.3s ease;
+    background: rgb(39,100,255); border: none; color: #fff; font-weight: bold;
+    border-radius: 8px; padding: .5rem 1.2rem; transition: transform .3s ease;
 }
-
 .btn-custom2:hover {
-    background-color: #0d64d5;
-    color: #fff;
-    transform: translateY(-1px);
-    transition: transform 0.1s ease-in-out;
+    background: #0d64d5; color: #fff; transform: translateY(-1px);
+    transition: transform .1s ease-in-out;
 }
-
-/* For destructive actions like cancel/delete */
 .btn-danger-custom {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 0.5rem 1.2rem;
-    transition: background-color 0.3s ease;
+    background: #dc3545; color: #fff; border: none; font-weight: bold;
+    border-radius: 8px; padding: .5rem 1.2rem; transition: background-color .3s ease;
 }
+.btn-danger-custom:hover { background: #bb2d3b; color: #fff; }
 
-.btn-danger-custom:hover {
-    background-color: #bb2d3b;
-    color: #fff;
-}
+.btn-sleek:active { transform: translateY(1px); }
 
 /* Cards */
-.card {
-    border-radius: 12px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
+.card { border-radius: 12px; transition: transform .3s ease, box-shadow .3s ease; }
+.card:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
 
-.card:hover {
-    transform: translateY(-5px);
-    transition: transform 0.2s ease-in-out;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-}
+/* Forms */
+form .form-control { border-radius: 8px; padding: 10px; }
+form button { width: 100%; }
 
-/* Form */
-form .form-control {
-    border-radius: 8px;
-    padding: 10px;
-}
+/* Hero / sections used elsewhere */
+.hero-gradient { background: linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%); }
+.section-light { background: #f8f9fa; }
+.section-accent { background: #fff7f0; }
+.section-tight { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.measure { max-width: 60ch; }
 
-form button {
-    width: 100%;
-}
-
-/* Hero gradient */
-.hero-gradient {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-}
-
-/* Section backgrounds */
-.section-light {
-    background-color: #f8f9fa;
-}
-
-.section-accent {
-    background-color: #fff7f0;
-}
-
-/* Uniform service card images */
+/* Image helpers */
 .card-img-top {
-    height: 250px;       /* adjust as needed */
-    object-fit: cover;   /* crops images nicely without distortion */
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
+    height: 250px; object-fit: cover;
+    border-top-left-radius: 12px; border-top-right-radius: 12px;
+}
+.playful-images img { height: 320px; }
+@media (max-width: 768px){ .playful-images img { height: 220px; } }
+
+/* Hero spacing variants (used elsewhere) */
+.hero.hero--top { align-items: flex-start; }
+.hero.hero--top .hero-content { padding-top: clamp(3rem, 12vh, 8rem); }
+.hero-lead { margin-top: clamp(1.75rem, 6vh, 4.5rem); }
+.hero-ctas { display:flex; flex-direction:column; align-items:center; gap: clamp(.85rem,2.2vh,1.25rem); margin-top: clamp(2.25rem,8vh,6rem); }
+.btn-plush { font-size: 1.15rem; padding: .9rem 1.6rem; border-radius: .85rem; min-width: 18.5rem; }
+
+/* Service page CTA (kept for other pages) */
+.section-header h1 { letter-spacing: .2px; margin-bottom: clamp(.25rem,.6vh,.5rem); }
+.section-header .intro-text {
+    color:#6c757d; font-size: clamp(.95rem,1.1vw,1.05rem);
+    line-height:1.6; max-width:62ch;
+    margin-top: clamp(.6rem,1.5vh,1rem);
+    margin-bottom: clamp(1.25rem,3vh,1.75rem);
+}
+.cta-row{ display:flex; flex-direction:column; gap:.55rem; align-items:center; margin-bottom:.25rem; }
+.cta-line{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:center; }
+.cta-label{ font-weight:600; color:#495057; }
+.btn-compact{ font-size:.92rem; padding:.5rem .9rem; border-radius:.55rem; line-height:1.25; box-shadow:0 2px 6px rgba(0,0,0,.06); }
+
+/* Weekly banners always visible */
+.alert.alert-static { animation:none!important; transition:none!important; opacity:1!important; visibility:visible!important; max-height:none!important; }
+
+/* Mobile button fit */
+@media (max-width: 768px){
+    .btn { width: 100%; margin-bottom: 10px; }
+    .card-img-top { height: 200px; }
+    .hero-gradient .container { padding: 20px; }
+    .hero-gradient h1 { font-size: 2rem; }
+    .hero-gradient p { font-size: 1rem; }
+    .hero.hero--top .hero-content { padding-top: 3rem; }
+    .hero-lead { margin-top: 1.25rem; }
+    .hero-ctas { margin-top: 1.5rem; gap: .75rem; width: 100%; }
+    .btn-plush { min-width: 0; width: 100%; }
 }
 
-/* Keep the weekly banner permanently visible */
-.alert.alert-static {
-    animation: none !important;
-    transition: none !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    max-height: none !important;
+/* ================================
+   Booking page structural styles
+   ================================ */
+
+/* Section card shell */
+.section-card{
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 1rem;
+    background: var(--bs-body-bg, #fff);
+}
+.section-card .section-head{
+    border-bottom: 1px dashed var(--bs-border-color, #dee2e6);
+    padding: .9rem 1.1rem;
+    background: var(--bs-body-tertiary, #f8f9fa);
+    border-top-left-radius: 1rem; border-top-right-radius: 1rem;
+}
+.section-card .section-body{ padding: 1rem; }
+
+/* Planning banner */
+.planner-banner{
+    border: 1px solid var(--bs-info-border-subtle, #b6e0fe);
+    background: var(--bs-info-bg-subtle, #e7f5ff);
+    color: var(--bs-info-text-emphasis, #055160);
+    border-radius: .75rem;
 }
 
-/* Make buttons full-width on small screens */
-@media (max-width: 768px) {
-    .btn {
-        width: 100%;
-        margin-bottom: 10px;
+/* Day tiles */
+.day-tile{
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: .75rem;
+    padding: 1rem;            /* consolidated (was .75rem earlier) */
+    height: 100%;
+    background: var(--bs-body-bg, #fff);
+    min-height: 180px;        /* roomier touch targets */
+}
+.day-tile .tile-head{
+    border-bottom: 1px dashed var(--bs-border-color, #dee2e6);
+    padding-bottom: .35rem; margin-bottom: .6rem;
+}
+.svc-btn.active{ box-shadow: 0 0 0 .2rem rgba(0,0,0,.08); }
+
+/* “Your Bookings” panel */
+.bookings-wrap{
+    background: var(--bs-body-secondary, #f0f2f5);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 1rem;
+}
+.bookings-wrap .wrap-head{
+    border-bottom: 1px dashed var(--bs-border-color, #dee2e6);
+    padding: .9rem 1.1rem;
+    background: var(--bs-body-tertiary, #f8f9fa);
+    border-top-left-radius: 1rem; border-top-right-radius: 1rem;
+}
+.bookings-wrap .wrap-body{ padding: 1rem; }
+
+/* Utility */
+.badge-status{ font-weight: 500; }
+.hr-dashed{ border-top: 1px dashed var(--bs-border-color, #dee2e6); opacity: .7; }
+.text-compact{ max-width: 70ch; margin-inline: auto; }
+
+/* ================================
+   Calendar-like two-week layout
+   ================================ */
+.calendar-head{
+    display:flex; align-items:center; justify-content:center;
+    padding:.4rem 0 .6rem;
+    border-bottom:1px dashed var(--bs-border-color, #dee2e6);
+    margin-bottom:.8rem;
+    background: var(--bs-body-bg, #fff);
+}
+.calendar-grid{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1rem;               /* final gap value */
+    align-items:start;
+}
+.calendar-label{
+    font-size:.85rem; font-weight:600;
+    color: var(--bs-secondary-color, #6c757d);
+    text-align:center;
+    padding:.25rem 0 .35rem;
+    border-bottom:1px dashed var(--bs-border-color, #dee2e6);
+}
+.calendar-cell{ min-width:0; }
+
+@media (max-width: 767.98px){
+    .calendar-grid{ grid-template-columns: repeat(2, 1fr); }
+    .calendar-label{ display:none; }
+}
+@media (min-width: 768px) and (max-width: 991.98px){
+    .calendar-grid{ grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 1400px){
+    .day-tile { min-height: 200px; }
+}
+
+/* ================================
+   “Today” highlight
+   ================================ */
+.day-tile.is-today {
+    background-color: #f0f7ff; /* fallback */
+    border-color: #9ec5fe;
+    box-shadow: 0 0 0 .15rem rgba(13,110,253,.12);
+}
+@supports (color: color-mix(in oklab, black 10%, white)) {
+    .day-tile.is-today{
+        background: color-mix(in oklab, var(--bs-primary, #0d6efd) 8%, var(--bs-body-bg, #fff) 92%);
+        border-color: color-mix(in oklab, var(--bs-primary, #0d6efd) 35%, var(--bs-border-color, #dee2e6) 65%);
+        box-shadow: 0 0 0 .18rem color-mix(in oklab, var(--bs-primary, #0d6efd) 18%, transparent);
     }
-    .card-img-top {
-        height: 200px; /* slightly smaller for mobile */
+}
+.day-tile.is-today .tile-head{ background:#e8f1ff; border-bottom-color:#9ec5fe; }
+
+/* Booked day (neutral gray) */
+.day-tile.is-booked{
+    background: var(--bs-body-secondary, #f0f2f5);
+    border-color: var(--bs-border-color, #dee2e6);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.04);
+}
+.day-tile.is-booked .tile-head{
+    background: var(--bs-body-tertiary, #f8f9fa);
+    border-bottom-color: var(--bs-border-color, #dee2e6);
+}
+
+/* Today: remove side bar */
+.day-tile.is-today::before{ display: none !important; }
+
+/* If a day is both today and booked, keep Today’s blue */
+.day-tile.is-today.is-booked {
+    background-color: #f0f7ff;
+    border-color: #9ec5fe;
+    box-shadow: 0 0 0 .15rem rgba(13,110,253,.12);
+}
+@supports (color: color-mix(in oklab, black 10%, white)) {
+    .day-tile.is-today.is-booked{
+        background: color-mix(in oklab, var(--bs-primary, #0d6efd) 8%, var(--bs-body-bg, #fff) 92%);
+        border-color: color-mix(in oklab, var(--bs-primary, #0d6efd) 35%, var(--bs-border-color, #dee2e6) 65%);
+        box-shadow: 0 0 0 .18rem color-mix(in oklab, var(--bs-primary, #0d6efd) 18%, transparent);
     }
-    .hero-gradient .container {
-        padding: 20px;
-    }
-    .hero-gradient h1 {
-        font-size: 2rem;
-    }
-    .hero-gradient p {
-        font-size: 1rem;
-    }
+}
+
+/* Booked badge shown ABOVE the tile (normal flow) */
+.calendar-cell .badge-booked{
+    display: inline-block;
+    margin: 0 0 .40rem .10rem;   /* <-- space between badge and the tile */
+    font-size: .70rem;
+    line-height: 1;
+    padding: .15rem .45rem;
+    border-radius: .5rem;
+    opacity: .95;
 }

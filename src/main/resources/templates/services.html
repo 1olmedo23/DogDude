@@ -8,25 +8,42 @@
 <body class="bg-light">
 <div th:replace="~{fragments/navbar :: navbar('services')}"></div>
 
-<div class="container py-5">
-    <h1 class="mb-4 text-center">Our Services</h1>
-    <p class="text-center mb-5">
-        Only approved clients can book services. <br>
-        Returning customers: <a th:href="@{/login}">Log in to book.</a><br>
-        New clients: <a th:href="@{/evaluation}">Submit an evaluation</a> to become an approved client.
-    </p>
-    <div class="row g-4 justify-content-center">
+<div class="container py-5 section-header text-center">
+    <h1 class="display-5 fw-bold mb-2">Our Services</h1>
 
+    <p class="intro-text mx-auto mb-4">
+        Only approved clients can book services. First time customers please submit an evaluation form.<br>
+        If you are a returning customer please log in to book services.
+    </p>
+
+    <!-- Labels with smaller buttons -->
+    <div class="cta-row">
+        <div class="cta-line">
+            <span class="cta-label">Returning Customers:</span>
+            <a class="btn btn-custom2 btn-compact" th:href="@{/login}">Log in to Book</a>
+        </div>
+        <div class="cta-line">
+            <span class="cta-label">New Clients:</span>
+            <a class="btn btn-custom btn-compact" th:href="@{/evaluation}">Submit an Evaluation</a>
+        </div>
+        <p>
+            <strong>We have discounted rates! Ask about them during your in-person meeting.</strong>
+        </p>
+    </div>
+</div>
+
+<section class="container pb-5 position-relative services-stage">
+    <div class="row g-4 justify-content-center services-grid">
         <!-- Daycare 6am - 3pm -->
         <div class="col-md-4">
             <div class="card shadow-sm h-100 text-center">
                 <img th:src="@{/images/daycare-morning.jpg}" class="card-img-top" alt="Daycare Morning">
                 <div class="card-body">
-                    <h5 class="card-title">Daycare (6am - 3pm)</h5>
+                    <h5 class="card-title">Daycare (6AM - 3PM)</h5>
                     <p class="card-text">Safe, supervised playtime for your dog.</p>
-                    <p class="fw-bold">$45.00</p>
-                    <div class="mt-3">
-                        <a class="btn btn-custom me-2" th:href="@{/evaluation}">New Client</a>
+                    <p class="fw-bold">$50.00</p>
+                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                        <a class="btn btn-custom" th:href="@{/evaluation}">New Client</a>
                         <a class="btn btn-custom2" th:href="@{/login}">Returning Customer</a>
                     </div>
                 </div>
@@ -38,11 +55,27 @@
             <div class="card shadow-sm h-100 text-center">
                 <img th:src="@{/images/daycare-evening.jpg}" class="card-img-top" alt="Daycare Evening">
                 <div class="card-body">
-                    <h5 class="card-title">Daycare (6am - 8pm)</h5>
-                    <p class="card-text">Extended care for busy schedules.</p>
+                    <h5 class="card-title">Daycare +Plus (6AM - 8PM)</h5>
+                    <p class="card-text">More fun for your dog!</p>
                     <p class="fw-bold">$60.00</p>
-                    <div class="mt-3">
-                        <a class="btn btn-custom me-2" th:href="@{/evaluation}">New Client</a>
+                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                        <a class="btn btn-custom" th:href="@{/evaluation}">New Client</a>
+                        <a class="btn btn-custom2" th:href="@{/login}">Returning Customer</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daycare After Hours -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 text-center">
+                <img th:src="@{/images/play2.jpg}" class="card-img-top" alt="Daycare Evening">
+                <div class="card-body">
+                    <h5 class="card-title">Daycare After Hours (6AM - 11PM)</h5>
+                    <p class="card-text">Extended care for busy schedules.</p>
+                    <p class="fw-bold">$90.00</p>
+                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                        <a class="btn btn-custom" th:href="@{/evaluation}">New Client</a>
                         <a class="btn btn-custom2" th:href="@{/login}">Returning Customer</a>
                     </div>
                 </div>
@@ -56,9 +89,9 @@
                 <div class="card-body">
                     <h5 class="card-title">Boarding</h5>
                     <p class="card-text">Overnight stays with round-the-clock care.</p>
-                    <p class="fw-bold">$80.00</p>
-                    <div class="mt-3">
-                        <a class="btn btn-custom me-2" th:href="@{/evaluation}">New Client</a>
+                    <p class="fw-bold">$135.00</p>
+                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                        <a class="btn btn-custom" th:href="@{/evaluation}">New Client</a>
                         <a class="btn btn-custom2" th:href="@{/login}">Returning Customer</a>
                     </div>
                 </div>
@@ -81,7 +114,7 @@
         </div>
 
     </div>
-</div>
+</section>
 <script th:src="@{/js/custom.js}"></script>
 </body>
 </html>

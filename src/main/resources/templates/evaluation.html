@@ -7,44 +7,65 @@
 </head>
 <body class="bg-light">
 <div th:replace="~{fragments/navbar :: navbar('evaluation')}"></div>
-<div class="container py-5">
-    <a class="btn btn-secondary mb-3" th:href="@{/}">Back to Homepage</a>
-    <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
-        <h1 class="mb-4 text-center">New Client Evaluation</h1>
-        <div th:if="${errors}" class="alert alert-danger">
-            <ul>
-                <li th:each="err : ${errors}" th:text="${err.defaultMessage}"></li>
-            </ul>
-        </div>
-        <form method="post" enctype="multipart/form-data">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/> <!-- CSRF token -->
+<div class="container py-5 d-flex flex-column min-vh-100">
 
-            <div class="mb-3">
-                <label class="form-label">Client Name</label>
-                <input type="text" class="form-control" name="clientName" required>
+    <!-- Content wrapper so the form stays centered and narrow -->
+    <div class="mx-auto" style="max-width: 600px;">
+
+        <h5 class="intro-text mx-auto mb-4 text-center">
+            Welcome new clients! Please complete the required<br> information to submit your evaluation.<br>
+            Please provide your vaccination and pet license records if you have them available.<br>
+            If not, don't worry. Bring them with you during<br> your in-person meeting—excited to meet your pup, and you!
+        </h5>
+
+        <p class="intro-text mx-auto mb-4 text-center">
+            After submitting the evaluation, you will receive an email with further instructions.
+        </p>
+
+        <div class="card shadow p-4">
+            <h1 class="mb-4 text-center">New Client Evaluation</h1>
+            <div th:if="${errors}" class="alert alert-danger">
+                <ul>
+                    <li th:each="err : ${errors}" th:text="${err.defaultMessage}"></li>
+                </ul>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Phone</label>
-                <input type="text" class="form-control" name="phone" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input type="email" class="form-control" name="email" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Dog Name</label>
-                <input type="text" class="form-control" name="dogName" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Dog Breed</label>
-                <input type="text" class="form-control" name="dogBreed" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Upload Vaccine/Required Documents (Max 3)</label>
-                <input type="file" class="form-control" name="files" multiple>
-            </div>
-            <button type="submit" class="btn btn-primary btn-lg mt-3">Submit Evaluation</button>
-        </form>
+
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="mb-3">
+                    <label class="form-label">Client Name</label>
+                    <input type="text" class="form-control" name="clientName" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" class="form-control" name="phone" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Dog Name</label>
+                    <input type="text" class="form-control" name="dogName" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Dog Breed</label>
+                    <input type="text" class="form-control" name="dogBreed" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Upload Vaccine/Pet License</label>
+                    <input type="file" class="form-control" name="files" multiple>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg mt-3 w-100">Submit Evaluation</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Back button pinned to bottom when there's extra space -->
+    <div class="mt-auto pt-4 d-grid d-md-flex justify-content-md-center">
+        <a class="btn btn-secondary" th:href="@{/}">Back to Homepage</a>
     </div>
 </div>
 <script th:src="@{/js/custom.js}"></script>
