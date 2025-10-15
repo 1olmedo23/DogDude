@@ -37,13 +37,12 @@ public class PricingService {
 
     // --- Boarding immediate + tiered (per-night) ---
     private static final BigDecimal BRD_PERNIGHT_IMM = bd(90);
+    private static final BigDecimal BRD_PERNIGHT_T4  = bd(80); // ≥4 prior-month nights
+    private static final BigDecimal BRD_PERNIGHT_T10 = bd(75); // ≥10 prior-month nights
+    private static final BigDecimal BRD_PERNIGHT_T16 = bd(65); // ≥16 prior-month nights
 
-    // Prior-month tier: ≥4
-    private static final BigDecimal BRD_PERNIGHT_T4  = bd(80);
-    // Prior-month tier: ≥10
-    private static final BigDecimal BRD_PERNIGHT_T10 = bd(75);
-    // Prior-month tier: ≥16
-    private static final BigDecimal BRD_PERNIGHT_T16 = bd(65);
+    // --- NEW: Daycare After Hours flat rate ---
+    private static final BigDecimal DC_AFTER_HOURS = bd(90);
 
     private static BigDecimal bd(double v) { return BigDecimal.valueOf(v); }
 
@@ -57,24 +56,26 @@ public class PricingService {
         return s != null && s.toLowerCase().contains("boarding");
     }
 
+    // NEW: detect "Daycare After Hours (6 AM - 11 PM)"
+    private boolean isAfterHours(Booking b) {
+        String s = b.getServiceType();
+        if (s == null) return false;
+        String sl = s.toLowerCase();
+        return sl.contains("after hours") || s.contains("6 AM - 11 PM");
+    }
+
     private boolean isHalfDay(Booking b) {
-        // Your strings: "Daycare (6 AM - 3 PM)" is the half-day
         String s = b.getServiceType();
         return s != null && s.contains("6 AM - 3 PM");
     }
 
     private boolean isExtended(Booking b) {
-        // Extended is “till 9:30PM” in your spec; your label is "6 AM - 8 PM".
-        // If you later add "Extended" variant string, adjust here.
         String s = b.getServiceType();
-        return s != null && s.contains("8 PM"); // treating 6AM–8PM as the long/“full” block
+        return s != null && s.contains("8 PM"); // treating 6AM–8PM as long/full block
     }
 
     private boolean isFullDay(Booking b) {
-        // In your current 2 daycare SKUs you have 6–3 and 6–8.
-        // We'll treat 6–8 as FULL for pricing selection (not Extended).
-        // If you add a real Extended SKU later, update detection accordingly.
-        return isDaycare(b) && isExtended(b); // map 6–8 to the “full-day” price band
+        return isDaycare(b) && isExtended(b); // map 6–8 to the “full-day” band
     }
 
     private LocalDate weekStart(LocalDate any) {
@@ -94,18 +95,14 @@ public class PricingService {
         return pms.withDayOfMonth(pms.lengthOfMonth());
     }
 
-    /**
-     * Monday of the week for a given date (Mon–Sun window).
-     */
+    /** Monday of the week for a given date (Mon–Sun window). */
     public LocalDate weekStartMonday(LocalDate date) {
         DayOfWeek dow = date.getDayOfWeek();
         int shiftBack = (dow.getValue() - DayOfWeek.MONDAY.getValue() + 7) % 7;
         return date.minusDays(shiftBack);
     }
 
-    /**
-     * Sunday of the same Mon–Sun week.
-     */
+    /** Sunday of the same Mon–Sun week. */
     public LocalDate weekEndSunday(LocalDate date) {
         LocalDate start = weekStartMonday(date);
         return start.plusDays(6);
@@ -113,7 +110,6 @@ public class PricingService {
 
     /**
      * Compute price for a single booking at evaluation time.
-     * Uses locked weekly daycare prepay bundle + prior-month boarding tiers.
      * For daycare discount: booking must be 24h+ out, daycare, and customer opted-in (wantsAdvancePay).
      */
     public BigDecimal priceFor(Booking b) {
@@ -121,6 +117,11 @@ public class PricingService {
 
         // If we already locked a quote, prefer it (idempotent behavior)
         if (b.getQuotedRateAtLock() != null) return b.getQuotedRateAtLock();
+
+        // NEW: Daycare After Hours is always flat $90 (no discount)
+        if (isAfterHours(b)) {
+            return DC_AFTER_HOURS.setScale(2, RoundingMode.HALF_UP);
+        }
 
         if (isDaycare(b)) {
             return priceDaycare(b);
@@ -138,7 +139,6 @@ public class PricingService {
             if (isHalfDay(b)) return DC_HALF_IMM;
             if (isFullDay(b)) return DC_FULL_IMM;
             // If you add “Extended” distinct SKU later: return DC_EXT_IMM
-            // For now, your two SKUs map: 6–3 => Half, 6–8 => Full
             return DC_FULL_IMM; // default to full for safety
         }
 
@@ -189,7 +189,7 @@ public class PricingService {
         // Last-of-block if there is NO boarding the next day
         boolean isLastOfBlock = !hasBoardingOnNextDay(u, b.getDate());
 
-        // 👇 NEW: if pickup day (date+1) has daycare, do NOT add the half-day
+        // If pickup day (date+1) has daycare, do NOT add the half-day
         boolean pickupDayHasDaycare = hasDaycareOnDate(u, b.getDate().plusDays(1));
 
         BigDecimal price = nightly; // default
@@ -225,10 +225,11 @@ public class PricingService {
     }
 
     private boolean hasDaycareOnDate(User u, LocalDate date) {
-        return !bookingRepository
+        return bookingRepository
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
                         u, "daycare", date, "CANCELED")
-                .isEmpty();
+                .stream()
+                .anyMatch(bk -> !isAfterHours(bk)); // ← true if there’s a regular daycare (not After Hours)
     }
 
     public BigDecimal previewDaycarePrice(User u,
@@ -236,6 +237,14 @@ public class PricingService {
                                           String serviceType,
                                           boolean advanceEligible,
                                           boolean wantsAdvancePay) {
+        // NEW: After Hours is always flat $90 (no discounts)
+        if (serviceType != null) {
+            String sl = serviceType.toLowerCase();
+            if (sl.contains("after hours") || serviceType.contains("6 AM - 11 PM")) {
+                return DC_AFTER_HOURS.setScale(2, RoundingMode.HALF_UP);
+            }
+        }
+
         // If not qualifying for prepay, use immediate bands
         boolean qualifies = advanceEligible && wantsAdvancePay;
         Booking temp = new Booking();

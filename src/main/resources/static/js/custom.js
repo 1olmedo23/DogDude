@@ -7,6 +7,43 @@ function formatCurrency(n) {
     const num = Number(n || 0);
     return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
+function toISODate(d) { return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+async function fetchCapacityRibbonFor(dateObj) {
+    // 0) Only update when the Bookings tab is active and the ribbon exists
+    const ribbon = document.getElementById('capacityRibbon');
+    const bookingsPaneActive = document.querySelector('#bookings.tab-pane.active.show');
+    if (!ribbon || !bookingsPaneActive) return;
+
+    // 1) Fetch
+    const iso = toISODate(dateObj);
+    if (!iso) return;
+
+    const res = await fetch(`/admin/bookings/capacity?date=${iso}`, {
+        headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) return;
+
+    const c = await res.json();
+
+    // 2) Setter helper (no-throw if element is missing)
+    const set = (id, v) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // optional pretty formatting for integers
+        el.textContent = (v ?? '—');
+    };
+
+    // 3) Populate
+    set('capDaycare',      c.daycare);
+    set('capDaycareCap',   c.daycareCap);
+    set('capBoarding',     c.boarding);
+    set('capBoardingCap',  c.boardingCap);
+    set('capTotal',        c.total);
+    set('capTotalCap',     c.totalCap);
+    set('capEmergency',    c.emergencyUsed);
+    set('capEmergencyCap', c.emergencyCap);
+}
 // ---- Legacy shim: we now handle alert timing elsewhere;
 function autoDismissAlerts() { /* no-op on purpose */ }
 
@@ -52,69 +89,99 @@ function groupAndRenderAdminBookings(rows) {
     const csrfInput = document.querySelector('input[name="_csrf"]');
     const csrfToken = csrfInput ? csrfInput.value : '';
 
+    // NEW: include After Hours as its own group
     const groups = {
         'Daycare (6 AM - 3 PM)': [],
         'Daycare (6 AM - 8 PM)': [],
+        'Daycare After Hours (6 AM - 11 PM)': [], // NEW
         'Boarding': []
     };
 
+    // Group rows by service
     rows.forEach(r => {
         const svc = (r.serviceType || '').toLowerCase();
         if (svc.includes('daycare') && r.serviceType.includes('6 AM - 3 PM')) {
             groups['Daycare (6 AM - 3 PM)'].push(r);
         } else if (svc.includes('daycare') && r.serviceType.includes('6 AM - 8 PM')) {
             groups['Daycare (6 AM - 8 PM)'].push(r);
+        } else if (svc.includes('daycare') && svc.includes('after hours')) {
+            groups['Daycare After Hours (6 AM - 11 PM)'].push(r); // NEW
         } else if (svc.includes('boarding')) {
             groups['Boarding'].push(r);
         }
     });
 
-    for (const [title, list] of Object.entries(groups)) {
-        tbody.insertAdjacentHTML('beforeend', `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`);
-        if (list.length === 0) {
-            tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
-        } else {
-            list.forEach(b => {
-                let badgeHtml = '';
-                // price chip (uses your formatCurrency helper)
-                const priceTag = b.quotedRateAtLock
-                    ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
-                    : '';
+    // Render groups in a stable order
+    const renderOrder = [
+        'Daycare (6 AM - 3 PM)',
+        'Daycare (6 AM - 8 PM)',
+        'Daycare After Hours (6 AM - 11 PM)', // NEW
+        'Boarding'
+    ];
 
-                if (b.status && b.status.toUpperCase() === 'CANCELED') {
-                    badgeHtml = ` <span class="badge bg-danger ms-1">Canceled</span>`;
-                } else if (b.paid) {
-                    badgeHtml = ` <span class="badge bg-success ms-1">Paid</span>`;
-                } else if (b.wantsAdvancePay && b.advanceEligible) {
-                    badgeHtml = ` <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>`;
-                }
+    for (const title of renderOrder) {
+        const list = groups[title];
 
-                const markPaidForm = (!b.paid && (!b.status || b.status.toUpperCase() !== 'CANCELED')) ? `
+        // Group header row
+        tbody.insertAdjacentHTML('beforeend',
+            `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`);
+
+        if (!list || list.length === 0) {
+            tbody.insertAdjacentHTML('beforeend',
+                `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
+            continue;
+        }
+
+        // Sort by time (nulls last)
+        list.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+        list.forEach(b => {
+            // status badge
+            let badgeHtml = '';
+            if (b.status && b.status.toUpperCase() === 'CANCELED') {
+                badgeHtml = ` <span class="badge bg-danger ms-1">Canceled</span>`;
+            } else if (b.paid) {
+                badgeHtml = ` <span class="badge bg-success ms-1">Paid</span>`;
+            } else if (b.wantsAdvancePay && b.advanceEligible) {
+                badgeHtml = ` <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>`;
+            }
+
+            // price chip (quoted rate if present)
+            const priceTag = b.quotedRateAtLock
+                ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
+                : '';
+
+            // NEW: After Hours label add-on (always show $90 Flat)
+            const isAfterHours = (b.serviceType || '').toLowerCase().includes('after hours');
+            const afterHoursChip = isAfterHours
+                ? ` <span class="badge bg-info text-dark ms-1">$90 Flat</span>`
+                : '';
+
+            const markPaidForm = (!b.paid && (!b.status || b.status.toUpperCase() !== 'CANCELED')) ? `
 <form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline ms-2"
       onsubmit="return confirm('Mark this booking as PAID?');">
   ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
   <button class="btn btn-sm btn-outline-success">Mark Paid (day)</button>
 </form>` : '';
 
-                const row = `
+            const row = `
 <tr>
   <td>${b.customerName}</td>
   <td>${b.dogName || 'N/A'}</td>
-  <td>${b.serviceType}${badgeHtml}${priceTag}${markPaidForm}</td>
+  <td>${b.serviceType}${afterHoursChip}${badgeHtml}${priceTag}${markPaidForm}</td>
   <td>${b.time || ''}</td>
-  <td>${b.status}</td>
+  <td>${b.status || ''}</td>
   <td>
     ${b.status === 'APPROVED' ? `
       <form method="POST" action="/admin/bookings/cancel/${b.id}">
         ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
         <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
       </form>` : ''
-                }
+            }
   </td>
 </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-        }
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
     }
 
     attachCancelConfirm();
@@ -145,6 +212,7 @@ function updateBookingDateDisplay() {
     updateInvoiceWeekRangeDisplay();
     fetchWeeklyInvoices();   // load invoice rows (and rebuild paidEmailsForWeek if you still use it)
     fetchBookings();         // then render bookings
+    +   fetchCapacityRibbonFor(currentBookingDate);
 }
 
 function cancelHandler(e) {

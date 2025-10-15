@@ -1,5 +1,8 @@
 package com.dogdaycare.controller;
 
+import com.dogdaycare.dto.EmergencyCounts;
+import com.dogdaycare.service.BookingLimitService;
+
 import java.math.BigDecimal;
 import com.dogdaycare.dto.BookingRowDto;
 import com.dogdaycare.model.Booking;
@@ -33,17 +36,20 @@ public class AdminBookingController {
     // NEW: to sync invoices when all days are paid
     private final InvoiceRepository invoiceRepository;
     private final PricingService pricingService;
+    private final BookingLimitService bookingLimitService;
 
     public AdminBookingController(BookingRepository bookingRepository,
                                   EvaluationRepository evaluationRepository,
                                   EmergencyAllocationRepository emergencyAllocationRepository,
                                   InvoiceRepository invoiceRepository,
-                                  PricingService pricingService) {
+                                  PricingService pricingService,
+                                  BookingLimitService bookingLimitService) {
         this.bookingRepository = bookingRepository;
         this.evaluationRepository = evaluationRepository;
         this.emergencyAllocationRepository = emergencyAllocationRepository;
         this.invoiceRepository = invoiceRepository;
         this.pricingService = pricingService;
+        this.bookingLimitService = bookingLimitService;
     }
 
     private LocalDate weekStart(LocalDate any) { return any.with(DayOfWeek.MONDAY); }
@@ -102,11 +108,28 @@ public class AdminBookingController {
                 .sorted(Comparator.comparing(Booking::getTime, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
 
+        var afterHours = bookings.stream()
+                .filter(b -> b.getServiceType() != null &&
+                        b.getServiceType().toLowerCase().contains("after hours"))
+                .sorted(Comparator.comparing(Booking::getTime,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
         model.addAttribute("date", date);
         model.addAttribute("bookingsDaycare", daycare);
         model.addAttribute("bookingsBoarding", boarding);
+        model.addAttribute("bookingsAfterHours", afterHours);
         model.addAttribute("activePage", "admin-bookings");
         return "admin/bookings";
+    }
+
+    @GetMapping("/capacity")
+    @ResponseBody
+    public EmergencyCounts capacity(@RequestParam("date")
+                                    @org.springframework.format.annotation.DateTimeFormat(iso =
+                                            org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                                    java.time.LocalDate date) {
+        return bookingLimitService.snapshot(date);
     }
 
     @PostMapping("/cancel/{id}")

@@ -55,6 +55,11 @@ public class EmergencyCounts {
     public int boardingCap() { return boardingCap; }
     public int emergencyCap() { return emergencyCap; }
 
+    public int getTotalCap() { return totalCap; }
+    public int getDaycareCap() { return daycareCap; }
+    public int getBoardingCap() { return boardingCap; }
+    public int getEmergencyCap() { return emergencyCap; }
+
     // Remaining emergency spots for the day
     public int emergencyRemaining() { return Math.max(0, emergencyCap - emergencyUsed); }
     // Also provide JavaBean-style getter in case your controller calls getEmergencyRemaining()

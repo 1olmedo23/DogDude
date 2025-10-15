@@ -129,6 +129,10 @@ public class BookingController {
                 .filter(b -> "Daycare (6 AM - 8 PM)".equalsIgnoreCase(safe(b.getServiceType())))
                 .toList();
 
+        var daycareAfterHours = daycare.stream()
+                .filter(b -> "Daycare After Hours (6 AM - 11 PM)".equalsIgnoreCase(safe(b.getServiceType())))
+                .toList();
+
         var files = fileRepository.findByUserIdOrderByCreatedAtDesc(customer.getId());
         model.addAttribute("files", files);
 
@@ -137,11 +141,13 @@ public class BookingController {
         model.addAttribute("bookingsBoarding", boarding);
         model.addAttribute("bookingsDaycareShort", daycareShort);
         model.addAttribute("bookingsDaycareLong", daycareLong);
+        model.addAttribute("bookingsDaycareAfterHours", daycareAfterHours);
         model.addAttribute("today", LocalDate.now(clock));
 
         model.addAttribute("services", List.of(
                 "Daycare (6 AM - 3 PM)",
                 "Daycare (6 AM - 8 PM)",
+                "Daycare After Hours (6 AM - 11 PM)",
                 "Boarding"
         ));
         model.addAttribute("activePage", "booking");
@@ -282,6 +288,7 @@ public class BookingController {
 
         boolean isDaycare = serviceType != null && serviceType.toLowerCase().contains("daycare");
         boolean isBoarding = serviceType != null && serviceType.toLowerCase().contains("boarding");
+        boolean isAfterHours = serviceType != null && serviceType.toLowerCase().contains("after hours");
 
         // Daycare: compute 24h rule & week-paid guard
         boolean advanceEligible = false;
@@ -292,6 +299,19 @@ public class BookingController {
             long hours = Duration.between(now, zdt).toHours();
             advanceEligible = hours >= 24;
         }
+
+        //After Hours is *never* advance-eligible and has a flat $90 rate.
+        if (isAfterHours) {
+            return Map.of(
+                    "amount", new java.math.BigDecimal("90.00").setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+                    "currency", "USD",
+                    "advanceEligible", false,
+                    "wantsAdvancePayApplied", false,
+                    "weekAlreadyPaid", false,
+                    "note", "Daycare After Hours flat rate."
+            );
+        }
+
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, pricingService.weekStartMonday(date));
         boolean wantsAdvancePayFinal = isDaycare && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
 
@@ -362,6 +382,7 @@ public class BookingController {
 
         // Compute advance eligibility (24h rule for daycare only)
         boolean isDaycareFlag = serviceType != null && serviceType.toLowerCase().contains("daycare");
+        boolean isAfterHours = serviceType != null && serviceType.toLowerCase().contains("after hours");
         boolean advanceEligible = false;
         if (isDaycareFlag) {
             var now = ZonedDateTime.now(clock);
@@ -375,7 +396,8 @@ public class BookingController {
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, weekStart);
 
         // Final flag we persist:
-        boolean wantsAdvancePayFinal = isDaycareFlag && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
+        boolean wantsAdvancePayFinal =
+                !isAfterHours && isDaycareFlag && advanceEligible && wantsAdvancePay && !weekAlreadyPaid; // NEW: block for After Hours
 
         // Build & persist
         Booking booking = new Booking();
