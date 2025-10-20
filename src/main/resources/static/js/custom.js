@@ -147,11 +147,13 @@ function groupAndRenderAdminBookings(rows) {
             }
 
             // price chip (quoted rate if present)
-            const priceTag = b.quotedRateAtLock
-                ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
-                : '';
+            const priceTag = (b.liveAmount != null)
+                ? ` <span class="text-muted ms-1">(${formatCurrency(b.liveAmount)})</span>`
+                : (b.quotedRateAtLock
+                    ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
+                    : '');
 
-            // NEW: After Hours label add-on (always show $90 Flat)
+            // After Hours label add-on (always show $90 Flat)
             const isAfterHours = (b.serviceType || '').toLowerCase().includes('after hours');
             const afterHoursChip = isAfterHours
                 ? ` <span class="badge bg-info text-dark ms-1">$90 Flat</span>`
@@ -164,10 +166,15 @@ function groupAndRenderAdminBookings(rows) {
   <button class="btn btn-sm btn-outline-success">Mark Paid (day)</button>
 </form>` : '';
 
+            // NEW: dog ×N badge (only when > 1)
+            const dogBadge = (b.dogCount && b.dogCount > 1)
+                ? ` <span class="badge bg-secondary-subtle text-secondary ms-1">×${b.dogCount}</span>`
+                : '';
+
             const row = `
 <tr>
   <td>${b.customerName}</td>
-  <td>${b.dogName || 'N/A'}</td>
+  <td>${b.dogName || 'N/A'}${dogBadge}</td>
   <td>${b.serviceType}${afterHoursChip}${badgeHtml}${priceTag}${markPaidForm}</td>
   <td>${b.time || ''}</td>
   <td>${b.status || ''}</td>

@@ -1,10 +1,7 @@
 package com.dogdaycare.controller;
 
-import com.dogdaycare.dto.EmergencyCounts;
-import com.dogdaycare.service.BookingLimitService;
-
-import java.math.BigDecimal;
 import com.dogdaycare.dto.BookingRowDto;
+import com.dogdaycare.dto.EmergencyCounts;
 import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.EvaluationRequest;
 import com.dogdaycare.model.Invoice;
@@ -12,6 +9,7 @@ import com.dogdaycare.repository.BookingRepository;
 import com.dogdaycare.repository.EmergencyAllocationRepository;
 import com.dogdaycare.repository.EvaluationRepository;
 import com.dogdaycare.repository.InvoiceRepository;
+import com.dogdaycare.service.BookingLimitService;
 import com.dogdaycare.service.PricingService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -19,11 +17,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.time.*;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin/bookings")
@@ -33,7 +31,7 @@ public class AdminBookingController {
     private final EvaluationRepository evaluationRepository;
     private final EmergencyAllocationRepository emergencyAllocationRepository;
 
-    // NEW: to sync invoices when all days are paid
+    // used when marking a day paid (kept as-is)
     private final InvoiceRepository invoiceRepository;
     private final PricingService pricingService;
     private final BookingLimitService bookingLimitService;
@@ -55,7 +53,7 @@ public class AdminBookingController {
     private LocalDate weekStart(LocalDate any) { return any.with(DayOfWeek.MONDAY); }
     private LocalDate weekEnd(LocalDate ws) { return ws.plusDays(6); }
 
-    // --- JSON used by admin page ---
+    // ---------------- JSON consumed by admin page (Bookings tab) ----------------
     @GetMapping
     @ResponseBody
     public List<BookingRowDto> getBookingsByDate(
@@ -74,23 +72,26 @@ public class AdminBookingController {
             String customerName = evalOpt.map(EvaluationRequest::getClientName).orElse(email != null ? email : "N/A");
             String dogName = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
 
+            // IMPORTANT: include both the historical lock and the current live (tier-aware) amount
             return new BookingRowDto(
                     b.getId(),
                     customerName,
-                    email,                   // <— include email
+                    email,
                     dogName,
                     b.getServiceType(),
                     b.getTime(),
                     b.getStatus(),
                     b.isWantsAdvancePay(),
                     b.isAdvanceEligible(),
-                    b.isPaid(),              // <— include paid
-                    b.getQuotedRateAtLock()  // <— include price
+                    b.isPaid(),
+                    b.getQuotedRateAtLock(),
+                    b.getDogCount(),
+                    liveAmountFor(b) // << used by custom.js price chip
             );
-        }).collect(java.util.stream.Collectors.toList());
+        }).toList();
     }
 
-    // --- Server view (unchanged) ---
+    // ---------------- Optional server-side view (unchanged) ----------------
     @GetMapping("/view")
     public String viewByDate(
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -123,6 +124,7 @@ public class AdminBookingController {
         return "admin/bookings";
     }
 
+    // capacity ribbon proxy (unchanged)
     @GetMapping("/capacity")
     @ResponseBody
     public EmergencyCounts capacity(@RequestParam("date")
@@ -143,59 +145,52 @@ public class AdminBookingController {
         return "redirect:/admin";
     }
 
-    // --- NEW: mark a single booking (day) as PAID ---
+    // Mark a single booking (day) as PAID (unchanged logic)
     @PostMapping("/mark-paid/{id}")
     public String markDayPaid(@PathVariable Long id, RedirectAttributes ra) {
         bookingRepository.findById(id).ifPresent(b -> {
-            // 1) Mark this single booking paid
+            // 1) mark this single booking paid
             if (!"CANCELED".equalsIgnoreCase(b.getStatus()) && !b.isPaid()) {
                 b.setPaid(true);
                 b.setPaidAt(java.time.LocalDateTime.now());
                 bookingRepository.save(b);
             }
 
-            // 2) If *all* non-canceled bookings for this customer in this week are paid,
-            //    persist/flip the invoice to paid (and keep it paid forever after).
+            // 2) if all non-canceled bookings for this customer/week are paid, flip invoice to paid
             var customer = b.getCustomer();
             if (customer != null && customer.getUsername() != null) {
-                java.time.LocalDate ws = b.getDate().with(java.time.DayOfWeek.MONDAY);
-                java.time.LocalDate we = ws.plusDays(6);
+                LocalDate ws = b.getDate().with(DayOfWeek.MONDAY);
+                LocalDate we = ws.plusDays(6);
 
                 var weekBookings = bookingRepository.findByDateBetween(ws, we).stream()
                         .filter(x -> x.getCustomer() != null && customer.getId().equals(x.getCustomer().getId()))
                         .filter(x -> !"CANCELED".equalsIgnoreCase(x.getStatus()))
                         .toList();
 
-                boolean allPaid = !weekBookings.isEmpty() && weekBookings.stream().allMatch(com.dogdaycare.model.Booking::isPaid);
+                boolean allPaid = !weekBookings.isEmpty() && weekBookings.stream().allMatch(Booking::isPaid);
 
-                // Load/create invoice for that week+customer
                 var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(customer.getUsername(), ws);
 
-                com.dogdaycare.model.Invoice inv = invOpt.orElseGet(() -> {
-                    // scope to this customer + week + non-canceled
-                    java.util.List<com.dogdaycare.model.Booking> weekBookingsForCustomer =
-                            bookingRepository.findByDateBetween(ws, weekEnd(ws)).stream()
-                                    .filter(bk -> bk.getCustomer() != null
-                                            && customer.getUsername().equals(bk.getCustomer().getUsername()))
-                                    .filter(bk -> !"CANCELED".equalsIgnoreCase(bk.getStatus()))
-                                    .toList();
+                Invoice inv = invOpt.orElseGet(() -> {
+                    // snapshot current week amount for this customer (using priceFor×dogCount)
+                    var amount = weekBookings.stream()
+                            .map(bk -> {
+                                BigDecimal perDog = pricingService.priceFor(bk);
+                                int n = (bk.getDogCount() != null ? bk.getDogCount() : 1);
+                                return perDog.multiply(BigDecimal.valueOf(n));
+                            })
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    java.math.BigDecimal amount = weekBookingsForCustomer.stream()
-                            .map(pricingService::priceFor)
-                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-                    // build a new invoice shell
-                    com.dogdaycare.model.Invoice i = new com.dogdaycare.model.Invoice();
+                    Invoice i = new Invoice();
                     i.setCustomerEmail(customer.getUsername());
-                    i.setCustomerName(customer.getUsername());    // or look up Evaluation name if you prefer
-                    i.setDogName("N/A");                           // or pull from Evaluation
+                    i.setCustomerName(customer.getUsername()); // keep simple (or look up Evaluation)
+                    i.setDogName("N/A");
                     i.setWeekStart(ws);
-                    i.setWeekEnd(weekEnd(ws));
+                    i.setWeekEnd(we);
                     i.setAmount(amount);
                     return i;
                 });
 
-                // Only flip to paid if all bookings are paid; never flip an already-paid invoice back to unpaid
                 if (allPaid && !inv.isPaid()) {
                     inv.setPaid(true);
                     inv.setPaidAt(java.time.LocalDateTime.now());
@@ -207,5 +202,47 @@ public class AdminBookingController {
 
         ra.addFlashAttribute("successMessage", "Booking marked paid.");
         return "redirect:/admin#bookings";
+    }
+
+    // ---------------- Live tier-aware per-booking total for Admin chip ----------------
+    private BigDecimal liveAmountFor(Booking b) {
+        int dogs = (b.getDogCount() != null ? b.getDogCount() : 1);
+
+        String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
+        boolean isDaycare = svc.contains("daycare");
+        boolean isAfterHours = svc.contains("after hours");
+        boolean isBoarding = svc.contains("boarding");
+
+        if (isAfterHours) {
+            return new BigDecimal("90.00").multiply(BigDecimal.valueOf(dogs));
+        }
+
+        if (isBoarding) {
+            BigDecimal base = pricingService.priceFor(b); // your boarding logic
+            return base.multiply(BigDecimal.valueOf(dogs));
+        }
+
+        if (isDaycare) {
+            // Determine customer's current week tier (>=4 daycare bookings, non-canceled)
+            var customer = b.getCustomer();
+            if (customer == null) return BigDecimal.ZERO;
+
+            LocalDate ws = pricingService.weekStartMonday(b.getDate());
+            LocalDate we = ws.plusDays(6);
+
+            var weekBookings = bookingRepository.findByCustomerAndDateBetween(customer, ws, we).stream()
+                    .filter(x -> x.getServiceType() != null && x.getServiceType().toLowerCase().contains("daycare"))
+                    .filter(x -> !"CANCELED".equalsIgnoreCase(x.getStatus()))
+                    .toList();
+
+            boolean atLeast4 = weekBookings.size() >= 4;
+
+            BigDecimal perDog = pricingService.quoteDaycareAtTier(b, atLeast4);
+            return perDog.multiply(BigDecimal.valueOf(dogs));
+        }
+
+        // fallback
+        BigDecimal base = pricingService.priceFor(b);
+        return base.multiply(BigDecimal.valueOf(dogs));
     }
 }

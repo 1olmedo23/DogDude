@@ -3,6 +3,7 @@ package com.dogdaycare.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.persistence.Column;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -60,4 +61,11 @@ public class Booking {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    // --- Multi-dog support ---
+    @Column(name = "dog_count", nullable = false)
+    private Integer dogCount = 1;
+
+    public Integer getDogCount() { return dogCount; }
+    public void setDogCount(Integer dogCount) { this.dogCount = dogCount; }
 }

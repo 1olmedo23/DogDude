@@ -70,7 +70,18 @@
                             <td th:text="${evaluation.clientName}"></td>
                             <td th:text="${evaluation.email}"></td>
                             <td th:text="${evaluation.phone}"></td>
-                            <td th:text="${evaluation.dogName} + ' (' + ${evaluation.dogBreed} + ')'"></td>
+                            <td>
+                                <!-- Primary dog -->
+                                <div th:text="'1. ' + ${evaluation.dogName} + ' (' + ${evaluation.dogBreed} + ')'"></div>
+
+                                <!-- Additional dogs (if any, numbered) -->
+                                <div th:if="${evaluation.additionalDogs != null and #lists.size(evaluation.additionalDogs) > 0}" class="mt-1">
+        <span th:each="d, iter : ${evaluation.additionalDogs}">
+            <span th:text="${iter.index + 2} + '. ' + ${d.name} + ' (' + ${d.breed} + ')'"></span>
+            <br th:if="${!iter.last}" />
+        </span>
+                                </div>
+                            </td>
                             <td th:text="${evaluation.approved ? 'Approved' : 'Pending'}"></td>
                             <td>
                                 <form th:if="${!evaluation.approved}" th:action="@{'/admin/approve/' + ${evaluation.id}}" method="post" class="d-flex">
@@ -152,10 +163,11 @@
             </div>
             <h3 class="mb-3">Bookings</h3>
             <div class="d-flex justify-content-between mb-3">
-                <button class="btn btn-custom" id="prevDayBtn">← Previous Day</button>
+                <button class="btn btn-custom" id="todayBtn">Today</button>
                 <h4 id="bookingDateDisplay"></h4>
                 <div>
-                    <button class="btn btn-custom" id="todayBtn">Today</button>
+
+                    <button class="btn btn-custom" id="prevDayBtn">← Previous Day</button>
                     <button class="btn btn-custom" id="nextDayBtn">Next Day →</button>
                 </div>
             </div>

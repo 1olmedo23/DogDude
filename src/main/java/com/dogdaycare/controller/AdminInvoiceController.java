@@ -4,7 +4,6 @@ import com.dogdaycare.dto.InvoiceRowDto;
 import com.dogdaycare.model.Booking;
 import com.dogdaycare.model.EvaluationRequest;
 import com.dogdaycare.model.Invoice;
-import com.dogdaycare.model.User;
 import com.dogdaycare.repository.BookingRepository;
 import com.dogdaycare.repository.EvaluationRepository;
 import com.dogdaycare.repository.InvoiceRepository;
@@ -64,7 +63,7 @@ public class AdminInvoiceController {
     private LocalDate weekEnd(LocalDate start) { return start.plusDays(6); }
     private LocalDate lastCompletedWeekStart() {
         LocalDate today = LocalDate.now(clock);
-        return today.with(java.time.DayOfWeek.MONDAY).minusWeeks(1);
+        return today.with(DayOfWeek.MONDAY).minusWeeks(1);
     }
 
     @GetMapping
@@ -90,6 +89,7 @@ public class AdminInvoiceController {
                 .collect(Collectors.groupingBy(b -> b.getCustomer().getUsername()));
 
         List<InvoiceRowDto> rows = new ArrayList<>();
+
         for (var entry : byEmail.entrySet()) {
             String email = entry.getKey();
             var bookings = entry.getValue();
@@ -98,44 +98,73 @@ public class AdminInvoiceController {
             String name = evalOpt.map(EvaluationRequest::getClientName).orElse(email);
             String dog  = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
 
-            // Live total from current bookings (non-canceled)
+            // Determine week-tier for this customer (count daycare bookings in the week, non-canceled)
+            boolean atLeast4 = bookings.stream()
+                    .filter(b -> b.getServiceType() != null && b.getServiceType().toLowerCase().contains("daycare"))
+                    .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                    .count() >= 4;
+
             BigDecimal currentAmount = bookings.stream()
                     .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
-                    .map(pricingService::priceFor)
+                    .map(b -> {
+                        int n = (b.getDogCount() != null ? b.getDogCount() : 1);
+                        String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
+
+                        if (svc.contains("after hours")) {
+                            return new BigDecimal("90.00").multiply(BigDecimal.valueOf(n));
+                        } else if (svc.contains("boarding")) {
+                            return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
+                        } else if (svc.contains("daycare")) {
+                            BigDecimal perDog = pricingService.quoteDaycareAtTier(b, atLeast4);
+                            return perDog.multiply(BigDecimal.valueOf(n));
+                        } else {
+                            return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
+                        }
+                    })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-// All bookings in this week are paid?
-            boolean allDaysPaid = !bookings.isEmpty() && bookings.stream().allMatch(Booking::isPaid);
-
-// Invoice record (may or may not exist)
-            var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(email, ws);
-            boolean invoicePaid = invOpt.map(Invoice::isPaid).orElse(false);
-
-// NEW: paid-to-date = sum of PAID bookings in this week (non-canceled)
             BigDecimal paidToDate = bookings.stream()
                     .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
                     .filter(Booking::isPaid)
-                    .map(pricingService::priceFor)
+                    .map(b -> {
+                        int n = (b.getDogCount() != null ? b.getDogCount() : 1);
+                        String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
+
+                        if (svc.contains("after hours")) {
+                            return new BigDecimal("90.00").multiply(BigDecimal.valueOf(n));
+                        } else if (svc.contains("boarding")) {
+                            return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
+                        } else if (svc.contains("daycare")) {
+                            BigDecimal perDog = pricingService.quoteDaycareAtTier(b, atLeast4);
+                            return perDog.multiply(BigDecimal.valueOf(n));
+                        } else {
+                            return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
+                        }
+                    })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-// NEW: deltaUnpaid = what's still owed in this week
             BigDecimal deltaUnpaid = currentAmount.subtract(paidToDate);
             if (deltaUnpaid.signum() < 0) deltaUnpaid = BigDecimal.ZERO;
 
-// Row is paid ONLY if invoicePaid AND all current bookings are paid
-            boolean rowPaid = invoicePaid && allDaysPaid;
+            // invoice record (may exist)
+            var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(email, ws);
+            boolean invoicePaid = invOpt.map(Invoice::isPaid).orElse(false);
+
+            // all non-canceled days paid this week?
+            boolean allDaysPaid = !bookings.isEmpty() && bookings.stream().allMatch(Booking::isPaid);
 
             Long invoiceId = invOpt.map(Invoice::getId).orElse(null);
+            boolean rowPaid = invoicePaid && allDaysPaid;
 
             rows.add(new InvoiceRowDto(
                     invoiceId,
                     name,
                     email,
                     dog,
-                    currentAmount,     // total(live)
+                    currentAmount,   // Total (live), tier-aware
                     rowPaid,
-                    paidToDate,        // paid to date (previouslyPaidAmount field)
-                    deltaUnpaid,       // new since paid
+                    paidToDate,      // Paid to date
+                    deltaUnpaid,     // New since paid
                     invoicePaid
             ));
         }
@@ -190,7 +219,7 @@ public class AdminInvoiceController {
         }
 
         // Fetch all non-canceled bookings for that customer/week
-        final String emailKey = customerEmail; // make effectively final for lambdas
+        final String emailKey = customerEmail; // effectively final for lambdas
         List<Booking> weekCustomerBookings = bookingRepository.findByDateBetween(ws, we).stream()
                 .filter(b -> b.getCustomer() != null && emailKey.equals(b.getCustomer().getUsername()))
                 .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
@@ -206,9 +235,15 @@ public class AdminInvoiceController {
             }
             bookingRepository.saveAll(weekCustomerBookings);
 
-            // Snapshot amount (all current, non-canceled bookings)
+            // Snapshot amount (use locked total if present, else priceFor×dogCount)
             BigDecimal amountAfter = weekCustomerBookings.stream()
-                    .map(pricingService::priceFor)
+                    .map(b -> {
+                        BigDecimal locked = b.getQuotedRateAtLock();
+                        if (locked != null) return locked;
+                        BigDecimal perDog = pricingService.priceFor(b);
+                        int n = (b.getDogCount() != null ? b.getDogCount() : 1);
+                        return perDog.multiply(BigDecimal.valueOf(n));
+                    })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             invoice.setAmount(amountAfter);
@@ -234,11 +269,17 @@ public class AdminInvoiceController {
             }
             bookingRepository.saveAll(unpaid);
 
-            // Optional: keep invoice.amount as current snapshot of the week
+            // Optionally keep invoice.amount as current snapshot of the week; locked if available
             BigDecimal amountAfter = weekCustomerBookings.stream()
-                    .map(pricingService::priceFor)
+                    .map(b -> {
+                        BigDecimal locked = b.getQuotedRateAtLock();
+                        if (locked != null) return locked;
+                        BigDecimal perDog = pricingService.priceFor(b);
+                        int n = (b.getDogCount() != null ? b.getDogCount() : 1);
+                        return perDog.multiply(BigDecimal.valueOf(n));
+                    })
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            invoice.setAmount(amountAfter);
+
             // invoice remains paid; update timestamp to reflect additional payment applied
             invoice.setPaidAt(LocalDateTime.now(clock));
             invoiceRepository.save(invoice);

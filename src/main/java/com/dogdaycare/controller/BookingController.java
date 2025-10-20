@@ -191,8 +191,9 @@ public class BookingController {
 
             // Quote every eligible daycare in that week (paid or not)
             for (var b : eligible) {
-                var q = pricingService.quoteDaycareAtTier(b, atLeast4);
-                provisionalQuotes.put(b.getId(), q);
+                java.math.BigDecimal base = pricingService.quoteDaycareAtTier(b, atLeast4);
+                int n = (b.getDogCount() != null ? b.getDogCount() : 1);
+                provisionalQuotes.put(b.getId(), base.multiply(java.math.BigDecimal.valueOf(n)));
             }
         }
         model.addAttribute("provisionalQuotes", provisionalQuotes);
@@ -266,12 +267,19 @@ public class BookingController {
 
     @GetMapping("/quote")
     @ResponseBody
-    public Map<String, Object> quote(Authentication authentication,
-                                     @RequestParam String serviceType,
-                                     @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate date,
-                                     @RequestParam(required = false) String time,
-                                     @RequestParam(name = "wantsAdvancePay", defaultValue = "false") boolean wantsAdvancePay) {
+    public Map<String, Object> quote(
+            Authentication authentication,
+            @RequestParam String serviceType,
+            @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate date,
+            @RequestParam(required = false) String time,
+            @RequestParam(name = "wantsAdvancePay", defaultValue = "false") boolean wantsAdvancePay,
+            @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount // <-- NEW
+    ) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        // Clamp dogCount to [1..5]
+        if (dogCount == null) dogCount = 1;
+        dogCount = Math.max(1, Math.min(5, dogCount));
 
         // Parse time (optional)
         LocalTime localTime = null;
@@ -290,7 +298,6 @@ public class BookingController {
         boolean isBoarding = serviceType != null && serviceType.toLowerCase().contains("boarding");
         boolean isAfterHours = serviceType != null && serviceType.toLowerCase().contains("after hours");
 
-        // Daycare: compute 24h rule & week-paid guard
         boolean advanceEligible = false;
         if (isDaycare && localTime != null) {
             var now = ZonedDateTime.now(clock);
@@ -300,22 +307,24 @@ public class BookingController {
             advanceEligible = hours >= 24;
         }
 
-        //After Hours is *never* advance-eligible and has a flat $90 rate.
         if (isAfterHours) {
+            // Flat 90 per *booking*. Multiply by dogs for preview.
+            var base = new java.math.BigDecimal("90.00").setScale(2, java.math.RoundingMode.HALF_UP);
+            var total = base.multiply(java.math.BigDecimal.valueOf(dogCount));
             return Map.of(
-                    "amount", new java.math.BigDecimal("90.00").setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+                    "amount", total.toString(),
                     "currency", "USD",
                     "advanceEligible", false,
                     "wantsAdvancePayApplied", false,
                     "weekAlreadyPaid", false,
-                    "note", "Daycare After Hours flat rate."
+                    "note", "Daycare After Hours flat rate × " + dogCount
             );
         }
 
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, pricingService.weekStartMonday(date));
         boolean wantsAdvancePayFinal = isDaycare && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
 
-        BigDecimal amount;
+        java.math.BigDecimal amount;
         String note;
 
         if (isDaycare) {
@@ -323,19 +332,21 @@ public class BookingController {
                     customer, date, serviceType, advanceEligible, wantsAdvancePayFinal
             );
             note = wantsAdvancePayFinal
-                    ? "Daycare prepay preview."
-                    : (advanceEligible ? "Daycare immediate preview." : "Daycare (not eligible for prepay).");
+                    ? "Daycare prepay preview × " + dogCount
+                    : (advanceEligible ? "Daycare immediate preview × " + dogCount : "Daycare (not prepay-eligible) × " + dogCount);
         } else if (isBoarding) {
-            // For boarding, your existing priceFor covers prior-month tiers and last-night logic
             amount = pricingService.priceFor(probe);
-            note = "Boarding preview (prior-month tier & last-night logic).";
+            note = "Boarding preview × " + dogCount + " (prior-month tier & last-night logic).";
         } else {
-            amount = BigDecimal.ZERO;
+            amount = java.math.BigDecimal.ZERO;
             note = "Unknown service.";
         }
 
+        // Multiply by dogCount for the preview
+        var total = amount.multiply(java.math.BigDecimal.valueOf(dogCount));
+
         return Map.of(
-                "amount", amount.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+                "amount", total.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
                 "currency", "USD",
                 "advanceEligible", advanceEligible,
                 "wantsAdvancePayApplied", wantsAdvancePayFinal,
@@ -349,9 +360,12 @@ public class BookingController {
                                 @RequestParam String serviceType,
                                 @RequestParam String date,
                                 @RequestParam String time,
+                                @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
                                 @RequestParam(name = "wantsAdvancePay", required = false, defaultValue = "false") boolean wantsAdvancePay,
                                 RedirectAttributes redirectAttributes) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        if (dogCount == null) dogCount = 1;
+        dogCount = Math.max(1, Math.min(5, dogCount));
 
         LocalDate localDate = LocalDate.parse(date);
         LocalTime localTime = LocalTime.parse(time);
@@ -391,7 +405,7 @@ public class BookingController {
             long hours = Duration.between(now, bookingZdt).toHours();
             advanceEligible = hours >= 24;
         }
-        // 🔒 Block prepay if this customer's week is already paid
+        // Block prepay if this customer's week is already paid
         LocalDate weekStart = pricingService.weekStartMonday(localDate);
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, weekStart);
 
@@ -407,11 +421,42 @@ public class BookingController {
         booking.setTime(localTime);
         booking.setStatus("APPROVED");
 
+        booking.setDogCount(dogCount); // <-- NEW
+
         booking.setCreatedAt(LocalDateTime.now(clock));
         booking.setAdvanceEligible(advanceEligible);
         booking.setWantsAdvancePay(wantsAdvancePayFinal);
 
-        // Do NOT stamp bundle/quotes here. Final quotes happen at payment time.
+        // --- Price lock (per-dog × dogCount) ---
+        java.math.BigDecimal base;
+        if (isAfterHours) {
+            base = new java.math.BigDecimal("90.00"); // flat per dog
+        } else if (isDaycareFlag) {
+            // Use the same logic in quote(): prepay vs immediate
+            base = pricingService.previewDaycarePrice(
+                    customer,
+                    localDate,
+                    serviceType,
+                    advanceEligible,
+                    wantsAdvancePayFinal
+            );
+        } else if (serviceType != null && serviceType.toLowerCase().contains("boarding")) {
+            // priceFor(Booking) already contains boarding rules (tier, last night, etc.)
+            Booking probe = new Booking();
+            probe.setCustomer(customer);
+            probe.setServiceType(serviceType);
+            probe.setDate(localDate);
+            probe.setTime(localTime);
+            base = pricingService.priceFor(probe);
+        } else {
+            base = java.math.BigDecimal.ZERO;
+        }
+
+// Multiply by # of dogs and store on the booking
+        java.math.BigDecimal total = base.multiply(java.math.BigDecimal.valueOf(dogCount))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        booking.setQuotedRateAtLock(total);
+
         bookingRepository.save(booking);
 
         String msg = "Booking submitted successfully!";
@@ -419,7 +464,6 @@ public class BookingController {
             msg += " We’ll contact you to process the advance payment at the discounted rate.";
         }
         redirectAttributes.addFlashAttribute("successMessage", msg);
-
         return "redirect:/booking";
     }
 

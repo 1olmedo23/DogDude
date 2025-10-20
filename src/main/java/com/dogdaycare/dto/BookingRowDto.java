@@ -22,8 +22,13 @@ public class BookingRowDto {
     // Locked price (if present)
     private BigDecimal quotedRateAtLock;
 
+    // Multi-dog + live (tier-aware) amount
+    private Integer dogCount;
+    private BigDecimal liveAmount;
+
     public BookingRowDto() {}
 
+    // Existing ctor (kept for compatibility)
     public BookingRowDto(Long id,
                          String customerName,
                          String customerEmail,
@@ -34,7 +39,8 @@ public class BookingRowDto {
                          boolean wantsAdvancePay,
                          boolean advanceEligible,
                          boolean paid,
-                         BigDecimal quotedRateAtLock) {
+                         BigDecimal quotedRateAtLock,
+                         Integer dogCount) {
         this.id = id;
         this.customerName = customerName;
         this.customerEmail = customerEmail;
@@ -46,6 +52,26 @@ public class BookingRowDto {
         this.advanceEligible = advanceEligible;
         this.paid = paid;
         this.quotedRateAtLock = quotedRateAtLock;
+        this.dogCount = dogCount;
+    }
+
+    // New ctor that includes liveAmount (used by AdminBookingController)
+    public BookingRowDto(Long id,
+                         String customerName,
+                         String customerEmail,
+                         String dogName,
+                         String serviceType,
+                         LocalTime time,
+                         String status,
+                         boolean wantsAdvancePay,
+                         boolean advanceEligible,
+                         boolean paid,
+                         BigDecimal quotedRateAtLock,
+                         Integer dogCount,
+                         BigDecimal liveAmount) {
+        this(id, customerName, customerEmail, dogName, serviceType, time, status,
+                wantsAdvancePay, advanceEligible, paid, quotedRateAtLock, dogCount);
+        this.liveAmount = liveAmount;
     }
 
     // getters/setters
@@ -81,4 +107,10 @@ public class BookingRowDto {
 
     public BigDecimal getQuotedRateAtLock() { return quotedRateAtLock; }
     public void setQuotedRateAtLock(BigDecimal quotedRateAtLock) { this.quotedRateAtLock = quotedRateAtLock; }
+
+    public Integer getDogCount() { return dogCount; }
+    public void setDogCount(Integer dogCount) { this.dogCount = dogCount; }
+
+    public BigDecimal getLiveAmount() { return liveAmount; }
+    public void setLiveAmount(BigDecimal liveAmount) { this.liveAmount = liveAmount; }
 }

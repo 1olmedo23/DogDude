@@ -212,6 +212,17 @@
                                                     <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
                                                 </select>
                                             </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small">Number of dogs</label>
+                                                <select name="dogCount" class="form-select form-select-sm" id="dogCount">
+                                                    <option value="1" selected>1 (default)</option>
+                                                    <option value="2">2</option>
+                                                    <option value="3">3</option>
+                                                    <option value="4">4</option>
+                                                    <option value="5">5</option>
+                                                </select>
+                                                <div class="form-text">“1 dog” is the default. Only select a number if more than one.</div>
+                                            </div>
                                             <!-- Daycare-only prepay -->
                                             <div class="form-check mb-2 small daycare-only"
                                                  th:classappend="${weekPaid} ? ' opacity-50' : ''">
@@ -317,6 +328,17 @@
                                                     <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
                                                 </select>
                                             </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small">Number of dogs</label>
+                                                <select name="dogCount" class="form-select form-select-sm" id="dogCount">
+                                                    <option value="1" selected>1 (default)</option>
+                                                    <option value="2">2</option>
+                                                    <option value="3">3</option>
+                                                    <option value="4">4</option>
+                                                    <option value="5">5</option>
+                                                </select>
+                                                <div class="form-text">“1 dog” is the default. Only select a number if more than one.</div>
+                                            </div>
                                             <div class="form-check mb-2 small daycare-only"
                                                  th:classappend="${weekPaid} ? ' opacity-50' : ''">
                                                 <input class="form-check-input"
@@ -375,6 +397,8 @@
                                                       th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
                                                 <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
                                             </span>
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                                  th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
                                     <div th:if="${b.status == 'APPROVED'}">
@@ -411,6 +435,8 @@
                                                       th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
                                                 <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
                                             </span>
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                                  th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
                                     <div th:if="${b.status == 'APPROVED'}">
@@ -443,6 +469,8 @@
                                           (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                           th:text="${b.status}">APPROVED</span>
                                             <span class="badge bg-light text-dark ms-2">$90.00</span>
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                                  th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
                                     <div th:if="${b.status == 'APPROVED'}">
@@ -473,6 +501,8 @@
                                                   th:text="${b.status}">APPROVED</span>
                                             <span th:if="${b.quotedRateAtLock != null}" class="badge bg-light text-dark ms-2"
                                                   th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                                  th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
                                     <div th:if="${b.status == 'APPROVED'}">
@@ -752,13 +782,14 @@
 <!-- Live quote hook -->
 <script th:inline="javascript">
     (function () {
-        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance }) {
+        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance, dogCount }) {
             const params = new URLSearchParams({
                 serviceType: svc,
                 date: dateStr,
                 wantsAdvancePay: wantsAdvance ? 'true' : 'false'
             });
             if (timeStr) params.set('time', timeStr);
+            if (dogCount) params.set('dogCount', String(dogCount)); // backend may use; harmless if ignored
             try {
                 const res = await fetch('/booking/quote?' + params.toString(), { headers: { 'Accept': 'application/json' } });
                 if (!res.ok) return null;
@@ -775,26 +806,28 @@
             const dateInput=form.querySelector('input[name="date"]');
             const timeSel=form.querySelector('select[name="time"]');
             const prepayChk=form.querySelector('input[name="wantsAdvancePay"]');
+            const dogSel=form.querySelector('select[name="dogCount"]');
             const quoteEl=form.querySelector('[data-quote]');
+            function getDogCount(){ return Number(dogSel?.value||'1')||1; }
+
             async function refreshQuote(){
                 if(!quoteEl) return;
                 const svc=svcInput.value, d=dateInput.value, t=timeSel?.value||'', wants=!!(prepayChk&&prepayChk.checked);
                 if(!svc||!d){ quoteEl.textContent='Est. —'; return; }
-                const q=await fetchQuote({svc,dateStr:d,timeStr:t,wantsAdvance:wants});
+                const nDogs=getDogCount();
+                const q=await fetchQuote({svc,dateStr:d,timeStr:t,wantsAdvance:wants,dogCount:nDogs});
                 if(!q||!q.amount){ quoteEl.textContent='Est. —'; return; }
                 quoteEl.textContent='Est. '+fmtMoneyUSD(Number(q.amount));
                 quoteEl.title=q.note||'';
             }
-            tile.querySelectorAll('.svc-btn').forEach(btn=>{
-                btn.addEventListener('click', refreshQuote);
-            });
+
+            tile.querySelectorAll('.svc-btn').forEach(btn=>btn.addEventListener('click', refreshQuote));
             timeSel?.addEventListener('change', refreshQuote);
             prepayChk?.addEventListener('change', refreshQuote);
+            dogSel?.addEventListener('change', refreshQuote);
             refreshQuote();
         }
-        document.addEventListener('DOMContentLoaded', ()=>{
-            document.querySelectorAll('.day-tile').forEach(wireDayTile);
-        });
+        document.addEventListener('DOMContentLoaded', ()=>{ document.querySelectorAll('.day-tile').forEach(wireDayTile); });
     })();
 </script>
 
