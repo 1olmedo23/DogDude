@@ -1,6 +1,7 @@
 package com.dogdaycare.dto;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;   // <-- needed
 import java.time.LocalTime;
 
 public class BookingRowDto {
@@ -74,7 +75,8 @@ public class BookingRowDto {
         this.liveAmount = liveAmount;
     }
 
-    // getters/setters
+    // --- getters/setters ---
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -111,6 +113,9 @@ public class BookingRowDto {
     public Integer getDogCount() { return dogCount; }
     public void setDogCount(Integer dogCount) { this.dogCount = dogCount; }
 
-    public BigDecimal getLiveAmount() { return liveAmount; }
+    public BigDecimal getLiveAmount() {
+        // ensures JSON shows 270.00 not 270.0 and BigDecimal equality in the test
+        return liveAmount == null ? null : liveAmount.setScale(2, RoundingMode.HALF_UP);
+    }
     public void setLiveAmount(BigDecimal liveAmount) { this.liveAmount = liveAmount; }
 }

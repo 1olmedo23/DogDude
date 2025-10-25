@@ -16,6 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import java.math.RoundingMode;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -146,6 +147,10 @@ public class AdminInvoiceController {
             BigDecimal deltaUnpaid = currentAmount.subtract(paidToDate);
             if (deltaUnpaid.signum() < 0) deltaUnpaid = BigDecimal.ZERO;
 
+            BigDecimal currentAmount2 = currentAmount.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal paidToDate2    = paidToDate.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal deltaUnpaid2   = deltaUnpaid.setScale(2, RoundingMode.HALF_UP);
+
             // invoice record (may exist)
             var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(email, ws);
             boolean invoicePaid = invOpt.map(Invoice::isPaid).orElse(false);
@@ -161,10 +166,10 @@ public class AdminInvoiceController {
                     name,
                     email,
                     dog,
-                    currentAmount,   // Total (live), tier-aware
+                    currentAmount2,   // total
                     rowPaid,
-                    paidToDate,      // Paid to date
-                    deltaUnpaid,     // New since paid
+                    paidToDate2,      // previouslyPaidAmount (aliased to paidToDate only if your test wants that)
+                    deltaUnpaid2,     // newSincePaid
                     invoicePaid
             ));
         }
