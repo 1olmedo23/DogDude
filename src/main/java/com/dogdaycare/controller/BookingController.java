@@ -255,6 +255,7 @@ public class BookingController {
 
         // Keep this for banner logic on the current week (already used in your JS)
         model.addAttribute("hasWeekPaidThisWeek", bundleService.hasWeekPaid(customer, LocalDate.now(clock)));
+        model.addAttribute("today", LocalDate.now(clock));
 
         return "booking";
     }
@@ -363,18 +364,42 @@ public class BookingController {
                                 @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
                                 @RequestParam(name = "wantsAdvancePay", required = false, defaultValue = "false") boolean wantsAdvancePay,
                                 RedirectAttributes redirectAttributes) {
-        User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        // --- HARD BLOCK: no bookings for past *days* ---
+        final LocalDate requestedDate;
+        try {
+            requestedDate = LocalDate.parse(date); // expects yyyy-MM-dd
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Invalid date.");
+            return "redirect:/booking";
+        }
+
+        final LocalDate today = LocalDate.now(clock);
+        if (requestedDate.isBefore(today)) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "You can’t book a previous day. Please choose today or a future date."
+            );
+            return "redirect:/booking";
+        }
+
+        final User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
         if (dogCount == null) dogCount = 1;
         dogCount = Math.max(1, Math.min(5, dogCount));
 
-        LocalDate localDate = LocalDate.parse(date);
-        LocalTime localTime = LocalTime.parse(time);
+        final LocalTime localTime;
+        try {
+            localTime = LocalTime.parse(time); // expects HH:mm
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Invalid time.");
+            return "redirect:/booking";
+        }
 
         // Prevent double-booking on the same calendar day (any service)
-        var sameDay = bookingRepository.findByCustomerAndDate(customer, localDate);
+        var sameDay = bookingRepository.findByCustomerAndDate(customer, requestedDate);
         boolean hasAnyServiceSameDay = sameDay.stream()
                 .anyMatch(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()));
-
         if (hasAnyServiceSameDay) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage",
@@ -384,7 +409,7 @@ public class BookingController {
         }
 
         // Capacity check
-        boolean canBook = bookingLimitService.canCustomerBook(localDate, serviceType);
+        boolean canBook = bookingLimitService.canCustomerBook(requestedDate, serviceType);
         if (!canBook) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage",
@@ -394,65 +419,60 @@ public class BookingController {
             return "redirect:/booking";
         }
 
-        // Compute advance eligibility (24h rule for daycare only)
-        boolean isDaycareFlag = serviceType != null && serviceType.toLowerCase().contains("daycare");
-        boolean isAfterHours = serviceType != null && serviceType.toLowerCase().contains("after hours");
+        // Flags
+        boolean isDaycareFlag  = serviceType != null && serviceType.toLowerCase().contains("daycare");
+        boolean isAfterHours   = serviceType != null && serviceType.toLowerCase().contains("after hours");
+        boolean isBoardingFlag = serviceType != null && serviceType.toLowerCase().contains("boarding");
+
+        // 24h rule for daycare only
         boolean advanceEligible = false;
         if (isDaycareFlag) {
-            var now = ZonedDateTime.now(clock);
+            var now  = ZonedDateTime.now(clock);
             var zone = clock.getZone();
-            var bookingZdt = ZonedDateTime.of(localDate, localTime, zone);
+            var bookingZdt = ZonedDateTime.of(requestedDate, localTime, zone);
             long hours = Duration.between(now, bookingZdt).toHours();
             advanceEligible = hours >= 24;
         }
-        // Block prepay if this customer's week is already paid
-        LocalDate weekStart = pricingService.weekStartMonday(localDate);
+
+        // Block prepay if customer week already paid
+        LocalDate weekStart = pricingService.weekStartMonday(requestedDate);
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, weekStart);
 
-        // Final flag we persist:
         boolean wantsAdvancePayFinal =
-                !isAfterHours && isDaycareFlag && advanceEligible && wantsAdvancePay && !weekAlreadyPaid; // NEW: block for After Hours
+                !isAfterHours && isDaycareFlag && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
 
         // Build & persist
         Booking booking = new Booking();
         booking.setCustomer(customer);
         booking.setServiceType(serviceType);
-        booking.setDate(localDate);
+        booking.setDate(requestedDate);   // reuse parsed date
         booking.setTime(localTime);
         booking.setStatus("APPROVED");
-
-        booking.setDogCount(dogCount); // <-- NEW
+        booking.setDogCount(dogCount);
 
         booking.setCreatedAt(LocalDateTime.now(clock));
         booking.setAdvanceEligible(advanceEligible);
         booking.setWantsAdvancePay(wantsAdvancePayFinal);
 
-        // --- Price lock (per-dog × dogCount) ---
+        // Price lock
         java.math.BigDecimal base;
         if (isAfterHours) {
             base = new java.math.BigDecimal("90.00"); // flat per dog
         } else if (isDaycareFlag) {
-            // Use the same logic in quote(): prepay vs immediate
             base = pricingService.previewDaycarePrice(
-                    customer,
-                    localDate,
-                    serviceType,
-                    advanceEligible,
-                    wantsAdvancePayFinal
+                    customer, requestedDate, serviceType, advanceEligible, wantsAdvancePayFinal
             );
-        } else if (serviceType != null && serviceType.toLowerCase().contains("boarding")) {
-            // priceFor(Booking) already contains boarding rules (tier, last night, etc.)
+        } else if (isBoardingFlag) {
             Booking probe = new Booking();
             probe.setCustomer(customer);
             probe.setServiceType(serviceType);
-            probe.setDate(localDate);
+            probe.setDate(requestedDate);
             probe.setTime(localTime);
             base = pricingService.priceFor(probe);
         } else {
             base = java.math.BigDecimal.ZERO;
         }
 
-// Multiply by # of dogs and store on the booking
         java.math.BigDecimal total = base.multiply(java.math.BigDecimal.valueOf(dogCount))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
         booking.setQuotedRateAtLock(total);

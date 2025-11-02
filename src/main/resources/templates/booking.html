@@ -189,16 +189,39 @@
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
-                                                    data-service="Daycare (6 AM - 3 PM)" th:attr="data-date=${d}">Daycare</button>
+                                                    data-service="Daycare (6 AM - 3 PM)"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Daycare
+                                            </button>
+
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
-                                                    data-service="Daycare (6 AM - 8 PM)" th:attr="data-date=${d}">Daycare + Evening</button>
+                                                    data-service="Daycare (6 AM - 8 PM)"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Daycare + Evening
+                                            </button>
+
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
-                                                    data-service="Daycare After Hours (6 AM - 11 PM)" th:attr="data-date=${d}">Daycare + After Hours</button>
+                                                    data-service="Daycare After Hours (6 AM - 11 PM)"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Daycare + After Hours
+                                            </button>
+
                                             <button class="btn btn-outline-secondary btn-sm svc-btn"
                                                     data-variant="secondary"
-                                                    data-service="Boarding" th:attr="data-date=${d}">Boarding</button>
+                                                    data-service="Boarding"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Boarding
+                                            </button>
                                         </div>
 
                                         <!-- inline booking form -->
@@ -306,16 +329,39 @@
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
-                                                    data-service="Daycare (6 AM - 3 PM)" th:attr="data-date=${d}">Daycare</button>
+                                                    data-service="Daycare (6 AM - 3 PM)"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Daycare
+                                            </button>
+
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
-                                                    data-service="Daycare (6 AM - 8 PM)" th:attr="data-date=${d}">Daycare + Evening</button>
+                                                    data-service="Daycare (6 AM - 8 PM)"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Daycare + Evening
+                                            </button>
+
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
-                                                    data-service="Daycare After Hours (6 AM - 11 PM)" th:attr="data-date=${d}">Daycare + After Hours</button>
+                                                    data-service="Daycare After Hours (6 AM - 11 PM)"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Daycare + After Hours
+                                            </button>
+
                                             <button class="btn btn-outline-secondary btn-sm svc-btn"
                                                     data-variant="secondary"
-                                                    data-service="Boarding" th:attr="data-date=${d}">Boarding</button>
+                                                    data-service="Boarding"
+                                                    th:attr="data-date=${d}"
+                                                    th:disabled="${d.isBefore(today)}"
+                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                Boarding
+                                            </button>
                                         </div>
 
                                         <form class="mt-2 d-none day-form" method="post" th:action="@{/booking}">
@@ -699,6 +745,9 @@
             // click handlers
             svcButtons.forEach(btn => {
                 btn.addEventListener('click', async () => {
+
+                    if (btn.disabled || btn.classList.contains('disabled')) return;
+
                     const svc = btn.getAttribute('data-service');
                     const d = btn.getAttribute('data-date');
 
@@ -731,6 +780,11 @@
         });
     })();
 </script>
+
+<style>
+    /* make disabled buttons truly inert to clicks */
+    .svc-btn:disabled { pointer-events: none; }
+</style>
 
 <!-- Keep ALL weekly banners permanently visible (guarded) -->
 <script>
