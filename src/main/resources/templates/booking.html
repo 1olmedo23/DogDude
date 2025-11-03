@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Book a Service</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/css/custom.css}">
+    <link rel="stylesheet" th:href="@{/css/custom.css?v=20251103}">
     <style>
         /* --- small UX polish --- */
         .alert.alert-static{animation:none!important;opacity:1!important;transition:none!important}
@@ -60,6 +61,8 @@
 <div class="container-xxl py-5">
     <h1 id="pageTitle" class="mb-4 text-center">Book a Service</h1>
 
+    <!-- Mobile sticky container for tabs -->
+    <div class="mobile-sticky-tabs">
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="custTabs" role="tablist">
         <li class="nav-item">
@@ -73,6 +76,7 @@
             </button>
         </li>
     </ul>
+    </div><!-- /mobile-sticky-tabs -->
 
     <!-- Alerts -->
     <div class="alert alert-danger"
@@ -88,38 +92,50 @@
         <div class="tab-pane fade show active" id="pane-booking" role="tabpanel" aria-labelledby="tab-booking">
 
             <!-- Pricing / planning message (BOOKING TAB ONLY) -->
-            <div class="planner-banner p-3 p-md-4 mb-4 text-center">
-                <h4><strong><u>Rates</u></strong></h4>
-                <strong>Regular Rate</strong> → $50/Daycare &amp; $60/Daycare + Evening.<br>
-                <strong>Daycare + After Hours:</strong> $90 - Flat Rate.<br>
-                <br>
-                <strong>Pay for daycare in advance to unlock discounts!</strong><br>
-                <div class="small text-compact">
+            <div class="planner-banner p-3 p-md-4 mb-4">
+                <!-- Mobile header row with a toggle -->
+                <div class="d-flex align-items-center justify-content-between d-md-none">
+                    <h5 class="mb-0">Rates & Notes</h5>
+                    <button class="btn btn-outline-primary btn-sm" type="button"
+                            id="ratesToggleBtn" aria-controls="ratesCollapse">
+                        View
+                    </button>
+                </div>
+
+                <!-- Collapsible body (collapsed on < md, always shown on ≥ md) -->
+                <div id="ratesCollapse" class="collapse d-md-block text-center mt-2 mt-md-0">
+                    <h4 class="d-none d-md-block"><strong><u>Rates</u></strong></h4>
+                    <strong>Regular Rate</strong> → $50/Daycare &amp; $60/Daycare + Evening.<br>
+                    <strong>Daycare + After Hours:</strong> $90 - Flat Rate.<br>
                     <br>
-                    <h4><strong><u>Discounted Rates</u></strong></h4>
-                    Prepay <strong>1–3 days</strong> → $45/Daycare &amp; $50/Daycare + Evening.<br>
-                    Prepay <strong>4+ days</strong> → $40/Daycare &amp; $45/Daycare + Evening.<br>
-                    To activate your discount, select your desired daycare date below<br>
-                    and check the "Pay in advance" box.<br>
-                    <br>
-                    <h4><strong><u>Notes</u></strong></h4>
-                    When you pay in advance for a week, any bookings made after<br>
-                    are counted as regular rate for that week.<br>
-                    Daycare booked within 24 hours of drop off will not<br> count towards the discounted rate.<br>
-                    Although, discounted boarding rates will be upheld even<br> if you book within 24 hours.
-                    <br> Payment will be collected separately via phone or in person.<br>
-                    <strong>A week is Monday through Sunday.</strong>
-                    <br/><br/>
-                    The price of <strong>boarding</strong> is a flat rate per night. However,<br> based on your prior month of scheduling you will qualify<br>
-                    for a discounted boarding rate.
-                    Even if you schedule within 24 hours.<br>
-                    <br>
-                    <h4><strong><u>Cancellations</u></strong></h4>
-                    You can cancel at any time.<br>
-                    Any cancellations made after payment will be counted towards<br> redeemable tickets
-                    accepted up to 30-days after cancellation.<br>
-                    Tickets will be automatically applied when booking future services.<br>
-                    <strong>Boarding</strong> cancellations must be made 72 hours in advance.
+                    <strong>Pay for daycare in advance to unlock discounts!</strong><br>
+                    <div class="small text-compact">
+                        <br>
+                        <h4 class="d-none d-md-block"><strong><u>Discounted Rates</u></strong></h4>
+                        Prepay <strong>1–3 days</strong> → $45/Daycare &amp; $50/Daycare + Evening.<br>
+                        Prepay <strong>4+ days</strong> → $40/Daycare &amp; $45/Daycare + Evening.<br>
+                        To activate your discount, select your desired daycare date below<br>
+                        and check the "Pay in advance" box.<br>
+                        <br>
+                        <h4 class="d-none d-md-block"><strong><u>Notes</u></strong></h4>
+                        When you pay in advance for a week, any bookings made after<br>
+                        are counted as regular rate for that week.<br>
+                        Daycare booked within 24 hours of drop off will not<br> count towards the discounted rate.<br>
+                        Although, discounted boarding rates will be upheld even<br> if you book within 24 hours.
+                        <br> Payment will be collected separately via phone or in person.<br>
+                        <strong>A week is Monday through Sunday.</strong>
+                        <br/><br/>
+                        The price of <strong>boarding</strong> is a flat rate per night. However,<br> based on your prior month of scheduling you will qualify<br>
+                        for a discounted boarding rate.
+                        Even if you schedule within 24 hours.<br>
+                        <br>
+                        <h4 class="d-none d-md-block"><strong><u>Cancellations</u></strong></h4>
+                        You can cancel at any time.<br>
+                        Any cancellations made after payment will be counted towards<br> redeemable tickets
+                        accepted up to 30-days after cancellation.<br>
+                        Tickets will be automatically applied when booking future services.<br>
+                        <strong>Boarding</strong> cancellations must be made 72 hours in advance.
+                    </div>
                 </div>
             </div>
 
@@ -630,9 +646,6 @@
     </div>
 </div>
 
-<script th:src="@{/js/custom.js}"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <!-- Tabs (hash) -->
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function () {
@@ -930,6 +943,29 @@
         window.addEventListener('hashchange', function () {
             setTitlesFor(window.location.hash || '#pane-booking');
         });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function(){
+        var el = document.getElementById('ratesCollapse');
+        if (!el) return;
+        var w = window.innerWidth || document.documentElement.clientWidth;
+        var collapse = window.bootstrap ? window.bootstrap.Collapse.getOrCreateInstance(el) : null;
+        if (!collapse) return;
+        // If small screen and it's shown (because of server render), hide it.
+        if (w < 768 && el.classList.contains('show')) { collapse.hide(); }
+        // If medium+ and it's hidden, show it.
+        if (w >= 768 && !el.classList.contains('show')) { collapse.show(); }
+    });
+</script>
+<script th:src="@{/js/custom.js?v=20251103}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    setupPersistentCollapse({
+        collapseId: 'ratesCollapse',
+        buttonId: 'ratesToggleBtn',
+        storageKey: 'bookingRatesCollapsed',
+        applyOnMaxWidth: 767
     });
 </script>
 </body>

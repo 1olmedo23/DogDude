@@ -219,7 +219,7 @@ function updateBookingDateDisplay() {
     updateInvoiceWeekRangeDisplay();
     fetchWeeklyInvoices();   // load invoice rows (and rebuild paidEmailsForWeek if you still use it)
     fetchBookings();         // then render bookings
-    +   fetchCapacityRibbonFor(currentBookingDate);
+    fetchCapacityRibbonFor(currentBookingDate);
 }
 
 function cancelHandler(e) {
@@ -368,3 +368,61 @@ document.addEventListener("DOMContentLoaded", () => {
     updateInvoiceWeekRangeDisplay();
     fetchWeeklyInvoices();
 });
+
+// Reusable helper: persistent Bootstrap Collapse with button label swap
+// opts: { collapseId, buttonId, storageKey, applyOnMaxWidth (number or null) }
+window.setupPersistentCollapse = function(opts){
+    try {
+        var el = document.getElementById(opts.collapseId);
+        var btn = document.getElementById(opts.buttonId);
+        if (!el || !btn || !window.bootstrap || !bootstrap.Collapse) return;
+
+        var usePersistence = true;
+        if (typeof opts.applyOnMaxWidth === 'number') {
+            var w = window.innerWidth || document.documentElement.clientWidth;
+            usePersistence = (w <= opts.applyOnMaxWidth);
+        }
+
+        // We control collapse programmatically; don't auto-toggle on click via data-attrs.
+        var collapse = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+
+        function setBtnLabel() {
+            // If visible, say "Hide"; if collapsed, say "View"
+            btn.textContent = el.classList.contains('show') ? 'Hide' : 'View';
+        }
+
+        function show() { collapse.show(); }
+        function hide() { collapse.hide(); }
+
+        // Initial state: on first visit show it; thereafter honor localStorage
+        if (usePersistence) {
+            var saved = localStorage.getItem(opts.storageKey);
+            if (saved === 'true') { hide(); } else { show(); } // default to shown
+        } else {
+            // Desktop/tablet: always shown as designed; let d-md-block handle display
+            show();
+        }
+
+        // Wire button click to toggle
+        btn.addEventListener('click', function(e){
+            e.preventDefault();
+            el.classList.contains('show') ? hide() : show();
+        });
+
+        // Keep label + persistence in sync
+        el.addEventListener('shown.bs.collapse', function(){
+            if (usePersistence) localStorage.setItem(opts.storageKey, 'false');
+            setBtnLabel();
+        });
+        el.addEventListener('hidden.bs.collapse', function(){
+            if (usePersistence) localStorage.setItem(opts.storageKey, 'true');
+            setBtnLabel();
+        });
+
+        // Set initial label
+        setBtnLabel();
+    } catch (e) {
+        // fail safe: no-op
+        console && console.warn && console.warn('setupPersistentCollapse error:', e);
+    }
+};

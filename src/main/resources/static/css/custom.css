@@ -57,7 +57,9 @@ h1, h2, h5 { font-weight: 600; }
 
 /* Cards */
 .card { border-radius: 12px; transition: transform .3s ease, box-shadow .3s ease; }
-.card:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+@media (hover: hover) {
+    .card:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+}
 
 /* Forms */
 form .form-control { border-radius: 8px; padding: 10px; }
@@ -103,7 +105,8 @@ form button { width: 100%; }
 
 /* Mobile button fit */
 @media (max-width: 768px){
-    .btn { width: 100%; margin-bottom: 10px; }
+    body.page-eval .btn,
+    body.page-booking .btn { width: 100%; margin-bottom: 10px; }
     .card-img-top { height: 200px; }
     .hero-gradient .container { padding: 20px; }
     .hero-gradient h1 { font-size: 2rem; }
@@ -264,4 +267,99 @@ form button { width: 100%; }
     padding: .15rem .45rem;
     border-radius: .5rem;
     opacity: .95;
+}
+
+/* ================================
+   Mobile-first booking refinements
+   (Safe: does not alter desktop)
+   ================================ */
+
+/* 1) Collapsible banner polish */
+@media (max-width: 767.98px){
+    .planner-banner { text-align: left; }
+    .planner-banner .text-compact { max-width: none; }
+    .planner-banner h4 { margin-bottom: .25rem; }
+    .planner-banner .small { font-size: .95rem; line-height: 1.45; }
+}
+
+/* 2) Bigger tap targets for service buttons & form controls */
+@media (max-width: 575.98px){
+    .calendar-grid { gap: .75rem; }
+    .day-tile { padding: .85rem; }
+    .day-tile .tile-head strong { font-size: 1rem; }
+    .svc-btn.btn-sm { font-size: 1rem; padding: .65rem .9rem; line-height: 1.15; }
+    .day-form .form-select.form-select-sm,
+    .day-form .form-control.form-control-sm{
+        font-size: 1rem; padding: .5rem .75rem; height: auto;
+    }
+    .day-form .form-label.small { font-size: .95rem; }
+    .day-form .btn.btn-sm { padding: .6rem .95rem; font-size: 1rem; }
+}
+
+/* 3) Tabs: wider hit area + sticky on phones */
+.nav-tabs .nav-link { white-space: nowrap; }
+@media (max-width: 575.98px){
+    .nav-tabs .nav-link {
+        padding: .75rem 1rem;
+        font-weight: 600;
+        text-align: center;
+    }
+    .mobile-sticky-tabs{
+        position: sticky;
+        top: 56px;           /* below navbar height */
+        z-index: 1010;       /* above content, below modals */
+        background: var(--bs-body-bg, #fff);
+    }
+}
+
+/* 4) Your Bookings: roomier items on phones */
+@media (max-width: 575.98px){
+    .bookings-wrap h3 { font-size: 1.25rem; }
+    .bookings-wrap .list-group-item { padding: .85rem 1rem; }
+    .bookings-wrap .badge-status { font-size: .85rem; }
+}
+
+/* 5) Navbar: larger tap targets without changing layout */
+@media (max-width: 575.98px){
+    .navbar .nav-link{
+        padding-top: .8rem; padding-bottom: .8rem;
+    }
+    .navbar .btn { padding: .55rem .9rem; }
+}
+
+/* 6) Optional subtle improvement: make calendar 2-up a bit tighter on phones */
+@media (max-width: 575.98px){
+    .calendar-grid{ grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+}
+
+/* 7) Ensure sticky elements don't collide with Bootstrap toasts/alerts */
+@media (max-width: 575.98px){
+    body { scroll-padding-top: 64px; } /* so anchored jumps don't hide under sticky tabs */
+}
+
+/* ===============================
+   Evaluation page mobile polish
+   (scoped via body.page-eval)
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-eval .intro-text{
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    body.page-eval .card{
+        padding: 1rem !important; /* tighten padding on phones only */
+    }
+    body.page-eval .form-label{
+        font-size: 1rem;
+    }
+    body.page-eval .form-control,
+    body.page-eval .btn{
+        min-height: 44px; /* better tap targets */
+    }
+    body.page-eval #upload-section .upload-input-row{
+        flex-wrap: wrap;
+    }
+    body.page-eval #upload-section .upload-input-row .btn{
+        margin-top: .5rem;
+    }
 }

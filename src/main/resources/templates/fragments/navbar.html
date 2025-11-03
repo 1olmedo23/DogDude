@@ -1,22 +1,26 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<body>
-<div th:fragment="navbar(activePage)">
+<div th:fragment="navbar(activePage)"
+     xmlns:th="http://www.thymeleaf.org"
+     xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
 
             <!-- Brand always links home -->
-            <a class="navbar-brand" th:href="@{/}">Dog Daycare</a>
+            <a class="navbar-brand" th:href="@{/}">Fremont Dog Plaza</a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
 
-                    <!-- ========== PUBLIC / ADMIN (keep public-first) ========== -->
+                <!-- ========== PUBLIC / ADMIN (keep public-first) ========== -->
                     <!-- Show these items when anonymous OR admin (but hide for customer) -->
                     <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
                         <a class="nav-link" th:href="@{/}" th:classappend="${activePage == 'home'} ? 'active'">Home</a>
@@ -60,5 +64,3 @@
         </div>
     </nav>
 </div>
-</body>
-</html>
