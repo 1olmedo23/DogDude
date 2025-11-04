@@ -397,7 +397,13 @@ window.setupPersistentCollapse = function(opts){
         // Initial state: on first visit show it; thereafter honor localStorage
         if (usePersistence) {
             var saved = localStorage.getItem(opts.storageKey);
-            if (saved === 'true') { hide(); } else { show(); } // default to shown
+            if (saved === null && opts.defaultCollapsed) {
+                hide(); // first visit, default hidden
+            } else if (saved === 'true') {
+                hide();
+            } else {
+                show();
+            }
         } else {
             // Desktop/tablet: always shown as designed; let d-md-block handle display
             show();

@@ -363,3 +363,39 @@ form button { width: 100%; }
         margin-top: .5rem;
     }
 }
+
+/* ===============================
+   Services page mobile polish
+   (scoped via body.page-services)
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-services .card-body { padding: 1rem; }
+    body.page-services .card-title { font-size: 1.1rem; margin-bottom: .5rem; }
+    body.page-services .card-text { font-size: .95rem; line-height: 1.45; }
+    body.page-services .card-img-top { height: 220px; }
+    body.page-services .btn { min-height: 36px; }
+}
+
+/* ===============================
+   About page mobile polish
+   (scoped via body.page-about)
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-about h1 { font-size: 1.6rem; margin-bottom: 1rem; }
+    body.page-about h3 { font-size: 1.2rem; margin-top: 1.5rem; }
+    body.page-about p { font-size: 1rem; line-height: 1.5; }
+    body.page-about .img-fluid { margin-top: 1rem; max-height: 260px; object-fit: cover; }
+    body.page-about .btn { min-height: 44px; }
+}
+
+/* ===============================
+   Login page mobile polish
+   (scoped via body.page-login)
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-login .card { padding: 1rem !important; }
+    body.page-login .form-label { font-size: 1rem; }
+    body.page-login .form-control,
+    body.page-login .btn { min-height: 44px; }
+    body.page-login .btn { width: 100%; }
+}
