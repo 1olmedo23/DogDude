@@ -163,7 +163,7 @@ function groupAndRenderAdminBookings(rows) {
 <form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline ms-2"
       onsubmit="return confirm('Mark this booking as PAID?');">
   ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
-  <button class="btn btn-sm btn-outline-success">Mark Paid (day)</button>
+  <button class="btn btn-sm btn-outline-success btn-mark-paid">Mark Paid (day)</button>
 </form>` : '';
 
             // NEW: dog ×N badge (only when > 1)

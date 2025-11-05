@@ -59,23 +59,27 @@
 <div th:replace="~{fragments/navbar :: navbar('booking')}"></div>
 
 <div class="container-xxl py-5">
-    <h1 id="pageTitle" class="mb-4 text-center">Book a Service</h1>
 
     <!-- Mobile sticky container for tabs -->
     <div class="mobile-sticky-tabs">
     <!-- Tabs -->
-    <ul class="nav nav-tabs mb-4" id="custTabs" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="tab-booking" data-bs-toggle="tab" data-bs-target="#pane-booking" type="button" role="tab">
-                Booking
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="tab-uploads" data-bs-toggle="tab" data-bs-target="#pane-uploads" type="button" role="tab">
-                Uploads
-            </button>
-        </li>
-    </ul>
+        <ul class="nav nav-tabs mb-4" id="custTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="tab-booking"
+                        data-bs-toggle="tab" data-bs-target="#pane-booking"
+                        type="button" role="tab">Booking</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="tab-your"
+                        data-bs-toggle="tab" data-bs-target="#pane-your"
+                        type="button" role="tab">Your Bookings</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="tab-uploads"
+                        data-bs-toggle="tab" data-bs-target="#pane-uploads"
+                        type="button" role="tab">Uploads</button>
+            </li>
+        </ul>
     </div><!-- /mobile-sticky-tabs -->
 
     <!-- Alerts -->
@@ -90,6 +94,7 @@
     <div class="tab-content" id="custTabsContent">
         <!-- Booking pane -->
         <div class="tab-pane fade show active" id="pane-booking" role="tabpanel" aria-labelledby="tab-booking">
+            <h1 id="pageTitle" class="mb-4 text-center">Book a Service</h1>
 
             <!-- Pricing / planning message (BOOKING TAB ONLY) -->
             <div class="planner-banner p-3 p-md-4 mb-4">
@@ -429,9 +434,12 @@
 
                 </div>
             </div>
+        </div>
 
+        <div class="tab-pane fade" id="pane-your" role="tabpanel" aria-labelledby="tab-your">
+            <h1 class="mb-4 text-center">Your Bookings</h1>
             <!-- Your Bookings -->
-            <div class="bookings-wrap mt-5">
+            <div id="yourBookingsSection" class="bookings-wrap mt-5">
                 <div class="wrap-head d-flex align-items-center justify-content-between">
                     <span class="badge text-bg-secondary">Tip: plan Mon–Sun for best weekly rate</span>
                     <h3 class="mb-0 text-center">Your Bookings</h3>
@@ -441,7 +449,8 @@
                         <div class="col-md-4">
                             <h5 class="mb-2">Daycare (6 AM - 3 PM)</h5>
                             <ul class="list-group">
-                                <li th:each="b : ${bookingsDaycareShort}" class="list-group-item d-flex justify-content-between align-items-center">
+                                <li th:each="b : ${bookingsDaycareShort}"
+                                    class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-semibold" th:text="${b.serviceType}">Daycare (6 AM - 3 PM)</div>
                                         <div class="text-muted small">
@@ -459,7 +468,8 @@
                                                       th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
                                                 <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
                                             </span>
-                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2"
+                                                  th:if="${b.dogCount != null and b.dogCount > 1}"
                                                   th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
@@ -467,19 +477,23 @@
                                         <form th:action="@{'/booking/cancel/' + ${b.id}}"
                                               method="post"
                                               class="ms-3 confirm-cancel">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
                                             <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
                                         </form>
                                     </div>
                                 </li>
-                                <li th:if="${#lists.isEmpty(bookingsDaycareShort)}" class="list-group-item text-muted">No bookings.</li>
+                                <li th:if="${#lists.isEmpty(bookingsDaycareShort)}" class="list-group-item text-muted">
+                                    No bookings.
+                                </li>
                             </ul>
                         </div>
 
                         <div class="col-md-4">
                             <h5 class="mb-2">Daycare + Evenings(6 AM - 8 PM)</h5>
                             <ul class="list-group">
-                                <li th:each="b : ${bookingsDaycareLong}" class="list-group-item d-flex justify-content-between align-items-center">
+                                <li th:each="b : ${bookingsDaycareLong}"
+                                    class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-semibold" th:text="${b.serviceType}">Daycare (6 AM - 8 PM)</div>
                                         <div class="text-muted small">
@@ -497,7 +511,8 @@
                                                       th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
                                                 <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
                                             </span>
-                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2"
+                                                  th:if="${b.dogCount != null and b.dogCount > 1}"
                                                   th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
@@ -505,21 +520,27 @@
                                         <form th:action="@{'/booking/cancel/' + ${b.id}}"
                                               method="post"
                                               class="ms-3 confirm-cancel">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
                                             <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
                                         </form>
                                     </div>
                                 </li>
-                                <li th:if="${#lists.isEmpty(bookingsDaycareLong)}" class="list-group-item text-muted">No bookings.</li>
+                                <li th:if="${#lists.isEmpty(bookingsDaycareLong)}" class="list-group-item text-muted">No
+                                    bookings.
+                                </li>
                             </ul>
                         </div>
 
                         <div class="col-md-4">
                             <h5 class="mb-2">Daycare + After Hours (6 AM - 11 PM)</h5>
                             <ul class="list-group">
-                                <li th:each="b : ${bookingsDaycareAfterHours}" class="list-group-item d-flex justify-content-between align-items-center">
+                                <li th:each="b : ${bookingsDaycareAfterHours}"
+                                    class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="fw-semibold" th:text="${b.serviceType}">Daycare After Hours (6 AM - 11 PM)</div>
+                                        <div class="fw-semibold" th:text="${b.serviceType}">Daycare After Hours (6 AM -
+                                            11 PM)
+                                        </div>
                                         <div class="text-muted small">
                                             <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
                                             • Drop-off at
@@ -531,39 +552,48 @@
                                           (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                           th:text="${b.status}">APPROVED</span>
                                             <span class="badge bg-light text-dark ms-2">$90.00</span>
-                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2"
+                                                  th:if="${b.dogCount != null and b.dogCount > 1}"
                                                   th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
                                     <div th:if="${b.status == 'APPROVED'}">
-                                        <form th:action="@{'/booking/cancel/' + ${b.id}}" method="post" class="ms-3 confirm-cancel">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <form th:action="@{'/booking/cancel/' + ${b.id}}" method="post"
+                                              class="ms-3 confirm-cancel">
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
                                             <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
                                         </form>
                                     </div>
                                 </li>
-                                <li th:if="${#lists.isEmpty(bookingsDaycareAfterHours)}" class="list-group-item text-muted">No bookings.</li>
+                                <li th:if="${#lists.isEmpty(bookingsDaycareAfterHours)}"
+                                    class="list-group-item text-muted">No bookings.
+                                </li>
                             </ul>
                         </div>
 
                         <div class="col-md-4">
                             <h5 class="mb-2">Boarding</h5>
                             <ul class="list-group">
-                                <li th:each="b : ${bookingsBoarding}" class="list-group-item d-flex justify-content-between align-items-center">
+                                <li th:each="b : ${bookingsBoarding}"
+                                    class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-semibold" th:text="${b.serviceType}">Boarding</div>
                                         <div class="text-muted small">
                                             <span th:text="${#temporals.format(b.date, 'MM/dd/yy')}">03/01/25</span>
-                                            <span th:if="${b.time != null}"> • Drop-off at <span th:text="${#temporals.format(b.time, 'h:mm a')}">6:00 AM</span></span>
+                                            <span th:if="${b.time != null}"> • Drop-off at <span
+                                                    th:text="${#temporals.format(b.time, 'h:mm a')}">6:00 AM</span></span>
                                         </div>
                                         <div class="mt-1">
                                             <span class="badge badge-status"
                                                   th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
                                                                   (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                   th:text="${b.status}">APPROVED</span>
-                                            <span th:if="${b.quotedRateAtLock != null}" class="badge bg-light text-dark ms-2"
+                                            <span th:if="${b.quotedRateAtLock != null}"
+                                                  class="badge bg-light text-dark ms-2"
                                                   th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
-                                            <span class="badge bg-secondary-subtle text-secondary ms-2" th:if="${b.dogCount != null and b.dogCount > 1}"
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2"
+                                                  th:if="${b.dogCount != null and b.dogCount > 1}"
                                                   th:text="'×' + ${b.dogCount}">×2</span>
                                         </div>
                                     </div>
@@ -571,19 +601,22 @@
                                         <form th:action="@{'/booking/cancel/' + ${b.id}}"
                                               method="post"
                                               class="ms-3 confirm-cancel">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
                                             <button class="btn btn-danger-custom btn-sm" type="submit">Cancel</button>
                                         </form>
                                     </div>
                                 </li>
-                                <li th:if="${#lists.isEmpty(bookingsBoarding)}" class="list-group-item text-muted">No bookings.</li>
+                                <li th:if="${#lists.isEmpty(bookingsBoarding)}" class="list-group-item text-muted">No
+                                    bookings.
+                                </li>
                             </ul>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- /Your Bookings -->
         </div>
+        <!-- /Your Bookings -->
 
         <!-- Uploads pane -->
         <div class="tab-pane fade" id="pane-uploads" role="tabpanel" aria-labelledby="tab-uploads">
@@ -966,6 +999,56 @@
         buttonId: 'ratesToggleBtn',
         storageKey: 'bookingRatesCollapsed',
         applyOnMaxWidth: 767
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tabs = document.querySelectorAll('#custTabs [data-bs-toggle="tab"]');
+        if (!window.bootstrap || !tabs.length) return;
+
+        // Open tab from hash (e.g., #pane-your or #pane-uploads)
+        const openFromHash = () => {
+            const hash = window.location.hash;
+            if (!hash) return;
+            const btn = document.querySelector(`#custTabs [data-bs-target="${hash}"]`);
+            if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+        };
+        openFromHash();
+        window.addEventListener('hashchange', openFromHash);
+
+        // Keep hash in sync and scroll to top on tab change
+        tabs.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', () => {
+                const target = btn.getAttribute('data-bs-target');
+                if (target) history.replaceState(null, '', target);
+                // Always scroll to top after switching tabs
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tabs = document.querySelectorAll('#custTabs [data-bs-toggle="tab"]');
+        if (!window.bootstrap || !tabs.length) return;
+
+        // open from hash if present
+        const openFromHash = () => {
+            const hash = window.location.hash;
+            if (!hash) return;
+            const btn = document.querySelector(`#custTabs [data-bs-target="${hash}"]`);
+            if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+        };
+        openFromHash();
+        window.addEventListener('hashchange', openFromHash);
+
+        // keep hash in sync when user clicks tabs
+        tabs.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', () => {
+                const target = btn.getAttribute('data-bs-target');
+                if (target) history.replaceState(null, '', target);
+            });
+        });
     });
 </script>
 </body>

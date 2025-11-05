@@ -399,3 +399,184 @@ form button { width: 100%; }
     body.page-login .btn { min-height: 44px; }
     body.page-login .btn { width: 100%; }
 }
+/* ===============================
+   Admin dashboard (scoped via page-admin)
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-admin .card { padding: 1rem !important; }
+    body.page-admin .btn,
+    body.page-admin .form-control,
+    body.page-admin .form-select { min-height: 44px; }
+    body.page-admin .btn { width: 100%; }
+    body.page-admin .nav-tabs .nav-link { padding: .75rem 1rem; }
+    body.page-admin .table-responsive { margin-bottom: 1rem; }
+    /* If you have toolbars above tables */
+    body.page-admin .toolbar,
+    body.page-admin .filters { gap: .5rem; flex-wrap: wrap; }
+}
+
+/* Make any admin data tables scroll instead of squish on phones */
+body.page-admin .table-wrap { overflow-x: auto; }
+body.page-admin .table-wrap table { min-width: 640px; }
+
+/* ===============================
+   Admin emergency page
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-admin-emergency .card { padding: 1rem !important; }
+    body.page-admin-emergency .btn,
+    body.page-admin-emergency .form-control,
+    body.page-admin-emergency .form-select { min-height: 44px; }
+    body.page-admin-emergency .btn { width: 100%; }
+}
+
+/* ===============================
+   Uploads page
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-uploads .card { padding: 1rem !important; }
+    body.page-uploads input[type="file"] { min-height: 44px; }
+    body.page-uploads .btn { min-height: 44px; width: 100%; }
+}
+
+/* ===============================
+   Success / Error pages
+   =============================== */
+@media (max-width: 767.98px){
+    body.page-success .card,
+    body.page-error .card { padding: 1rem !important; }
+    body.page-success .btn,
+    body.page-error .btn { min-height: 44px; width: 100%; }
+}
+
+/* If you display long stack traces or logs on error pages */
+body.page-error pre,
+body.page-error code { white-space: pre-wrap; word-break: break-word; }
+
+/* ===============================
+   Admin page (mobile-only slimming + sticky controls)
+   =============================== */
+@media (max-width: 575.98px){
+    /* make all admin buttons sleeker on phones, incl. top-right, all tabs */
+    .page-admin .btn{
+        padding: .45rem .7rem;
+        font-size: .9rem;
+        line-height: 1.1;
+        border-radius: .5rem;
+    }
+
+    /* sticky toolbar in Bookings (below the sticky tabs) */
+    .page-admin .admin-sticky-controls{
+        position: sticky;
+        top: 104px; /* ~56px navbar + ~48px tabs */
+        z-index: 1005;
+        background: var(--bs-body-bg, #fff);
+        padding-top: .25rem;
+        padding-bottom: .25rem;
+        border-bottom: 1px dashed var(--bs-border-color, #dee2e6);
+    }
+
+    /* tables read better without sideways scroll */
+    .page-admin .table{
+        font-size: .92rem;
+    }
+    .page-admin .table td,
+    .page-admin .table th{
+        white-space: normal;
+        word-break: break-word;
+        vertical-align: middle;
+    }
+}
+
+/* Center the group header rows your JS inserts (tr.table-light) */
+.page-admin #bookingTableBody tr.table-light td{
+    text-align: center;
+}
+
+/* Phone-specific overrides for sleeker buttons + inline toolbar buttons */
+@media (max-width: 575.98px){
+    .page-admin .btn{
+        min-height: 36px;          /* override 44px so buttons feel slimmer */
+    }
+    /* Keep toolbar buttons inline (not full-width) so they sit side-by-side */
+    .page-admin .admin-sticky-controls .btn{
+        width: auto;               /* override the 100% width from the 767.98px block */
+    }
+}
+/* Give the Invoicing table more horizontal room */
+.page-admin #invoicing .table-wrap {
+    overflow-x: auto;     /* enables horizontal scrolling if needed */
+}
+
+.page-admin #invoicing table {
+    min-width: 900px;     /* more graceful spacing, keeps text horizontal */
+}
+
+/* ===============================
+   Admin Dashboard: Bookings tab table spacing
+   =============================== */
+body.page-admin .tab-pane#bookings table {
+    min-width: 900px; /* give enough width so columns stay horizontal */
+}
+
+@media (max-width: 991.98px){
+    body.page-admin .tab-pane#bookings .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    body.page-admin .tab-pane#bookings table {
+        min-width: 800px;
+        font-size: .9rem;
+    }
+}
+/* --- Admin > Bookings: make "Mark Paid" button compact --- */
+.page-admin #bookings .btn-mark-paid{
+    width: auto !important;           /* never full width */
+    display: inline-block;
+    white-space: nowrap;
+    padding: .35rem .6rem;            /* a hair smaller than .btn-sm */
+    font-size: .875rem;               /* ~14px */
+    line-height: 1.1;
+    border-radius: .45rem;
+}
+
+/* --- Admin > Bookings: refine "Mark Paid" for mobile only --- */
+@media (max-width: 767.98px){
+    .page-admin #bookings .btn-mark-paid {
+        width: auto !important;
+        padding: .3rem .5rem;            /* smaller tap area */
+        font-size: .8rem;                /* slightly smaller text */
+        line-height: 1;                  /* tighter */
+        border-radius: .4rem;
+        display: block;
+        margin: 0.25rem auto;            /* centers it horizontally */
+        text-align: center;
+    }
+
+    /* tighten the action cell */
+    .page-admin #bookings td:last-child {
+        text-align: center;
+        vertical-align: middle;
+    }
+}
+
+/* --- FINAL tweak: center the Mark Paid button perfectly on mobile --- */
+@media (max-width: 575.98px){
+    .page-admin #bookings .btn-mark-paid {
+        display: block !important;         /* allows margin auto centering */
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-top: .15rem !important;
+        padding-bottom: .15rem !important;
+        line-height: 1 !important;
+        min-height: auto !important;
+        font-size: .8rem !important;
+        border-radius: .35rem !important;
+    }
+
+    .page-admin #bookings td:last-child {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+}
+

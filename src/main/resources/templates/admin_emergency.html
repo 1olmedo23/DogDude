@@ -17,11 +17,15 @@
         .page-title { font-weight: 800; letter-spacing: .2px; }
     </style>
 </head>
-<body class="bg-light">
+<body class="bg-light page-admin-emergency">
 <div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h1 class="page-title mb-0">Emergency Booking</h1>
-        <a class="btn btn-custom" th:href="@{/admin#bookings}">← Back to Admin</a>
+    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between mb-3">
+        <div class="order-2 order-sm-1 mt-2 mt-sm-0">
+            <h1 class="page-title mb-0">Emergency Booking</h1>
+        </div>
+        <div class="order-1 order-sm-2 w-100 w-sm-auto mb-2 mb-sm-0">
+            <a class="btn btn-custom w-100 w-sm-auto" th:href="@{/admin#bookings}">← Back to Admin</a>
+        </div>
     </div>
 
     <p class="text-muted mb-4">
