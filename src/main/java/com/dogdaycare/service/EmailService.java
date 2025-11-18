@@ -22,7 +22,7 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    // For customer confirmation emails (reliable MimeMessage version)
+    // For customer confirmation emails (plain text)
     public void sendEmail(String to, String subject, String text) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -34,6 +34,21 @@ public class EmailService {
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send customer email", e);
+        }
+    }
+
+    // NEW: For customer confirmation emails that use HTML
+    public void sendHtmlEmail(String to, String subject, String htmlBody) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(mailSenderUsername);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true); // true = HTML
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send HTML email", e);
         }
     }
 

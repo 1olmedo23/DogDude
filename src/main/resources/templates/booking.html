@@ -259,13 +259,13 @@
                                             <div class="mb-2">
                                                 <label class="form-label small">Number of dogs</label>
                                                 <select name="dogCount" class="form-select form-select-sm" id="dogCount">
-                                                    <option value="1" selected>1 (default)</option>
+                                                    <option value="1" selected>1</option>
                                                     <option value="2">2</option>
                                                     <option value="3">3</option>
                                                     <option value="4">4</option>
                                                     <option value="5">5</option>
                                                 </select>
-                                                <div class="form-text">“1 dog” is the default. Only select a number if more than one.</div>
+                                                <div class="form-text">How many dogs for this service?</div>
                                             </div>
                                             <!-- Daycare-only prepay -->
                                             <div class="form-check mb-2 small daycare-only"
@@ -278,7 +278,7 @@
                                                 <label class="form-check-label">Pay in advance</label>
                                                 <div class="form-text" data-prepay-msg
                                                      th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
-                                                    Must be booked ≥ 24 hours in advance to qualify.
+                                                    ≥ 24 hours to qualify.
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -398,13 +398,13 @@
                                             <div class="mb-2">
                                                 <label class="form-label small">Number of dogs</label>
                                                 <select name="dogCount" class="form-select form-select-sm" id="dogCount">
-                                                    <option value="1" selected>1 (default)</option>
+                                                    <option value="1" selected>1</option>
                                                     <option value="2">2</option>
                                                     <option value="3">3</option>
                                                     <option value="4">4</option>
                                                     <option value="5">5</option>
                                                 </select>
-                                                <div class="form-text">“1 dog” is the default. Only select a number if more than one.</div>
+                                                <div class="form-text">How many dogs for this service?</div>
                                             </div>
                                             <div class="form-check mb-2 small daycare-only"
                                                  th:classappend="${weekPaid} ? ' opacity-50' : ''">
@@ -416,7 +416,7 @@
                                                 <label class="form-check-label">Pay in advance</label>
                                                 <div class="form-text" data-prepay-msg
                                                      th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
-                                                    Must be booked ≥ 24 hours in advance to qualify.
+                                                    ≥ 24 hours to qualify.
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -490,7 +490,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <h5 class="mb-2">Daycare + Evenings(6 AM - 8 PM)</h5>
+                            <h5 class="mb-2">Daycare + Evenings (6 AM - 8 PM)</h5>
                             <ul class="list-group">
                                 <li th:each="b : ${bookingsDaycareLong}"
                                     class="list-group-item d-flex justify-content-between align-items-center">
@@ -630,14 +630,14 @@
                         <div class="col-md-4">
                             <label class="form-label">File</label>
                             <input type="file" class="form-control" name="file" required>
-                            <div class="form-text">Allowed: PDF, JPG, PNG (max 10MB)</div>
+                            <div class="form-text">Allowed: PDF, JPG, PNG</div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Display name (optional)</label>
+                            <label class="form-label">File name</label>
                             <input type="text" class="form-control" name="displayName" placeholder="Rabies Vaccine">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Expiration date (optional)</label>
+                            <label class="form-label">Expiration date (If any)</label>
                             <input type="date" class="form-control" name="expirationDate">
                         </div>
                         <div class="col-12">
@@ -735,6 +735,81 @@
             buttons.forEach(b => setActive(b, false));
         }
 
+        // --- NEW: helper to restrict drop-off times based on service type ---
+        function applyDropoffTimeRules(selectEl, serviceType) {
+            if (!selectEl) return;
+
+            // Helper: convert "HH:mm" → "h:mm AM/PM"
+            function formatTimeLabel24To12(value) {
+                if (!value || typeof value !== 'string' || !value.includes(':')) return value;
+                const parts = value.split(':');
+                let h = parseInt(parts[0], 10);
+                const m = parts[1] || '00';
+
+                if (isNaN(h)) return value;
+
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                if (h === 0) {
+                    h = 12;
+                } else if (h > 12) {
+                    h = h - 12;
+                }
+
+                return `${h}:${m} ${ampm}`;
+            }
+
+            // Cache the full set of times the first time we touch this select
+            if (!selectEl._allTimes) {
+                selectEl._allTimes = Array.from(selectEl.options).map(opt => {
+                    const v = opt.value;
+                    return {
+                        value: v,                    // "06:00"
+                        text: formatTimeLabel24To12(v) // "6:00 AM"
+                    };
+                });
+            }
+
+            const svc = (serviceType || '').toLowerCase();
+
+            // Default cutoff: normal daycare → 12:30
+            let cutoff = "12:30";
+
+            // Daycare + Evenings (6 AM - 8 PM) → allow up to 15:30 (3:30 PM)
+            if (svc.includes('8 pm') || svc.includes('evening')) {
+                cutoff = "15:30";
+            }
+
+            // Daycare After Hours (6 AM - 11 PM) → allow up to 17:30 (5:30 PM)
+            if (svc.includes('after hours')) {
+                cutoff = "17:30";
+            }
+
+            // Boarding → allow up to 19:30 (7:30 PM)
+            if (svc.includes('boarding')) {
+                cutoff = "19:30";
+            }
+
+            // Rebuild options from the cached full set, filtered by cutoff
+            const all = selectEl._allTimes;
+            selectEl.innerHTML = "";
+            let firstValue = null;
+
+            all.forEach(t => {
+                // string compare works for HH:mm (e.g., "06:00" < "12:30" < "20:00")
+                if (t.value <= cutoff) {
+                    const opt = document.createElement('option');
+                    opt.value = t.value;     // "06:00"
+                    opt.textContent = t.text; // "6:00 AM"
+                    selectEl.appendChild(opt);
+                    if (!firstValue) firstValue = t.value;
+                }
+            });
+
+            if (firstValue) {
+                selectEl.value = firstValue;
+            }
+        }
+
         // --- NEW: keep only one day expanded at a time ---
         function closeAllDayForms(exceptTile){
             document.querySelectorAll('.day-form').forEach(f=>{
@@ -743,7 +818,6 @@
                 }
             });
             document.querySelectorAll('.svc-btn.active').forEach(b=>{
-                // remove "active" styling from buttons in other tiles
                 const variant = b.getAttribute('data-variant') || 'primary';
                 b.classList.remove('active');
                 if (variant === 'secondary') {
@@ -791,19 +865,21 @@
             // click handlers
             svcButtons.forEach(btn => {
                 btn.addEventListener('click', async () => {
-
                     if (btn.disabled || btn.classList.contains('disabled')) return;
 
                     const svc = btn.getAttribute('data-service');
                     const d = btn.getAttribute('data-date');
 
-                    // NEW: collapse others first
+                    // Collapse others first
                     closeAllDayForms(tile);
 
-                    // open this form and activate this service
+                    // Open this form and activate this service
                     form.classList.remove('d-none');
                     svcInput.value = svc;
                     dateInput.value = d;
+
+                    // NEW: apply drop-off time rules for this service
+                    applyDropoffTimeRules(timeSelect, svc);
 
                     clearActiveSiblings(Array.from(svcButtons));
                     setActive(btn, true);

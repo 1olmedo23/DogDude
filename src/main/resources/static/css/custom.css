@@ -189,8 +189,9 @@ form button { width: 100%; }
 }
 .calendar-grid{
     display:grid;
+    /* Base: 7 columns for md+ so large screens line up with weekday labels */
     grid-template-columns: repeat(7, 1fr);
-    gap: 1rem;               /* final gap value */
+    gap: 1rem;
     align-items:start;
 }
 .calendar-label{
@@ -202,13 +203,20 @@ form button { width: 100%; }
 }
 .calendar-cell{ min-width:0; }
 
+/* Phones: 2-up grid, hide weekday labels */
 @media (max-width: 767.98px){
     .calendar-grid{ grid-template-columns: repeat(2, 1fr); }
     .calendar-label{ display:none; }
 }
+
+/* Tablets (768–991px): 3-up grid, also hide weekday labels
+   (each tile already shows "Mon Mar 1" in its header) */
 @media (min-width: 768px) and (max-width: 991.98px){
-    .calendar-grid{ grid-template-columns: repeat(4, 1fr); }
+    .calendar-grid{ grid-template-columns: repeat(3, 1fr); }
+    .calendar-label{ display:none; }
 }
+
+/* XL screens: give tiles a bit more height */
 @media (min-width: 1400px){
     .day-tile { min-height: 200px; }
 }
@@ -579,4 +587,3 @@ body.page-admin .tab-pane#bookings table {
         vertical-align: middle !important;
     }
 }
-
