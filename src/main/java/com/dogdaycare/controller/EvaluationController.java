@@ -272,7 +272,8 @@ public class EvaluationController {
         // Vaccine/license reminder
         sb.append("<p style=\"margin:8px 0; font-size:15px; line-height:1.6;\">")
                 .append("If you weren’t able to upload vaccine or pet license records yet, you can bring them to your visit ")
-                .append("or email them to us ahead of time.(fremontdogplaza@gmail.com)")
+                .append("or email them to us ahead of time at ")
+                .append("<strong>").append(businessEmail).append("</strong>.")
                 .append("</p>");
 
         // Sign-off

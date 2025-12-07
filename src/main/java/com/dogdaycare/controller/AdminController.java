@@ -127,7 +127,7 @@ public class AdminController {
                     "Hello %s,\n\n" +
                             "Your evaluation has been approved! You can now log in to our Dog Daycare booking system:\n\n" +
                             "Login: %s\nPassword: %s\n\n" +
-                            "We recommend changing your password after your first login.\n\n" +
+                            "fre.\n\n" +
                             "Thank you,\nDog Daycare Team",
                     evaluation.getClientName(),
                     evaluation.getEmail(),
