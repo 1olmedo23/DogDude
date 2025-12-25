@@ -123,16 +123,20 @@ public class AdminController {
             newUser.setEnabled(true);
             userRepository.save(newUser);
 
+            String loginUrl = "https://www.fremontdogplaza.com/login";
+
             String approvalMessage = String.format(
                     "Hello %s,\n\n" +
                             "Your evaluation has been approved! You can now log in to our Dog Daycare booking system:\n\n" +
-                            "Login: %s\nPassword: %s\n\n" +
-                            "fre.\n\n" +
+                            "Login page: %s\n" +
+                            "Username: %s\nPassword: %s\n\n" +
                             "Thank you,\nDog Daycare Team",
                     evaluation.getClientName(),
+                    loginUrl,
                     evaluation.getEmail(),
                     password
             );
+
             emailService.sendEmail(
                     evaluation.getEmail(),
                     "Your Dog Daycare Account Has Been Approved",

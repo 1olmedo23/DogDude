@@ -172,7 +172,7 @@ public class EvaluationController {
 
             emailService.sendHtmlEmail(
                     evaluation.getEmail(),
-                    "We received your evaluation – Dog Daycare",
+                    "We received your evaluation – Fremont Dog Plaza",
                     customerHtml
             );
 
@@ -193,7 +193,8 @@ public class EvaluationController {
                 : "(No additional dogs)";
 
         // Local preview: file under src/main/resources/static/images/email-hero.png
-        String imageUrl = "/images/play1.jpg";
+        String imageUrl = "https://www.fremontdogplaza.com/images/play1.jpg";
+        String loginUrl = "https://www.fremontdogplaza.com/login";
 
         String clientName = evaluation.getClientName() != null ? evaluation.getClientName() : "there";
 
@@ -267,6 +268,12 @@ public class EvaluationController {
         sb.append("<p style=\"margin:8px 0; font-size:15px; line-height:1.6;\">")
                 .append("We will review your information and reach out within ")
                 .append("<strong>3–5 business days</strong> with next steps.")
+                .append("</p>");
+
+        // Login link (shows them where they’ll log in once approved)
+        sb.append("<p style=\"margin:8px 0; font-size:15px; line-height:1.6;\">")
+                .append("Once your evaluation is approved, you’ll be able to log in and request bookings through our online portal: ")
+                .append("<a href=\"").append(loginUrl).append("\" style=\"color:#c2e1ff;\">Login page</a>.")
                 .append("</p>");
 
         // Vaccine/license reminder
