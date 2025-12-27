@@ -271,4 +271,42 @@ public class PricingService {
         boolean atLeast4 = (existingEligible + 1) >= 4; // include THIS booking
         return quoteDaycareAtTier(temp, atLeast4);
     }
+
+    public BigDecimal previewBoardingStayPrice(User u, LocalDate startDate, int nights) {
+        if (u == null || startDate == null) return BigDecimal.ZERO;
+
+        if (nights < 1) nights = 1;
+        nights = Math.max(1, Math.min(30, nights));
+
+        // Determine nightly tier based on prior-month boarding nights (same logic as priceBoarding)
+        LocalDate pms = priorMonthStart(startDate);
+        LocalDate pme = priorMonthEnd(startDate);
+
+        List<Booking> prevMonthBoarding = bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        u, "boarding", pms, pme, "CANCELED");
+
+        long priorNights = prevMonthBoarding.size();
+
+        BigDecimal nightly;
+        if (priorNights >= 16) nightly = BRD_PERNIGHT_T16;
+        else if (priorNights >= 10) nightly = BRD_PERNIGHT_T10;
+        else if (priorNights >= 4) nightly = BRD_PERNIGHT_T4;
+        else nightly = BRD_PERNIGHT_IMM;
+
+        // The "last night" is the final booking date in the stay
+        LocalDate lastNightDate = startDate.plusDays(nights - 1);
+
+        // Pickup day is the day after the last night
+        boolean pickupDayHasDaycare = hasDaycareOnDate(u, lastNightDate.plusDays(1));
+
+        // Total = nightly * nights, plus pickup fee once on last night (nightly/2), unless pickup day has daycare
+        BigDecimal total = nightly.multiply(BigDecimal.valueOf(nights));
+
+        if (!pickupDayHasDaycare) {
+            total = total.add(nightly.multiply(BigDecimal.valueOf(0.5)));
+        }
+
+        return total.setScale(2, RoundingMode.HALF_UP);
+    }
 }

@@ -282,14 +282,51 @@
                                             </div>
                                             <div class="mb-2">
                                                 <label class="form-label small">Number of dogs</label>
-                                                <select name="dogCount" class="form-select form-select-sm" id="dogCount">
-                                                    <option value="1" selected>1</option>
+                                                <select name="dogCount" class="form-select form-select-sm">
+                                                <option value="1" selected>1</option>
                                                     <option value="2">2</option>
                                                     <option value="3">3</option>
                                                     <option value="4">4</option>
                                                     <option value="5">5</option>
                                                 </select>
                                                 <div class="form-text">How many dogs for this service?</div>
+                                            </div>
+                                            <!-- Boarding-only nights -->
+                                            <div class="mb-2 boarding-only d-none">
+                                                <label class="form-label small">Boarding nights</label>
+                                                <select name="boardingNights" class="form-select form-select-sm">
+                                                    <option value="1" selected>1 night</option>
+                                                    <option value="2">2 nights</option>
+                                                    <option value="3">3 nights</option>
+                                                    <option value="4">4 nights</option>
+                                                    <option value="5">5 nights</option>
+                                                    <option value="6">6 nights</option>
+                                                    <option value="7">7 nights</option>
+                                                    <option value="8">8 nights</option>
+                                                    <option value="9">9 nights</option>
+                                                    <option value="10">10 nights</option>
+                                                    <option value="11">11 nights</option>
+                                                    <option value="12">12 nights</option>
+                                                    <option value="13">13 nights</option>
+                                                    <option value="14">14 nights</option>
+                                                    <option value="15">15 nights</option>
+                                                    <option value="16">16 nights</option>
+                                                    <option value="17">17 nights</option>
+                                                    <option value="18">18 nights</option>
+                                                    <option value="19">19 nights</option>
+                                                    <option value="20">20 nights</option>
+                                                    <option value="21">21 nights</option>
+                                                    <option value="22">22 nights</option>
+                                                    <option value="23">23 nights</option>
+                                                    <option value="24">24 nights</option>
+                                                    <option value="25">25 nights</option>
+                                                    <option value="26">26 nights</option>
+                                                    <option value="27">27 nights</option>
+                                                    <option value="28">28 nights</option>
+                                                    <option value="29">29 nights</option>
+                                                    <option value="30">30 nights</option>
+                                                </select>
+                                                <div class="form-text">Select the number of nights for this boarding stay.</div>
                                             </div>
                                             <!-- Daycare-only prepay -->
                                             <div class="form-check mb-2 small daycare-only"
@@ -421,14 +458,51 @@
                                             </div>
                                             <div class="mb-2">
                                                 <label class="form-label small">Number of dogs</label>
-                                                <select name="dogCount" class="form-select form-select-sm" id="dogCount">
-                                                    <option value="1" selected>1</option>
+                                                <select name="dogCount" class="form-select form-select-sm">
+                                                <option value="1" selected>1</option>
                                                     <option value="2">2</option>
                                                     <option value="3">3</option>
                                                     <option value="4">4</option>
                                                     <option value="5">5</option>
                                                 </select>
                                                 <div class="form-text">How many dogs for this service?</div>
+                                            </div>
+                                            <!-- Boarding-only nights -->
+                                            <div class="mb-2 boarding-only d-none">
+                                                <label class="form-label small">Boarding nights</label>
+                                                <select name="boardingNights" class="form-select form-select-sm">
+                                                    <option value="1" selected>1 night</option>
+                                                    <option value="2">2 nights</option>
+                                                    <option value="3">3 nights</option>
+                                                    <option value="4">4 nights</option>
+                                                    <option value="5">5 nights</option>
+                                                    <option value="6">6 nights</option>
+                                                    <option value="7">7 nights</option>
+                                                    <option value="8">8 nights</option>
+                                                    <option value="9">9 nights</option>
+                                                    <option value="10">10 nights</option>
+                                                    <option value="11">11 nights</option>
+                                                    <option value="12">12 nights</option>
+                                                    <option value="13">13 nights</option>
+                                                    <option value="14">14 nights</option>
+                                                    <option value="15">15 nights</option>
+                                                    <option value="16">16 nights</option>
+                                                    <option value="17">17 nights</option>
+                                                    <option value="18">18 nights</option>
+                                                    <option value="19">19 nights</option>
+                                                    <option value="20">20 nights</option>
+                                                    <option value="21">21 nights</option>
+                                                    <option value="22">22 nights</option>
+                                                    <option value="23">23 nights</option>
+                                                    <option value="24">24 nights</option>
+                                                    <option value="25">25 nights</option>
+                                                    <option value="26">26 nights</option>
+                                                    <option value="27">27 nights</option>
+                                                    <option value="28">28 nights</option>
+                                                    <option value="29">29 nights</option>
+                                                    <option value="30">30 nights</option>
+                                                </select>
+                                                <div class="form-text">Select the number of nights for this boarding stay.</div>
                                             </div>
                                             <div class="form-check mb-2 small daycare-only"
                                                  th:classappend="${weekPaid} ? ' opacity-50' : ''">
@@ -864,11 +938,21 @@
             const daycareBlock = form.querySelector('.daycare-only');
             const prepayChk = form.querySelector('input[name="wantsAdvancePay"]');
             const prepayMsg = form.querySelector('[data-prepay-msg]');
+            const boardingBlock = form.querySelector('.boarding-only');
+            const boardingNightsSel = form.querySelector('select[name="boardingNights"]');
 
             async function refreshPrepay(serviceType, dateStr, timeStr) {
                 const svcLower = (serviceType || '').toLowerCase();
                 const isDaycare = svcLower.includes('daycare');
                 const isAfterHours = svcLower.includes('after hours'); // NEW
+                const isBoarding = svcLower.includes('boarding');
+                // Show boarding nights only for boarding
+                if (boardingBlock) {
+                    boardingBlock.classList.toggle('d-none', !isBoarding);
+                }
+                if (!isBoarding && boardingNightsSel) {
+                    boardingNightsSel.value = "1";
+                }
                 daycareBlock.classList.toggle('d-none', !isDaycare || isAfterHours); // hide for After Hours
                 if (!isDaycare || isAfterHours) return;
 
@@ -982,52 +1066,97 @@
 <!-- Live quote hook -->
 <script th:inline="javascript">
     (function () {
-        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance, dogCount }) {
+        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance, dogCount, boardingNights }) {
             const params = new URLSearchParams({
                 serviceType: svc,
                 date: dateStr,
                 wantsAdvancePay: wantsAdvance ? 'true' : 'false'
             });
             if (timeStr) params.set('time', timeStr);
-            if (dogCount) params.set('dogCount', String(dogCount)); // backend may use; harmless if ignored
+            if (dogCount) params.set('dogCount', String(dogCount));
+            if (boardingNights) params.set('boardingNights', String(boardingNights));
             try {
                 const res = await fetch('/booking/quote?' + params.toString(), { headers: { 'Accept': 'application/json' } });
                 if (!res.ok) return null;
                 return await res.json();
             } catch { return null; }
         }
+
         function fmtMoneyUSD(n){
             try{ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
             catch{ return '$'+Number(n||0).toFixed(2); }
         }
+
         function wireDayTile(tile){
             const form = tile.querySelector('.day-form'); if(!form) return;
-            const svcInput=form.querySelector('input[name="serviceType"]');
-            const dateInput=form.querySelector('input[name="date"]');
-            const timeSel=form.querySelector('select[name="time"]');
-            const prepayChk=form.querySelector('input[name="wantsAdvancePay"]');
-            const dogSel=form.querySelector('select[name="dogCount"]');
-            const quoteEl=form.querySelector('[data-quote]');
-            function getDogCount(){ return Number(dogSel?.value||'1')||1; }
+
+            const svcInput  = form.querySelector('input[name="serviceType"]');
+            const dateInput = form.querySelector('input[name="date"]');
+            const timeSel   = form.querySelector('select[name="time"]');
+            const prepayChk = form.querySelector('input[name="wantsAdvancePay"]');
+            const dogSel    = form.querySelector('select[name="dogCount"]');
+
+            const boardingNightsSel = form.querySelector('select[name="boardingNights"]');
+            const quoteEl = form.querySelector('[data-quote]');
+
+            function getDogCount(){ return Number(dogSel?.value || '1') || 1; }
+            function getBoardingNights(){ return Number(boardingNightsSel?.value || '1') || 1; }
 
             async function refreshQuote(){
                 if(!quoteEl) return;
-                const svc=svcInput.value, d=dateInput.value, t=timeSel?.value||'', wants=!!(prepayChk&&prepayChk.checked);
-                if(!svc||!d){ quoteEl.textContent='Est. —'; return; }
-                const nDogs=getDogCount();
-                const q=await fetchQuote({svc,dateStr:d,timeStr:t,wantsAdvance:wants,dogCount:nDogs});
-                if(!q||!q.amount){ quoteEl.textContent='Est. —'; return; }
-                quoteEl.textContent='Est. '+fmtMoneyUSD(Number(q.amount));
-                quoteEl.title=q.note||'';
+
+                const svc = svcInput?.value || '';
+                const d   = dateInput?.value || '';
+                const t   = timeSel?.value || '';
+                const wants = !!(prepayChk && prepayChk.checked);
+
+                if(!svc || !d){
+                    quoteEl.textContent = 'Est. —';
+                    quoteEl.title = '';
+                    return;
+                }
+
+                const nDogs = getDogCount();
+                const svcLower = svc.toLowerCase();
+                const nights = svcLower.includes('boarding') ? getBoardingNights() : 1;
+
+                const q = await fetchQuote({
+                    svc,
+                    dateStr: d,
+                    timeStr: t,
+                    wantsAdvance: wants,
+                    dogCount: nDogs,
+                    boardingNights: nights
+                });
+
+                if(!q || !q.amount){
+                    quoteEl.textContent = 'Est. —';
+                    quoteEl.title = '';
+                    return;
+                }
+
+                quoteEl.textContent = 'Est. ' + fmtMoneyUSD(Number(q.amount));
+                quoteEl.title = q.note || '';
             }
 
-            tile.querySelectorAll('.svc-btn').forEach(btn=>btn.addEventListener('click', refreshQuote));
+            // IMPORTANT:
+            // your other script sets svcInput/dateInput on button click.
+            // so we refresh AFTER that runs (next tick).
+            tile.querySelectorAll('.svc-btn').forEach(btn=>{
+                btn.addEventListener('click', ()=> setTimeout(refreshQuote, 0));
+            });
+
             timeSel?.addEventListener('change', refreshQuote);
             prepayChk?.addEventListener('change', refreshQuote);
             dogSel?.addEventListener('change', refreshQuote);
+            boardingNightsSel?.addEventListener('change', refreshQuote);
+
             refreshQuote();
         }
-        document.addEventListener('DOMContentLoaded', ()=>{ document.querySelectorAll('.day-tile').forEach(wireDayTile); });
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            document.querySelectorAll('.day-tile').forEach(wireDayTile);
+        });
     })();
 </script>
 

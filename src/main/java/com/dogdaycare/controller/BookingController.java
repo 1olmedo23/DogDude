@@ -288,7 +288,8 @@ public class BookingController {
             @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate date,
             @RequestParam(required = false) String time,
             @RequestParam(name = "wantsAdvancePay", defaultValue = "false") boolean wantsAdvancePay,
-            @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount // <-- NEW
+            @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
+            @RequestParam(name = "boardingNights", defaultValue = "1") Integer boardingNights
     ) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
 
@@ -296,18 +297,15 @@ public class BookingController {
         if (dogCount == null) dogCount = 1;
         dogCount = Math.max(1, Math.min(5, dogCount));
 
+        // Clamp nights to [1..30]
+        if (boardingNights == null) boardingNights = 1;
+        boardingNights = Math.max(1, Math.min(30, boardingNights));
+
         // Parse time (optional)
         LocalTime localTime = null;
         if (time != null && !time.isBlank()) {
             localTime = LocalTime.parse(time);
         }
-
-        // Build a dummy booking shell for shared helpers
-        Booking probe = new Booking();
-        probe.setCustomer(customer);
-        probe.setServiceType(serviceType);
-        probe.setDate(date);
-        probe.setTime(localTime);
 
         boolean isDaycare = serviceType != null && serviceType.toLowerCase().contains("daycare");
         boolean isBoarding = serviceType != null && serviceType.toLowerCase().contains("boarding");
@@ -323,9 +321,8 @@ public class BookingController {
         }
 
         if (isAfterHours) {
-            // Flat 90 per *booking*. Multiply by dogs for preview.
-            var base = new java.math.BigDecimal("90.00").setScale(2, java.math.RoundingMode.HALF_UP);
-            var total = base.multiply(java.math.BigDecimal.valueOf(dogCount));
+            var base = new BigDecimal("90.00").setScale(2, java.math.RoundingMode.HALF_UP);
+            var total = base.multiply(BigDecimal.valueOf(dogCount));
             return Map.of(
                     "amount", total.toString(),
                     "currency", "USD",
@@ -339,7 +336,7 @@ public class BookingController {
         boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, pricingService.weekStartMonday(date));
         boolean wantsAdvancePayFinal = isDaycare && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
 
-        java.math.BigDecimal amount;
+        BigDecimal amount;
         String note;
 
         if (isDaycare) {
@@ -349,24 +346,45 @@ public class BookingController {
             note = wantsAdvancePayFinal
                     ? "Daycare prepay preview × " + dogCount
                     : (advanceEligible ? "Daycare immediate preview × " + dogCount : "Daycare (not prepay-eligible) × " + dogCount);
-        } else if (isBoarding) {
-            amount = pricingService.priceFor(probe);
-            note = "Boarding preview × " + dogCount + " (prior-month tier & last-night logic).";
-        } else {
-            amount = java.math.BigDecimal.ZERO;
-            note = "Unknown service.";
+
+            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, java.math.RoundingMode.HALF_UP);
+
+            return Map.of(
+                    "amount", total.toString(),
+                    "currency", "USD",
+                    "advanceEligible", advanceEligible,
+                    "wantsAdvancePayApplied", wantsAdvancePayFinal,
+                    "weekAlreadyPaid", weekAlreadyPaid,
+                    "note", note
+            );
         }
 
-        // Multiply by dogCount for the preview
-        var total = amount.multiply(java.math.BigDecimal.valueOf(dogCount));
+        if (isBoarding) {
+            // Preview full stay total using simulated stay pricing
+            amount = pricingService.previewBoardingStayPrice(customer, date, boardingNights);
+
+            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, java.math.RoundingMode.HALF_UP);
+
+            note = "Boarding stay preview: " + boardingNights + " night(s) × " + dogCount +
+                    " (tiered nightly + one pickup fee unless next-day daycare).";
+
+            return Map.of(
+                    "amount", total.toString(),
+                    "currency", "USD",
+                    "advanceEligible", false,
+                    "wantsAdvancePayApplied", false,
+                    "weekAlreadyPaid", false,
+                    "note", note
+            );
+        }
 
         return Map.of(
-                "amount", total.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+                "amount", "0.00",
                 "currency", "USD",
-                "advanceEligible", advanceEligible,
-                "wantsAdvancePayApplied", wantsAdvancePayFinal,
-                "weekAlreadyPaid", weekAlreadyPaid,
-                "note", note
+                "advanceEligible", false,
+                "wantsAdvancePayApplied", false,
+                "weekAlreadyPaid", false,
+                "note", "Unknown service."
         );
     }
 
@@ -377,6 +395,7 @@ public class BookingController {
                                 @RequestParam String time,
                                 @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
                                 @RequestParam(name = "wantsAdvancePay", required = false, defaultValue = "false") boolean wantsAdvancePay,
+                                @RequestParam(name = "boardingNights", defaultValue = "1") Integer boardingNights,
                                 RedirectAttributes redirectAttributes) {
 
         // --- HARD BLOCK: no bookings for past *days* ---
@@ -455,11 +474,86 @@ public class BookingController {
         boolean wantsAdvancePayFinal =
                 !isAfterHours && isDaycareFlag && advanceEligible && wantsAdvancePay && !weekAlreadyPaid;
 
-        // Build & persist
+        // -------------------- BOARDING: create a multi-night stay --------------------
+        if (isBoardingFlag) {
+
+            if (boardingNights == null) boardingNights = 1;
+            boardingNights = Math.max(1, Math.min(30, boardingNights));
+
+            // 1) Validate each night: no past day, no same-day booking, capacity ok
+            for (int i = 0; i < boardingNights; i++) {
+                LocalDate d = requestedDate.plusDays(i);
+
+                if (d.isBefore(today)) {
+                    redirectAttributes.addFlashAttribute("errorMessage", "You can’t book a previous day.");
+                    return "redirect:/booking";
+                }
+
+                var same = bookingRepository.findByCustomerAndDate(customer, d);
+                boolean hasAny = same.stream().anyMatch(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()));
+                if (hasAny) {
+                    redirectAttributes.addFlashAttribute(
+                            "errorMessage",
+                            "You have already booked a service for " + d + "."
+                    );
+                    return "redirect:/booking";
+                }
+
+                boolean ok = bookingLimitService.canCustomerBook(d, serviceType);
+                if (!ok) {
+                    redirectAttributes.addFlashAttribute(
+                            "errorMessage",
+                            "We’re full for " + d + ". Please try a different date. " +
+                                    "If this is an emergency, please contact the business at (XXX) XXX-XXXX."
+                    );
+                    return "redirect:/booking";
+                }
+            }
+
+            // 2) Create all nights first (quotedRateAtLock null) so next-day boarding checks work
+            java.util.List<Booking> created = new java.util.ArrayList<>();
+
+            for (int i = 0; i < boardingNights; i++) {
+                LocalDate d = requestedDate.plusDays(i);
+
+                Booking booking = new Booking();
+                booking.setCustomer(customer);
+                booking.setServiceType(serviceType); // "Boarding"
+                booking.setDate(d);
+                booking.setTime(localTime);
+                booking.setStatus("APPROVED");
+                booking.setDogCount(dogCount);
+
+                booking.setCreatedAt(LocalDateTime.now(clock));
+                booking.setAdvanceEligible(false);
+                booking.setWantsAdvancePay(false);
+
+                booking.setQuotedRateAtLock(null);
+
+                created.add(booking);
+            }
+
+            bookingRepository.saveAll(created);
+
+            // 3) Now compute final prices using existing boarding logic (only last night gets pickup fee once)
+            for (Booking b : created) {
+                BigDecimal perDog = pricingService.priceFor(b);
+                BigDecimal total = perDog.multiply(BigDecimal.valueOf(dogCount))
+                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                b.setQuotedRateAtLock(total);
+            }
+
+            bookingRepository.saveAll(created);
+
+            redirectAttributes.addFlashAttribute("successMessage", "Boarding stay submitted successfully!");
+            return "redirect:/booking";
+        }
+
+// -------------------- NON-BOARDING: existing single-day behavior --------------------
         Booking booking = new Booking();
         booking.setCustomer(customer);
         booking.setServiceType(serviceType);
-        booking.setDate(requestedDate);   // reuse parsed date
+        booking.setDate(requestedDate);
         booking.setTime(localTime);
         booking.setStatus("APPROVED");
         booking.setDogCount(dogCount);
@@ -468,7 +562,7 @@ public class BookingController {
         booking.setAdvanceEligible(advanceEligible);
         booking.setWantsAdvancePay(wantsAdvancePayFinal);
 
-        // Price lock
+// Price lock
         java.math.BigDecimal base;
         if (isAfterHours) {
             base = new java.math.BigDecimal("90.00"); // flat per dog
@@ -476,13 +570,6 @@ public class BookingController {
             base = pricingService.previewDaycarePrice(
                     customer, requestedDate, serviceType, advanceEligible, wantsAdvancePayFinal
             );
-        } else if (isBoardingFlag) {
-            Booking probe = new Booking();
-            probe.setCustomer(customer);
-            probe.setServiceType(serviceType);
-            probe.setDate(requestedDate);
-            probe.setTime(localTime);
-            base = pricingService.priceFor(probe);
         } else {
             base = java.math.BigDecimal.ZERO;
         }
