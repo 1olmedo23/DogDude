@@ -234,6 +234,14 @@ public class BookingController {
         List<LocalDate> week1Days = weekDays(week1Monday);
         List<LocalDate> week2Days = weekDays(week2Monday);
 
+        // disable Half-Day Daycare button
+        java.util.Set<LocalDate> pickupDays = java.util.stream.Stream
+                .concat(week1Days.stream(), week2Days.stream())
+                .filter(d -> isPickupDayOfBoarding(customer, d))
+                .collect(java.util.stream.Collectors.toSet());
+
+        model.addAttribute("pickupDays", pickupDays);
+
         // Week banners: “planned/paid?” by week
         boolean week1Paid = bundleService.hasWeekPaid(customer, week1Monday);
         boolean week2Paid = bundleService.hasWeekPaid(customer, week2Monday);
@@ -267,7 +275,7 @@ public class BookingController {
         model.addAttribute("nextStart", week1Monday.plusWeeks(2));
         model.addAttribute("dropoffTimes", dropoffTimes);
 
-        // Keep this for banner logic on the current week (already used in your JS)
+        // banner logic on the current week (already used in JS)
         model.addAttribute("hasWeekPaidThisWeek", bundleService.hasWeekPaid(customer, LocalDate.now(clock)));
         model.addAttribute("today", LocalDate.now(clock));
 
@@ -278,6 +286,27 @@ public class BookingController {
         return java.util.stream.IntStream.range(0, 7)
                 .mapToObj(monday::plusDays)
                 .toList();
+    }
+
+    private boolean isPickupDayOfBoarding(User customer, LocalDate day) {
+        if (customer == null || day == null) return false;
+
+        // "Pickup day" means: customer had Boarding yesterday, but does NOT have Boarding today.
+        LocalDate prev = day.minusDays(1);
+
+        boolean hadBoardingYesterday = !bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                        customer, "boarding", prev, "CANCELED"
+                )
+                .isEmpty();
+
+        boolean hasBoardingToday = !bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                        customer, "boarding", day, "CANCELED"
+                )
+                .isEmpty();
+
+        return hadBoardingYesterday && !hasBoardingToday;
     }
 
     @GetMapping("/quote")
@@ -427,6 +456,17 @@ public class BookingController {
         } catch (Exception ex) {
             redirectAttributes.addFlashAttribute("errorMessage", "Invalid time.");
             return "redirect:/booking";
+        }
+
+        if ("Daycare (6 AM - 3 PM)".equalsIgnoreCase(safe(serviceType))) {
+            if (isPickupDayOfBoarding(customer, requestedDate)) {
+                redirectAttributes.addFlashAttribute(
+                        "errorMessage",
+                        "Half-day daycare (6 AM - 3 PM) is unavailable. " +
+                                "You can book Daycare + Evening, Daycare + After Hours, or another Boarding stay."
+                );
+                return "redirect:/booking";
+            }
         }
 
         // Prevent double-booking on the same calendar day (any service)

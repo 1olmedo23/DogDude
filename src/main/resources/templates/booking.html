@@ -231,14 +231,21 @@
                                             </div>
                                         </div>
 
+                                        <span class="badge bg-warning-subtle text-warning small"
+                                              th:if="${pickupDays != null and pickupDays.contains(d)}">
+                                            Pickup day
+                                        </span>
+
+
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
                                                     data-service="Daycare (6 AM - 3 PM)"
                                                     th:attr="data-date=${d}"
-                                                    th:disabled="${d.isBefore(today)}"
-                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
-                                                Daycare
+                                                    th:disabled="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))}"
+                                                    th:classappend="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))} ? ' disabled' : ''"
+                                                    th:title="${(pickupDays != null and pickupDays.contains(d))} ? 'Half-day daycare is unavailable on your boarding pickup day (already covered by the pickup fee).' : null">
+                                                Daycare (6 AM - 3PM)
                                             </button>
 
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
@@ -247,7 +254,7 @@
                                                     th:attr="data-date=${d}"
                                                     th:disabled="${d.isBefore(today)}"
                                                     th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
-                                                Daycare + Evening
+                                                Daycare + Evening (6AM - 8PM)
                                             </button>
 
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
@@ -256,7 +263,7 @@
                                                     th:attr="data-date=${d}"
                                                     th:disabled="${d.isBefore(today)}"
                                                     th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
-                                                Daycare + After Hours
+                                                Daycare + After Hours (6AM - 11PM)
                                             </button>
 
                                             <button class="btn btn-outline-secondary btn-sm svc-btn"
@@ -408,14 +415,21 @@
                                             </div>
                                         </div>
 
+                                        <span class="badge bg-warning-subtle text-warning small"
+                                              th:if="${pickupDays != null and pickupDays.contains(d)}">
+                                            Pickup day
+                                        </span>
+
+
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
                                                     data-variant="primary"
                                                     data-service="Daycare (6 AM - 3 PM)"
                                                     th:attr="data-date=${d}"
-                                                    th:disabled="${d.isBefore(today)}"
-                                                    th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
-                                                Daycare
+                                                    th:disabled="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))}"
+                                                    th:classappend="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))} ? ' disabled' : ''"
+                                                    th:title="${(pickupDays != null and pickupDays.contains(d))} ? 'Half-day daycare is unavailable on your boarding pickup day (already covered by the pickup fee).' : null">
+                                                Daycare (6 Am -3PM)
                                             </button>
 
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
@@ -424,7 +438,7 @@
                                                     th:attr="data-date=${d}"
                                                     th:disabled="${d.isBefore(today)}"
                                                     th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
-                                                Daycare + Evening
+                                                Daycare + Evening (6AM - 8PM)
                                             </button>
 
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
@@ -433,7 +447,7 @@
                                                     th:attr="data-date=${d}"
                                                     th:disabled="${d.isBefore(today)}"
                                                     th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
-                                                Daycare + After Hours
+                                                Daycare + After Hours (6AM - 11PM)
                                             </button>
 
                                             <button class="btn btn-outline-secondary btn-sm svc-btn"
