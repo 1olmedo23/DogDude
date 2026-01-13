@@ -36,6 +36,11 @@
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/about}" th:classappend="${activePage == 'about'} ? 'active'">About</a>
                     </li>
+                    <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/map}"
+                           th:classappend="${activePage == 'map'} ? 'active'">Map</a>
+                    </li>
 
                     <!-- ========== ROLE SHORTCUTS ========== -->
                     <li class="nav-item" sec:authorize="hasRole('ADMIN')">

@@ -587,3 +587,43 @@ body.page-admin .tab-pane#bookings table {
         vertical-align: middle !important;
     }
 }
+
+/* ===============================
+   Map page
+   =============================== */
+body.page-map .map-frame{
+    width: 100%;
+    border-radius: 16px;
+    background: #f8f9fa;
+    overflow: hidden;
+}
+
+/* Fill the available width, keep correct scale */
+body.page-map .map-img{
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 82vh;      /* cap on desktop/tablet */
+}
+
+/* Phones */
+@media (max-width: 575.98px){
+    body.page-map .map-frame{
+        border-radius: 14px;
+    }
+    body.page-map .map-img{
+        max-height: 86vh;  /* taller on mobile */
+    }
+}
+
+body.page-map .map-link{
+    background: rgba(255,255,255,0.9);
+    padding: .35rem .6rem;
+    border-radius: .5rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.page-map .map-link:hover{
+    text-decoration: underline;
+}
