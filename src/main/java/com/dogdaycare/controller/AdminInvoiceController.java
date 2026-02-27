@@ -108,6 +108,10 @@ public class AdminInvoiceController {
             BigDecimal currentAmount = bookings.stream()
                     .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
                     .map(b -> {
+                        BigDecimal locked = b.getQuotedRateAtLock();
+                        if (locked != null) return locked;
+
+                        // fallback only if old rows exist without a lock
                         int n = (b.getDogCount() != null ? b.getDogCount() : 1);
                         String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
 
@@ -116,6 +120,7 @@ public class AdminInvoiceController {
                         } else if (svc.contains("boarding")) {
                             return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
                         } else if (svc.contains("daycare")) {
+                            // keep your tier logic as fallback only
                             BigDecimal perDog = pricingService.quoteDaycareAtTier(b, atLeast4);
                             return perDog.multiply(BigDecimal.valueOf(n));
                         } else {
@@ -128,6 +133,10 @@ public class AdminInvoiceController {
                     .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
                     .filter(Booking::isPaid)
                     .map(b -> {
+                        BigDecimal locked = b.getQuotedRateAtLock();
+                        if (locked != null) return locked;
+
+                        // fallback only if old rows exist without a lock
                         int n = (b.getDogCount() != null ? b.getDogCount() : 1);
                         String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
 

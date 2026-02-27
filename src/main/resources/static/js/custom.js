@@ -3,6 +3,14 @@ let currentInvoiceWeekStart = getLastCompletedWeekStart(); // Monday of last com
 let paidEmailsForWeek = new Set();
 
 // ---------- Helpers ----------
+function isoFromLocalDate(d) {
+    // local Date -> "YYYY-MM-DD" using local components (no UTC shift)
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 function formatCurrency(n) {
     const num = Number(n || 0);
     return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -195,7 +203,7 @@ function groupAndRenderAdminBookings(rows) {
 }
 
 function fetchBookings() {
-    const dateStr = currentBookingDate.toISOString().split('T')[0];
+    const dateStr = isoFromLocalDate(currentBookingDate);
     fetch(`/admin/bookings?date=${dateStr}`)
         .then(res => res.json())
         .then(data => groupAndRenderAdminBookings(data));
@@ -248,7 +256,7 @@ function getLastCompletedWeekStart() {
 }
 
 function formatDateISO(d) {
-    return d.toISOString().split('T')[0];
+    return isoFromLocalDate(d);
 }
 
 function getWeekEnd(start) {

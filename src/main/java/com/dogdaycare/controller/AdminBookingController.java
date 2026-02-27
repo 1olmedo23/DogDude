@@ -206,6 +206,15 @@ public class AdminBookingController {
 
     // ---------------- Live tier-aware per-booking total for Admin chip ----------------
     private BigDecimal liveAmountFor(Booking b) {
+
+        // If we have a locked price, ALWAYS use it for display.
+        // NOTE: quoted_rate_at_lock in your DB is already the TOTAL for the booking
+        // (it already reflects dog_count), so DO NOT multiply by dogs again.
+        if (b.getQuotedRateAtLock() != null) {
+            return b.getQuotedRateAtLock();
+        }
+
+        // Fallback only if older rows exist with no locked price.
         int dogs = (b.getDogCount() != null ? b.getDogCount() : 1);
 
         String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
@@ -223,7 +232,6 @@ public class AdminBookingController {
         }
 
         if (isDaycare) {
-            // Determine customer's current week tier (>=4 daycare bookings, non-canceled)
             var customer = b.getCustomer();
             if (customer == null) return BigDecimal.ZERO;
 
@@ -241,7 +249,6 @@ public class AdminBookingController {
             return perDog.multiply(BigDecimal.valueOf(dogs));
         }
 
-        // fallback
         BigDecimal base = pricingService.priceFor(b);
         return base.multiply(BigDecimal.valueOf(dogs));
     }

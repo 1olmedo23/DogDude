@@ -20,14 +20,12 @@ import static org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.*;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Controller
 @RequestMapping("/booking")
@@ -191,9 +189,9 @@ public class BookingController {
 
             // Quote every eligible daycare in that week (paid or not)
             for (var b : eligible) {
-                java.math.BigDecimal base = pricingService.quoteDaycareAtTier(b, atLeast4);
+                BigDecimal base = pricingService.quoteDaycareAtTier(b, atLeast4);
                 int n = (b.getDogCount() != null ? b.getDogCount() : 1);
-                provisionalQuotes.put(b.getId(), base.multiply(java.math.BigDecimal.valueOf(n)));
+                provisionalQuotes.put(b.getId(), base.multiply(BigDecimal.valueOf(n)));
             }
         }
         model.addAttribute("provisionalQuotes", provisionalQuotes);
@@ -235,10 +233,10 @@ public class BookingController {
         List<LocalDate> week2Days = weekDays(week2Monday);
 
         // disable Half-Day Daycare button
-        java.util.Set<LocalDate> pickupDays = java.util.stream.Stream
+        Set<LocalDate> pickupDays = Stream
                 .concat(week1Days.stream(), week2Days.stream())
                 .filter(d -> isPickupDayOfBoarding(customer, d))
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
 
         model.addAttribute("pickupDays", pickupDays);
 
@@ -283,7 +281,7 @@ public class BookingController {
     }
 
     private List<LocalDate> weekDays(LocalDate monday) {
-        return java.util.stream.IntStream.range(0, 7)
+        return IntStream.range(0, 7)
                 .mapToObj(monday::plusDays)
                 .toList();
     }
@@ -318,7 +316,9 @@ public class BookingController {
             @RequestParam(required = false) String time,
             @RequestParam(name = "wantsAdvancePay", defaultValue = "false") boolean wantsAdvancePay,
             @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
-            @RequestParam(name = "boardingNights", defaultValue = "1") Integer boardingNights
+            @RequestParam(name = "boardingNights", defaultValue = "1") Integer boardingNights,
+            @RequestParam(name = "multiDay", defaultValue = "false") boolean multiDay,
+            @RequestParam(name = "selectedDates", required = false) List<String> selectedDates
     ) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
 
@@ -350,7 +350,7 @@ public class BookingController {
         }
 
         if (isAfterHours) {
-            var base = new BigDecimal("90.00").setScale(2, java.math.RoundingMode.HALF_UP);
+            var base = new BigDecimal("90.00").setScale(2, RoundingMode.HALF_UP);
             var total = base.multiply(BigDecimal.valueOf(dogCount));
             return Map.of(
                     "amount", total.toString(),
@@ -369,6 +369,139 @@ public class BookingController {
         String note;
 
         if (isDaycare) {
+            // -------------------- MULTI-DAY DAYCARE QUOTE (no save) --------------------
+            boolean wantsMultiDayQuote = multiDay
+                    && !isAfterHours
+                    && !isBoarding
+                    && selectedDates != null
+                    && !selectedDates.isEmpty();
+
+            if (wantsMultiDayQuote) {
+
+                // Parse + dedupe + keep order
+                LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
+                for (String ds : selectedDates) {
+                    if (ds == null || ds.isBlank()) continue;
+                    try {
+                        dates.add(LocalDate.parse(ds.trim()));
+                    } catch (Exception ex) {
+                        return Map.of(
+                                "amount", "0.00",
+                                "currency", "USD",
+                                "advanceEligible", false,
+                                "wantsAdvancePayApplied", false,
+                                "weekAlreadyPaid", false,
+                                "note", "Invalid selectedDates value."
+                        );
+                    }
+                }
+
+                if (dates.isEmpty()) {
+                    return Map.of(
+                            "amount", "0.00",
+                            "currency", "USD",
+                            "advanceEligible", false,
+                            "wantsAdvancePayApplied", false,
+                            "weekAlreadyPaid", false,
+                            "note", "No dates selected."
+                    );
+                }
+
+                // time in quote endpoint may be null; use "06:00" fallback if missing
+                LocalTime quoteTime;
+                try {
+                    quoteTime = (time == null || time.isBlank()) ? LocalTime.of(6, 0) : LocalTime.parse(time);
+                } catch (Exception ex) {
+                    quoteTime = LocalTime.of(6, 0);
+                }
+
+                // Compute per-date advance eligibility and per-week paid state
+                Map<LocalDate, Boolean> advEligibleByDate = new HashMap<>();
+                Map<LocalDate, Boolean> weekAlreadyPaidByWeekStart = new HashMap<>();
+
+                for (LocalDate d : dates) {
+                    var nowZdt = ZonedDateTime.now(clock);
+                    var zone = clock.getZone();
+                    var bookingZdt = ZonedDateTime.of(d, quoteTime, zone);
+                    long hours = Duration.between(nowZdt, bookingZdt).toHours();
+                    boolean advEligible = hours >= 24;
+
+                    advEligibleByDate.put(d, advEligible);
+
+                    LocalDate ws = pricingService.weekStartMonday(d);
+                    weekAlreadyPaidByWeekStart.putIfAbsent(ws, bundleService.hasWeekPaid(customer, ws));
+                }
+
+                // Group selected dates by week start
+                Map<LocalDate, List<LocalDate>> datesByWeek = dates.stream()
+                        .collect(Collectors.groupingBy(
+                                pricingService::weekStartMonday,
+                                LinkedHashMap::new,
+                                Collectors.toList()
+                        ));
+
+                // Existing eligible count per week from DB (same as your POST logic)
+                Map<LocalDate, Long> existingEligibleCountByWeek = new HashMap<>();
+                for (var e : datesByWeek.entrySet()) {
+                    LocalDate ws = e.getKey();
+                    LocalDate we = pricingService.weekEndSunday(ws);
+
+                    long existingEligible = bookingRepository
+                            .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                                    customer, "daycare", ws, we, "CANCELED"
+                            ).stream()
+                            .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
+                            .count();
+
+                    existingEligibleCountByWeek.put(ws, existingEligible);
+                }
+
+                BigDecimal grandTotal = BigDecimal.ZERO;
+
+                for (var e : datesByWeek.entrySet()) {
+                    LocalDate ws = e.getKey();
+                    boolean weekPaid = weekAlreadyPaidByWeekStart.getOrDefault(ws, false);
+
+                    long selectedEligibleInWeek = e.getValue().stream()
+                            .filter(d -> advEligibleByDate.getOrDefault(d, false))
+                            .filter(d -> wantsAdvancePay && !weekPaid)
+                            .count();
+
+                    long existingEligible = existingEligibleCountByWeek.getOrDefault(ws, 0L);
+
+                    boolean atLeast4ForWeek = (existingEligible + selectedEligibleInWeek) >= 4;
+
+                    for (LocalDate d : e.getValue()) {
+                        boolean advEligible = advEligibleByDate.getOrDefault(d, false);
+                        boolean wantsAdvancePayFinalForDay = advEligible && wantsAdvancePay && !weekPaid;
+
+                        BigDecimal perDog;
+                        if (!wantsAdvancePayFinalForDay) {
+                            perDog = pricingService.previewDaycarePrice(customer, d, serviceType, advEligible, false);
+                        } else {
+                            Booking temp = new Booking();
+                            temp.setServiceType(serviceType);
+                            perDog = pricingService.quoteDaycareAtTier(temp, atLeast4ForWeek);
+                        }
+
+                        BigDecimal dayTotal = perDog.multiply(BigDecimal.valueOf(dogCount))
+                                .setScale(2, RoundingMode.HALF_UP);
+
+                        grandTotal = grandTotal.add(dayTotal);
+                    }
+                }
+
+                grandTotal = grandTotal.setScale(2, RoundingMode.HALF_UP);
+
+                return Map.of(
+                        "amount", grandTotal.toString(),
+                        "currency", "USD",
+                        "advanceEligible", true, // overall: some dates may be eligible; details are in note
+                        "wantsAdvancePayApplied", wantsAdvancePay,
+                        "weekAlreadyPaid", false, // varies by week; we keep it simple here
+                        "note", "Multi-day daycare quote (" + dates.size() + " day(s)) × " + dogCount
+                );
+            }
             amount = pricingService.previewDaycarePrice(
                     customer, date, serviceType, advanceEligible, wantsAdvancePayFinal
             );
@@ -376,7 +509,7 @@ public class BookingController {
                     ? "Daycare prepay preview × " + dogCount
                     : (advanceEligible ? "Daycare immediate preview × " + dogCount : "Daycare (not prepay-eligible) × " + dogCount);
 
-            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, java.math.RoundingMode.HALF_UP);
+            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, RoundingMode.HALF_UP);
 
             return Map.of(
                     "amount", total.toString(),
@@ -392,7 +525,7 @@ public class BookingController {
             // Preview full stay total using simulated stay pricing
             amount = pricingService.previewBoardingStayPrice(customer, date, boardingNights);
 
-            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, java.math.RoundingMode.HALF_UP);
+            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, RoundingMode.HALF_UP);
 
             note = "Boarding stay preview: " + boardingNights + " night(s) × " + dogCount +
                     " (tiered nightly + one pickup fee unless next-day daycare).";
@@ -425,6 +558,8 @@ public class BookingController {
                                 @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
                                 @RequestParam(name = "wantsAdvancePay", required = false, defaultValue = "false") boolean wantsAdvancePay,
                                 @RequestParam(name = "boardingNights", defaultValue = "1") Integer boardingNights,
+                                @RequestParam(name = "multiDay", defaultValue = "false") boolean multiDay,
+                                @RequestParam(name = "selectedDates", required = false) List<String> selectedDates,
                                 RedirectAttributes redirectAttributes) {
 
         // --- HARD BLOCK: no bookings for past *days* ---
@@ -551,7 +686,7 @@ public class BookingController {
             }
 
             // 2) Create all nights first (quotedRateAtLock null) so next-day boarding checks work
-            java.util.List<Booking> created = new java.util.ArrayList<>();
+            List<Booking> created = new ArrayList<>();
 
             for (int i = 0; i < boardingNights; i++) {
                 LocalDate d = requestedDate.plusDays(i);
@@ -579,13 +714,195 @@ public class BookingController {
             for (Booking b : created) {
                 BigDecimal perDog = pricingService.priceFor(b);
                 BigDecimal total = perDog.multiply(BigDecimal.valueOf(dogCount))
-                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                        .setScale(2, RoundingMode.HALF_UP);
                 b.setQuotedRateAtLock(total);
             }
 
             bookingRepository.saveAll(created);
 
             redirectAttributes.addFlashAttribute("successMessage", "Boarding stay submitted successfully!");
+            return "redirect:/booking";
+        }
+
+        // -------------------- DAYCARE MULTI-DAY: create multiple dates in one submit --------------------
+        boolean isMultiDayDaycare = multiDay
+                && isDaycareFlag
+                && !isAfterHours
+                && !isBoardingFlag
+                && selectedDates != null
+                && !selectedDates.isEmpty();
+
+        if (isMultiDayDaycare) {
+
+            // Parse & normalize date list (dedupe + keep order)
+            LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
+            for (String ds : selectedDates) {
+                if (ds == null || ds.isBlank()) continue;
+                try {
+                    dates.add(LocalDate.parse(ds.trim()));
+                } catch (Exception ex) {
+                    redirectAttributes.addFlashAttribute("errorMessage", "One of the selected dates was invalid.");
+                    return "redirect:/booking";
+                }
+            }
+
+            if (dates.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Please select at least one date.");
+                return "redirect:/booking";
+            }
+
+            // Validate each date BEFORE saving anything
+            for (LocalDate d : dates) {
+                if (d.isBefore(today)) {
+                    redirectAttributes.addFlashAttribute("errorMessage", "You can’t book a previous day.");
+                    return "redirect:/booking";
+                }
+
+                // Half-day daycare pickup-day restriction (same rule as single-day)
+                if ("Daycare (6 AM - 3 PM)".equalsIgnoreCase(safe(serviceType))) {
+                    if (isPickupDayOfBoarding(customer, d)) {
+                        redirectAttributes.addFlashAttribute(
+                                "errorMessage",
+                                "Half-day daycare (6 AM - 3 PM) is unavailable on pickup day: " + d + ". " +
+                                        "Remove that date or choose Daycare + Evening / After Hours."
+                        );
+                        return "redirect:/booking";
+                    }
+                }
+
+                // Prevent double-booking on that calendar day (any service)
+                var same = bookingRepository.findByCustomerAndDate(customer, d);
+                boolean hasAny = same.stream().anyMatch(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()));
+                if (hasAny) {
+                    redirectAttributes.addFlashAttribute(
+                            "errorMessage",
+                            "You have already booked a service for " + d + "."
+                    );
+                    return "redirect:/booking";
+                }
+
+                // Capacity check per selected date
+                boolean ok = bookingLimitService.canCustomerBook(d, serviceType);
+                if (!ok) {
+                    redirectAttributes.addFlashAttribute(
+                            "errorMessage",
+                            "We’re full for " + d + ". Please remove that day or choose different dates. " +
+                                    "If this is an emergency, please contact the business at (XXX) XXX-XXXX."
+                    );
+                    return "redirect:/booking";
+                }
+            }
+
+            // --- Compute advance eligibility per date, then compute tier per week INCLUDING the selected dates ---
+            Map<LocalDate, Boolean> advEligibleByDate = new HashMap<>();
+            Map<LocalDate, Boolean> weekAlreadyPaidByWeekStart = new HashMap<>();
+
+            for (LocalDate d : dates) {
+                var nowZdt = ZonedDateTime.now(clock);
+                var zone = clock.getZone();
+                var bookingZdt = ZonedDateTime.of(d, localTime, zone);
+                long hours = Duration.between(nowZdt, bookingZdt).toHours();
+                boolean advEligible = hours >= 24;
+                advEligibleByDate.put(d, advEligible);
+
+                LocalDate ws = pricingService.weekStartMonday(d);
+                weekAlreadyPaidByWeekStart.putIfAbsent(ws, bundleService.hasWeekPaid(customer, ws));
+            }
+
+            // Group selected dates by week start
+            Map<LocalDate, List<LocalDate>> datesByWeek = dates.stream()
+                    .collect(Collectors.groupingBy(
+                            pricingService::weekStartMonday,
+                            LinkedHashMap::new,
+                            Collectors.toList()
+                    ));
+
+            // For each week, compute existing eligible count (wantsAdvancePay && advanceEligible) from DB
+            Map<LocalDate, Long> existingEligibleCountByWeek = new HashMap<>();
+            for (var e : datesByWeek.entrySet()) {
+                LocalDate ws = e.getKey();
+                LocalDate we = pricingService.weekEndSunday(ws);
+
+                long existingEligible = bookingRepository
+                        .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                                customer, "daycare", ws, we, "CANCELED"
+                        ).stream()
+                        .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
+                        .count();
+
+                existingEligibleCountByWeek.put(ws, existingEligible);
+            }
+
+            // Build bookings and lock prices
+            List<Booking> created = new ArrayList<>();
+
+            for (var e : datesByWeek.entrySet()) {
+                LocalDate ws = e.getKey();
+                boolean weekPaid = weekAlreadyPaidByWeekStart.getOrDefault(ws, false);
+
+                // Among SELECTED dates in this week, how many are eligible AND requested wantsAdvancePay?
+                long selectedEligibleInWeek = e.getValue().stream()
+                        .filter(d -> advEligibleByDate.getOrDefault(d, false))
+                        .filter(d -> wantsAdvancePay && !weekPaid) // prepay can’t apply if week already paid
+                        .count();
+
+                long existingEligible = existingEligibleCountByWeek.getOrDefault(ws, 0L);
+
+                // If qualifies, tier is based on (existing eligible + all selected eligible in this week)
+                boolean atLeast4ForWeek = (existingEligible + selectedEligibleInWeek) >= 4;
+
+                for (LocalDate d : e.getValue()) {
+                    boolean advEligible = advEligibleByDate.getOrDefault(d, false);
+                    boolean wantsAdvancePayFinalForDay = advEligible && wantsAdvancePay && !weekPaid;
+
+                    Booking booking = new Booking();
+                    booking.setCustomer(customer);
+                    booking.setServiceType(serviceType);
+                    booking.setDate(d);
+                    booking.setTime(localTime);
+                    booking.setStatus("APPROVED");
+                    booking.setDogCount(dogCount);
+
+                    booking.setCreatedAt(LocalDateTime.now(clock));
+                    booking.setAdvanceEligible(advEligible);
+                    booking.setWantsAdvancePay(wantsAdvancePayFinalForDay);
+
+                    BigDecimal perDogBase;
+
+                    // If not qualifying for prepay, use immediate bands (your PricingService logic)
+                    if (!wantsAdvancePayFinalForDay) {
+                        perDogBase = pricingService.previewDaycarePrice(customer, d, serviceType, advEligible, false);
+                    } else {
+                        Booking temp = new Booking();
+                        temp.setServiceType(serviceType);
+                        perDogBase = pricingService.quoteDaycareAtTier(temp, atLeast4ForWeek);
+                    }
+
+                    BigDecimal total = perDogBase.multiply(BigDecimal.valueOf(dogCount))
+                            .setScale(2, RoundingMode.HALF_UP);
+
+                    booking.setQuotedRateAtLock(total);
+                    created.add(booking);
+                }
+            }
+
+            bookingRepository.saveAll(created);
+
+            BigDecimal grand = created.stream()
+                    .map(b -> {
+                        BigDecimal perDog = b.getQuotedRateAtLock() == null ? BigDecimal.ZERO : b.getQuotedRateAtLock();
+                        int dogs = (b.getDogCount() == null ? 1 : b.getDogCount());
+                        return perDog.multiply(BigDecimal.valueOf(dogs));
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            String msg = "Booked " + created.size() + " daycare day(s)! Total: $" + grand.toPlainString();
+            if (wantsAdvancePay) {
+                msg += " If eligible, we’ll contact you to process advance payment for discounted days.";
+            }
+
+            redirectAttributes.addFlashAttribute("successMessage", msg);
             return "redirect:/booking";
         }
 
@@ -603,19 +920,19 @@ public class BookingController {
         booking.setWantsAdvancePay(wantsAdvancePayFinal);
 
 // Price lock
-        java.math.BigDecimal base;
+        BigDecimal base;
         if (isAfterHours) {
-            base = new java.math.BigDecimal("90.00"); // flat per dog
+            base = new BigDecimal("90.00"); // flat per dog
         } else if (isDaycareFlag) {
             base = pricingService.previewDaycarePrice(
                     customer, requestedDate, serviceType, advanceEligible, wantsAdvancePayFinal
             );
         } else {
-            base = java.math.BigDecimal.ZERO;
+            base = BigDecimal.ZERO;
         }
 
-        java.math.BigDecimal total = base.multiply(java.math.BigDecimal.valueOf(dogCount))
-                .setScale(2, java.math.RoundingMode.HALF_UP);
+        BigDecimal total = base.multiply(BigDecimal.valueOf(dogCount))
+                .setScale(2, RoundingMode.HALF_UP);
         booking.setQuotedRateAtLock(total);
 
         bookingRepository.save(booking);

@@ -34,11 +34,30 @@
         }
 
         /* day tiles */
-        .day-tile{ border:1px solid var(--bs-border-color); border-radius:.75rem; padding:.75rem; height:100%; }
-        .day-tile .tile-head{ border-bottom:1px dashed var(--bs-border-color); padding-bottom:.35rem; margin-bottom:.6rem; }
+        .day-tile{
+            border:1px solid var(--bs-border-color);
+            border-radius:.75rem;
+            padding:.75rem;
+            height:100%;
+        }
+        .day-tile .tile-head{
+            border-bottom:1px dashed var(--bs-border-color);
+            padding-bottom:.35rem;
+            margin-bottom:.6rem;
+        }
+
+        /* Unified multi-day selection highlight (used by the unified script below) */
+        .day-tile.is-selected{
+            outline: 2px solid rgba(13,110,253,.65);
+            box-shadow: 0 0 0 .25rem rgba(13,110,253,.15);
+        }
 
         /* “Your Bookings” area */
-        .bookings-wrap{ background:var(--bs-body-secondary); border:1px solid var(--bs-border-color); border-radius:1rem; }
+        .bookings-wrap{
+            background:var(--bs-body-secondary);
+            border:1px solid var(--bs-border-color);
+            border-radius:1rem;
+        }
         .bookings-wrap .wrap-head{
             border-bottom:1px dashed var(--bs-border-color);
             padding: .9rem 1.1rem;
@@ -53,8 +72,12 @@
 
         /* small helper */
         .text-compact{ max-width:70ch; margin-inline:auto; }
+
+        /* make disabled buttons truly inert to clicks */
+        .svc-btn:disabled { pointer-events: none; }
     </style>
 </head>
+
 <body class="bg-light">
 <div th:replace="~{fragments/navbar :: navbar('booking')}"></div>
 
@@ -62,7 +85,6 @@
 
     <!-- Mobile sticky container for tabs -->
     <div class="mobile-sticky-tabs">
-    <!-- Tabs -->
         <ul class="nav nav-tabs mb-4" id="custTabs" role="tablist">
             <li class="nav-item">
                 <button class="nav-link active" id="tab-booking"
@@ -92,6 +114,7 @@
          th:text="${successMessage}"></div>
 
     <div class="tab-content" id="custTabsContent">
+
         <!-- Booking pane -->
         <div class="tab-pane fade show active" id="pane-booking" role="tabpanel" aria-labelledby="tab-booking">
             <h1 id="pageTitle" class="mb-4 text-center">Book a Service</h1>
@@ -111,10 +134,8 @@
                 <div id="ratesCollapse" class="collapse d-md-block mt-2 mt-md-0 text-start text-md-center">
                     <div class="text-compact mx-auto">
 
-                        <!-- Desktop heading -->
                         <h4 class="d-none d-md-block fw-bold mb-2"><u>Rates</u></h4>
 
-                        <!-- Base rates -->
                         <p class="mb-1">
                             <strong>Regular Rate</strong> → $50/Daycare &amp; $60/Daycare + Evening.
                         </p>
@@ -122,7 +143,6 @@
                             <strong>Daycare + After Hours:</strong> $90 - Flat Rate.
                         </p>
 
-                        <!-- Discounted rates -->
                         <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Discounted Rates</u></h4>
                         <p class="mb-2">
                             <strong>Pay for daycare in advance to unlock discounts!</strong>
@@ -140,7 +160,6 @@
                             and check the "Pay in advance" box.
                         </p>
 
-                        <!-- Notes -->
                         <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Notes</u></h4>
 
                         <p class="mb-1">
@@ -159,40 +178,32 @@
                             <strong>A week is Monday through Sunday.</strong>
                         </p>
 
-                        <!-- Boarding blurb -->
                         <p class="mb-3">
                             The price of <strong>boarding</strong> is a flat rate per night. However, based on your prior month of scheduling you will qualify
                             for a discounted boarding rate. Even if you schedule within 24 hours.
                         </p>
 
-                        <!-- Cancellations -->
                         <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Cancellations</u></h4>
 
-                        <p class="mb-1">
-                            You can cancel at any time.
-                        </p>
+                        <p class="mb-1">You can cancel at any time.</p>
                         <p class="mb-1">
                             Any cancellations made after payment will be counted towards redeemable tickets
                             accepted up to 30-days after cancellation.
                         </p>
-                        <p class="mb-1">
-                            Tickets will be automatically applied when booking future services.
-                        </p>
-                        <p class="mb-0">
-                            <strong>Boarding</strong> cancellations must be made 72 hours in advance.
-                        </p>
+                        <p class="mb-1">Tickets will be automatically applied when booking future services.</p>
+                        <p class="mb-0"><strong>Boarding</strong> cancellations must be made 72 hours in advance.</p>
 
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Two-week navigator (framed) -->
+            <!-- Two-week navigator (framed) -->
             <div class="section-card mb-4">
                 <div class="section-head d-flex align-items-center justify-content-between">
                     <a class="btn btn-outline-secondary" th:href="@{|/booking?start=${prevStart}|}">← Previous 2 Weeks</a>
-
                     <a class="btn btn-outline-secondary" th:href="@{|/booking?start=${nextStart}|}">Next 2 Weeks →</a>
                 </div>
+
                 <div class="section-body pt-3">
 
                     <!-- WEEK 1 -->
@@ -216,14 +227,12 @@
                                 </div>
                             </div>
 
-                            <!-- Days grid -->
                             <div class="calendar-head">
                                 <h5 class="mb-0"
                                     th:text="${#temporals.format(week1Monday, 'MMMM yyyy')}">March 2025</h5>
                             </div>
-                            <!-- 7-column calendar grid -->
+
                             <div class="calendar-grid">
-                                <!-- Optional weekday labels row -->
                                 <div class="calendar-label">Mon</div>
                                 <div class="calendar-label">Tue</div>
                                 <div class="calendar-label">Wed</div>
@@ -232,16 +241,16 @@
                                 <div class="calendar-label">Sat</div>
                                 <div class="calendar-label">Sun</div>
 
-                                <!-- Days -->
                                 <div class="calendar-cell" th:each="d : ${week1Days}">
                                     <span class="badge text-bg-secondary small badge-booked"
                                           th:if="${#maps.containsKey(bookedByDate, d)}"
                                           th:text="${#strings.defaultString(bookedByDate[d], 'Booked')}">Booked</span>
-                                    <div th:class="${'day-tile'
-                                                      + (d.equals(today) ? ' is-today' : '')
-                                                      + (#maps.containsKey(bookedByDate, d) ? ' is-booked' : '')}"
-                                         th:attr="aria-current=${d.equals(today)} ? 'date' : null">
-                                    <div class="tile-head d-flex justify-content-between align-items-center">
+
+                                    <div th:class="${'day-tile' + (d.equals(today) ? ' is-today' : '') + (#maps.containsKey(bookedByDate, d) ? ' is-booked' : '')}"
+                                         th:attr="aria-current=${d.equals(today)} ? 'date' : null,
+                                         data-date=${#temporals.format(d,'yyyy-MM-dd')}">
+
+                                        <div class="tile-head d-flex justify-content-between align-items-center">
                                             <strong th:text="${#temporals.format(d, 'EEE MMM d')}">Mon Mar 1</strong>
                                             <div class="d-flex gap-2 align-items-center">
                                                 <span class="badge bg-primary-subtle text-primary small"
@@ -253,7 +262,6 @@
                                               th:if="${pickupDays != null and pickupDays.contains(d)}">
                                             Pickup day
                                         </span>
-
 
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
@@ -294,21 +302,22 @@
                                             </button>
                                         </div>
 
-                                        <!-- inline booking form -->
                                         <form class="mt-2 d-none day-form" method="post" th:action="@{/booking}">
                                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                                             <input type="hidden" name="serviceType">
                                             <input type="hidden" name="date">
+
                                             <div class="mb-2">
                                                 <label class="form-label small">Drop-off time</label>
                                                 <select name="time" class="form-select form-select-sm" required>
                                                     <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
                                                 </select>
                                             </div>
+
                                             <div class="mb-2">
                                                 <label class="form-label small">Number of dogs</label>
                                                 <select name="dogCount" class="form-select form-select-sm">
-                                                <option value="1" selected>1</option>
+                                                    <option value="1" selected>1</option>
                                                     <option value="2">2</option>
                                                     <option value="3">3</option>
                                                     <option value="4">4</option>
@@ -316,7 +325,7 @@
                                                 </select>
                                                 <div class="form-text">How many dogs for this service?</div>
                                             </div>
-                                            <!-- Boarding-only nights -->
+
                                             <div class="mb-2 boarding-only d-none">
                                                 <label class="form-label small">Boarding nights</label>
                                                 <select name="boardingNights" class="form-select form-select-sm">
@@ -353,20 +362,24 @@
                                                 </select>
                                                 <div class="form-text">Select the number of nights for this boarding stay.</div>
                                             </div>
-                                            <!-- Daycare-only prepay -->
-                                            <div class="form-check mb-2 small daycare-only"
-                                                 th:classappend="${weekPaid} ? ' opacity-50' : ''">
-                                                <input class="form-check-input"
-                                                       type="checkbox"
-                                                       name="wantsAdvancePay"
-                                                       value="true"
-                                                       th:disabled="${weekPaid}">
+
+                                            <div class="form-check mb-2 small daycare-only" th:classappend="${weekPaid} ? ' opacity-50' : ''">
+                                                <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" th:disabled="${weekPaid}">
                                                 <label class="form-check-label">Pay in advance</label>
                                                 <div class="form-text" data-prepay-msg
                                                      th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
                                                     ≥ 24 hours to qualify.
                                                 </div>
                                             </div>
+
+                                            <div class="form-check mb-2 small daycare-only">
+                                                <input class="form-check-input" type="checkbox" name="multiDay" value="true" data-multiday>
+                                                <label class="form-check-label">Book multiple days</label>
+                                                <div class="form-text">Turn this on, then tap other days in the calendar to add/remove them.</div>
+                                            </div>
+
+                                            <div class="selected-dates-inputs"></div>
+
                                             <div class="d-flex align-items-center justify-content-between mb-2">
                                                 <small class="text-muted" data-quote>Est. —</small>
                                             </div>
@@ -374,8 +387,9 @@
                                                 <button type="submit" class="btn btn-custom btn-sm">Book</button>
                                             </div>
                                         </form>
+
                                     </div>
-                                </div><!-- /col -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -402,12 +416,10 @@
                             </div>
 
                             <div class="calendar-head">
-                                <!-- Week 2 header -->
                                 <h5 class="mb-0" th:text="${#temporals.format(week2Monday, 'MMMM yyyy')}">March 2025</h5>
                             </div>
-                            <!-- 7-column calendar grid -->
+
                             <div class="calendar-grid">
-                                <!-- Optional weekday labels row -->
                                 <div class="calendar-label">Mon</div>
                                 <div class="calendar-label">Tue</div>
                                 <div class="calendar-label">Wed</div>
@@ -416,15 +428,15 @@
                                 <div class="calendar-label">Sat</div>
                                 <div class="calendar-label">Sun</div>
 
-                                <!-- Days -->
                                 <div class="calendar-cell" th:each="d : ${week2Days}">
                                     <span class="badge text-bg-secondary small badge-booked"
                                           th:if="${#maps.containsKey(bookedByDate, d)}"
                                           th:text="${#strings.defaultString(bookedByDate[d], 'Booked')}">Booked</span>
-                                    <div th:class="${'day-tile'
-                                                      + (d.equals(today) ? ' is-today' : '')
-                                                      + (#maps.containsKey(bookedByDate, d) ? ' is-booked' : '')}"
-                                         th:attr="aria-current=${d.equals(today)} ? 'date' : null">
+
+                                    <div th:class="${'day-tile' + (d.equals(today) ? ' is-today' : '') + (#maps.containsKey(bookedByDate, d) ? ' is-booked' : '')}"
+                                         th:attr="aria-current=${d.equals(today)} ? 'date' : null,
+                                         data-date=${#temporals.format(d,'yyyy-MM-dd')}">
+
                                         <div class="tile-head d-flex justify-content-between align-items-center">
                                             <strong th:text="${#temporals.format(d, 'EEE MMM d')}">Mon Mar 1</strong>
                                             <div class="d-flex gap-2 align-items-center">
@@ -437,7 +449,6 @@
                                               th:if="${pickupDays != null and pickupDays.contains(d)}">
                                             Pickup day
                                         </span>
-
 
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary btn-sm svc-btn"
@@ -482,16 +493,18 @@
                                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                                             <input type="hidden" name="serviceType">
                                             <input type="hidden" name="date">
+
                                             <div class="mb-2">
                                                 <label class="form-label small">Drop-off time</label>
                                                 <select name="time" class="form-select form-select-sm" required>
                                                     <option th:each="t : ${dropoffTimes}" th:value="${t}" th:text="${t}">06:00</option>
                                                 </select>
                                             </div>
+
                                             <div class="mb-2">
                                                 <label class="form-label small">Number of dogs</label>
                                                 <select name="dogCount" class="form-select form-select-sm">
-                                                <option value="1" selected>1</option>
+                                                    <option value="1" selected>1</option>
                                                     <option value="2">2</option>
                                                     <option value="3">3</option>
                                                     <option value="4">4</option>
@@ -499,7 +512,7 @@
                                                 </select>
                                                 <div class="form-text">How many dogs for this service?</div>
                                             </div>
-                                            <!-- Boarding-only nights -->
+
                                             <div class="mb-2 boarding-only d-none">
                                                 <label class="form-label small">Boarding nights</label>
                                                 <select name="boardingNights" class="form-select form-select-sm">
@@ -536,8 +549,8 @@
                                                 </select>
                                                 <div class="form-text">Select the number of nights for this boarding stay.</div>
                                             </div>
-                                            <div class="form-check mb-2 small daycare-only"
-                                                 th:classappend="${weekPaid} ? ' opacity-50' : ''">
+
+                                            <div class="form-check mb-2 small daycare-only" th:classappend="${weekPaid} ? ' opacity-50' : ''">
                                                 <input class="form-check-input"
                                                        type="checkbox"
                                                        name="wantsAdvancePay"
@@ -549,26 +562,40 @@
                                                     ≥ 24 hours to qualify.
                                                 </div>
                                             </div>
+
+                                            <div class="form-check mb-2 small daycare-only">
+                                                <input class="form-check-input" type="checkbox" name="multiDay" value="true" data-multiday>
+                                                <label class="form-check-label">Book multiple days</label>
+                                                <div class="form-text">Turn this on, then tap other days in the calendar to add/remove them.</div>
+                                            </div>
+
+                                            <div class="selected-dates-inputs"></div>
+
                                             <div class="d-flex align-items-center justify-content-between mb-2">
                                                 <small class="text-muted" data-quote>Est. —</small>
                                             </div>
+
                                             <div class="d-grid">
                                                 <button type="submit" class="btn btn-custom btn-sm">Book</button>
                                             </div>
                                         </form>
+
                                     </div>
-                                </div><!-- /col -->
+                                </div>
+
                             </div>
                         </div>
                     </div>
 
-                </div>
-            </div>
-        </div>
+                </div><!-- /section-body -->
+            </div><!-- /section-card -->
+        </div><!-- /pane-booking -->
 
+
+        <!-- Your Bookings pane -->
         <div class="tab-pane fade" id="pane-your" role="tabpanel" aria-labelledby="tab-your">
             <h1 class="mb-4 text-center">Your Bookings</h1>
-            <!-- Your Bookings -->
+
             <div id="yourBookingsSection" class="bookings-wrap mt-5">
                 <div class="wrap-head d-flex align-items-center justify-content-between">
                     <span class="badge text-bg-secondary">Tip: plan Mon–Sun for best weekly rate</span>
@@ -591,12 +618,15 @@
                                         <div class="mt-1">
                                             <span class="badge badge-status"
                                                   th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
-                                                                  (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
+                                                  (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                   th:text="${b.status}">APPROVED</span>
-                                            <span class="badge bg-light text-dark ms-2">
-                                                <span th:if="${provisionalQuotes != null and provisionalQuotes[b.id] != null}"
-                                                      th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
-                                                <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
+                                            <span class="badge bg-light text-dark ms-2"
+                                                  th:if="${b.quotedRateAtLock != null}"
+                                                  th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+
+                                            <span class="badge bg-light text-dark ms-2"
+                                                  th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
+                                                est.
                                             </span>
                                             <span class="badge bg-secondary-subtle text-secondary ms-2"
                                                   th:if="${b.dogCount != null and b.dogCount > 1}"
@@ -636,10 +666,13 @@
                                                   th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
                                                                   (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                   th:text="${b.status}">APPROVED</span>
-                                            <span class="badge bg-light text-dark ms-2">
-                                                <span th:if="${provisionalQuotes != null and provisionalQuotes[b.id] != null}"
-                                                      th:text="${#numbers.formatCurrency(provisionalQuotes[b.id])}">$0.00</span>
-                                                <span th:if="${provisionalQuotes == null or provisionalQuotes[b.id] == null}">est.</span>
+                                            <span class="badge bg-light text-dark ms-2"
+                                                  th:if="${b.quotedRateAtLock != null}"
+                                                  th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+
+                                            <span class="badge bg-light text-dark ms-2"
+                                                  th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
+                                                est.
                                             </span>
                                             <span class="badge bg-secondary-subtle text-secondary ms-2"
                                                   th:if="${b.dogCount != null and b.dogCount > 1}"
@@ -677,11 +710,18 @@
                                             <span th:text="${b.time != null ? #temporals.format(b.time, 'h:mm a') : '—'}">6:00 AM</span>
                                         </div>
                                         <div class="mt-1">
-                    <span class="badge badge-status"
-                          th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
-                                          (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
-                          th:text="${b.status}">APPROVED</span>
-                                            <span class="badge bg-light text-dark ms-2">$90.00</span>
+                                            <span class="badge badge-status"
+                                                  th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
+                                                  (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
+                                                  th:text="${b.status}">APPROVED</span>
+                                            <span class="badge bg-light text-dark ms-2"
+                                                  th:if="${b.quotedRateAtLock != null}"
+                                                  th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+
+                                            <span class="badge bg-light text-dark ms-2"
+                                                  th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
+                                                est.
+                                            </span>
                                             <span class="badge bg-secondary-subtle text-secondary ms-2"
                                                   th:if="${b.dogCount != null and b.dogCount > 1}"
                                                   th:text="'×' + ${b.dogCount}">×2</span>
@@ -742,11 +782,11 @@
                                 </li>
                             </ul>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- /Your Bookings -->
+                    </div> <!-- /row gy-4 -->
+                </div> <!-- /wrap-body -->
+            </div> <!-- /bookings-wrap -->
+        </div> <!-- /pane-your -->
+
 
         <!-- Uploads pane -->
         <div class="tab-pane fade" id="pane-uploads" role="tabpanel" aria-labelledby="tab-uploads">
@@ -755,6 +795,7 @@
                     <h3 class="mb-0">Upload Vaccine/Records</h3>
                 </div>
                 <div class="section-body">
+
                     <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <div class="col-md-4">
@@ -799,35 +840,24 @@
                                     <a class="btn btn-sm btn-outline-secondary" th:href="@{'/uploads/' + ${f.id} + '/download'}">Download</a>
                                 </td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(files)}"><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>
+                            <tr th:if="${#lists.isEmpty(files)}">
+                                <td colspan="5" class="text-center text-muted">No files uploaded yet.</td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
+
                 </div>
-            </div><!-- /section-card -->
+            </div>
         </div>
-    </div>
-</div>
 
-<!-- Tabs (hash) -->
-<script th:inline="javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-        const activateFromHash = () => {
-            const hash = window.location.hash;
-            if (!hash) return;
-            const btn = document.querySelector(`button[data-bs-target="${hash}"]`);
-            if (btn && window.bootstrap) new bootstrap.Tab(btn).show();
-            if (hash === '#uploads') {
-                const ubtn = document.querySelector('#tab-uploads');
-                if (ubtn && window.bootstrap) new bootstrap.Tab(ubtn).show();
-            }
-        };
-        activateFromHash();
-        window.addEventListener('hashchange', activateFromHash);
-    });
-</script>
+    </div><!-- /tab-content -->
+</div><!-- /container -->
 
-<!-- Service selection + prepay eligibility (per day tile) -->
+
+<!-- =========================
+   Service selection + prepay eligibility (per day tile)
+========================= -->
 <script th:inline="javascript">
     (function() {
         function hoursUntil(dateStr, timeStr) {
@@ -865,82 +895,54 @@
             buttons.forEach(b => setActive(b, false));
         }
 
-        // --- NEW: helper to restrict drop-off times based on service type ---
         function applyDropoffTimeRules(selectEl, serviceType) {
             if (!selectEl) return;
 
-            // Helper: convert "HH:mm" → "h:mm AM/PM"
             function formatTimeLabel24To12(value) {
                 if (!value || typeof value !== 'string' || !value.includes(':')) return value;
                 const parts = value.split(':');
                 let h = parseInt(parts[0], 10);
                 const m = parts[1] || '00';
-
                 if (isNaN(h)) return value;
 
                 const ampm = h >= 12 ? 'PM' : 'AM';
-                if (h === 0) {
-                    h = 12;
-                } else if (h > 12) {
-                    h = h - 12;
-                }
+                if (h === 0) h = 12;
+                else if (h > 12) h = h - 12;
 
                 return `${h}:${m} ${ampm}`;
             }
 
-            // Cache the full set of times the first time we touch this select
             if (!selectEl._allTimes) {
                 selectEl._allTimes = Array.from(selectEl.options).map(opt => {
                     const v = opt.value;
-                    return {
-                        value: v,                    // "06:00"
-                        text: formatTimeLabel24To12(v) // "6:00 AM"
-                    };
+                    return { value: v, text: formatTimeLabel24To12(v) };
                 });
             }
 
             const svc = (serviceType || '').toLowerCase();
-
-            // Default cutoff: normal daycare → 12:30
             let cutoff = "12:30";
 
-            // Daycare + Evenings (6 AM - 8 PM) → allow up to 15:30 (3:30 PM)
-            if (svc.includes('8 pm') || svc.includes('evening')) {
-                cutoff = "15:30";
-            }
+            if (svc.includes('8 pm') || svc.includes('evening')) cutoff = "15:30";
+            if (svc.includes('after hours')) cutoff = "17:30";
+            if (svc.includes('boarding')) cutoff = "19:30";
 
-            // Daycare After Hours (6 AM - 11 PM) → allow up to 17:30 (5:30 PM)
-            if (svc.includes('after hours')) {
-                cutoff = "17:30";
-            }
-
-            // Boarding → allow up to 19:30 (7:30 PM)
-            if (svc.includes('boarding')) {
-                cutoff = "19:30";
-            }
-
-            // Rebuild options from the cached full set, filtered by cutoff
             const all = selectEl._allTimes;
             selectEl.innerHTML = "";
             let firstValue = null;
 
             all.forEach(t => {
-                // string compare works for HH:mm (e.g., "06:00" < "12:30" < "20:00")
                 if (t.value <= cutoff) {
                     const opt = document.createElement('option');
-                    opt.value = t.value;     // "06:00"
-                    opt.textContent = t.text; // "6:00 AM"
+                    opt.value = t.value;
+                    opt.textContent = t.text;
                     selectEl.appendChild(opt);
                     if (!firstValue) firstValue = t.value;
                 }
             });
 
-            if (firstValue) {
-                selectEl.value = firstValue;
-            }
+            if (firstValue) selectEl.value = firstValue;
         }
 
-        // --- NEW: keep only one day expanded at a time ---
         function closeAllDayForms(exceptTile){
             document.querySelectorAll('.day-form').forEach(f=>{
                 if(!exceptTile || !exceptTile.contains(f)){
@@ -964,28 +966,28 @@
             const svcButtons = tile.querySelectorAll('.svc-btn');
             const form = tile.querySelector('.day-form');
             if (!form) return;
+
             const svcInput = form.querySelector('input[name="serviceType"]');
             const dateInput = form.querySelector('input[name="date"]');
             const timeSelect = form.querySelector('select[name="time"]');
+
             const daycareBlock = form.querySelector('.daycare-only');
             const prepayChk = form.querySelector('input[name="wantsAdvancePay"]');
             const prepayMsg = form.querySelector('[data-prepay-msg]');
+
             const boardingBlock = form.querySelector('.boarding-only');
             const boardingNightsSel = form.querySelector('select[name="boardingNights"]');
 
             async function refreshPrepay(serviceType, dateStr, timeStr) {
                 const svcLower = (serviceType || '').toLowerCase();
                 const isDaycare = svcLower.includes('daycare');
-                const isAfterHours = svcLower.includes('after hours'); // NEW
+                const isAfterHours = svcLower.includes('after hours');
                 const isBoarding = svcLower.includes('boarding');
-                // Show boarding nights only for boarding
-                if (boardingBlock) {
-                    boardingBlock.classList.toggle('d-none', !isBoarding);
-                }
-                if (!isBoarding && boardingNightsSel) {
-                    boardingNightsSel.value = "1";
-                }
-                daycareBlock.classList.toggle('d-none', !isDaycare || isAfterHours); // hide for After Hours
+
+                if (boardingBlock) boardingBlock.classList.toggle('d-none', !isBoarding);
+                if (!isBoarding && boardingNightsSel) boardingNightsSel.value = "1";
+
+                if (daycareBlock) daycareBlock.classList.toggle('d-none', !isDaycare || isAfterHours);
                 if (!isDaycare || isAfterHours) return;
 
                 const info = await fetchWeekPaid(dateStr);
@@ -993,8 +995,10 @@
                 const hrs = hoursUntil(dateStr, timeStr);
                 const eligible = !weekPaid && hrs >= 24;
 
-                prepayChk.disabled = !eligible;
-                if (!eligible && prepayChk.checked) prepayChk.checked = false;
+                if (prepayChk) {
+                    prepayChk.disabled = !eligible;
+                    if (!eligible && prepayChk.checked) prepayChk.checked = false;
+                }
                 if (prepayMsg) {
                     prepayMsg.textContent = weekPaid
                         ? 'This week is already paid. Additional daycare bookings are regular rate.'
@@ -1002,7 +1006,6 @@
                 }
             }
 
-            // click handlers
             svcButtons.forEach(btn => {
                 btn.addEventListener('click', async () => {
                     if (btn.disabled || btn.classList.contains('disabled')) return;
@@ -1010,24 +1013,20 @@
                     const svc = btn.getAttribute('data-service');
                     const d = btn.getAttribute('data-date');
 
-                    // Collapse others first
                     closeAllDayForms(tile);
 
-                    // Open this form and activate this service
                     form.classList.remove('d-none');
                     svcInput.value = svc;
                     dateInput.value = d;
 
-                    // NEW: apply drop-off time rules for this service
                     applyDropoffTimeRules(timeSelect, svc);
 
                     clearActiveSiblings(Array.from(svcButtons));
                     setActive(btn, true);
 
-                    prepayChk.checked = false;
+                    if (prepayChk) prepayChk.checked = false;
                     await refreshPrepay(svc, d, timeSelect.value);
 
-                    // optional: keep the opened tile in view on small screens
                     try { tile.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch {}
                 });
             });
@@ -1043,10 +1042,229 @@
     })();
 </script>
 
-<style>
-    /* make disabled buttons truly inert to clicks */
-    .svc-btn:disabled { pointer-events: none; }
-</style>
+
+<!-- =========================
+   Unified Live Quote + Multi-day picker (single source)
+========================= -->
+<script>
+    (() => {
+        const QUOTE_URL = "/booking/quote";
+
+        let activeForm = null;
+        let activeTile = null;
+        let activeServiceType = null;
+        let selectedDates = new Set(); // yyyy-MM-dd strings
+
+        const qs  = (root, sel) => root.querySelector(sel);
+        const qsa = (root, sel) => Array.from(root.querySelectorAll(sel));
+
+        function isAfterHoursService(serviceType) {
+            return (serviceType || "").toLowerCase().includes("after hours");
+        }
+        function isBoardingService(serviceType) {
+            return (serviceType || "").toLowerCase().includes("boarding");
+        }
+        function isDaycareService(serviceType) {
+            return (serviceType || "").toLowerCase().includes("daycare");
+        }
+
+        function fmtMoneyUSD(amountStr){
+            const n = Number(amountStr);
+            if (Number.isNaN(n)) return amountStr;
+            return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
+        }
+
+        function setEstimate(form, text) {
+            const el = qs(form, "[data-quote]");
+            if (el) el.textContent = text;
+        }
+
+        function clearAllTileSelections() {
+            qsa(document, ".day-tile").forEach(t => t.classList.remove("is-selected"));
+        }
+
+        function setTileSelected(tile, on) {
+            tile.classList.toggle("is-selected", !!on);
+        }
+
+        function syncSelectedInputs(form) {
+            const holder = qs(form, ".selected-dates-inputs");
+            if (!holder) return;
+            holder.innerHTML = "";
+
+            Array.from(selectedDates).sort().forEach(ds => {
+                const i = document.createElement("input");
+                i.type = "hidden";
+                i.name = "selectedDates";
+                i.value = ds;
+                holder.appendChild(i);
+            });
+        }
+
+        function getFormValues(form) {
+            const dogCount = qs(form, 'select[name="dogCount"]')?.value || "1";
+            const time = qs(form, 'select[name="time"]')?.value || "";
+            const wantsAdvancePay = !!qs(form, 'input[name="wantsAdvancePay"]')?.checked;
+            const multiDay = !!qs(form, 'input[name="multiDay"][data-multiday]')?.checked;
+            const boardingNights = qs(form, 'select[name="boardingNights"]')?.value || "1";
+            const date = qs(form, 'input[name="date"]')?.value || "";
+            return { dogCount, time, wantsAdvancePay, multiDay, boardingNights, date };
+        }
+
+        async function fetchQuote({ serviceType, date, time, wantsAdvancePay, dogCount, boardingNights, multiDay }) {
+            const params = new URLSearchParams();
+            params.set("serviceType", serviceType);
+            params.set("date", date);
+            if (time) params.set("time", time);
+            params.set("wantsAdvancePay", wantsAdvancePay ? "true" : "false");
+            params.set("dogCount", String(dogCount || 1));
+            params.set("boardingNights", String(boardingNights || 1));
+
+            if (multiDay && isDaycareService(serviceType) && !isAfterHoursService(serviceType) && !isBoardingService(serviceType)) {
+                params.set("multiDay", "true");
+                Array.from(selectedDates).forEach(d => params.append("selectedDates", d));
+            } else {
+                params.set("multiDay", "false");
+            }
+
+            const res = await fetch(`${QUOTE_URL}?${params.toString()}`, {
+                headers: { "Accept": "application/json" }
+            });
+            if (!res.ok) throw new Error("Quote failed: " + res.status);
+            return await res.json();
+        }
+
+        async function refreshQuote() {
+            if (!activeForm || !activeServiceType) return;
+
+            const { dogCount, time, wantsAdvancePay, multiDay, boardingNights, date } = getFormValues(activeForm);
+            if (!date) return;
+
+            setEstimate(activeForm, "Est. calculating…");
+            try {
+                const data = await fetchQuote({
+                    serviceType: activeServiceType,
+                    date,
+                    time,
+                    wantsAdvancePay,
+                    dogCount,
+                    boardingNights,
+                    multiDay
+                });
+
+                const money = fmtMoneyUSD(data.amount);
+                setEstimate(activeForm, `Est. ${money}`);
+                const el = qs(activeForm, "[data-quote]");
+                if (el) el.title = data.note || "";
+            } catch (e) {
+                console.error(e);
+                setEstimate(activeForm, "Est. —");
+            }
+        }
+
+        function forceMultiDayOffIfNotAllowed(form, serviceType) {
+            const box = qs(form, 'input[name="multiDay"][data-multiday]');
+            if (!box) return;
+
+            const allowed = isDaycareService(serviceType) && !isAfterHoursService(serviceType) && !isBoardingService(serviceType);
+            if (!allowed) {
+                box.checked = false;
+                box.disabled = true;
+            } else {
+                box.disabled = false;
+            }
+        }
+
+        document.addEventListener("click", (e) => {
+            const btn = e.target.closest(".svc-btn");
+            if (!btn) return;
+
+            const tile = btn.closest(".day-tile");
+            if (!tile) return;
+
+            const form = qs(tile, ".day-form");
+            if (!form) return;
+
+            activeForm = form;
+            activeTile = tile;
+            activeServiceType = btn.getAttribute("data-service") || "";
+
+            selectedDates.clear();
+            clearAllTileSelections();
+            if (tile.dataset.date) {
+                selectedDates.add(tile.dataset.date);
+                setTileSelected(tile, true);
+            }
+
+            syncSelectedInputs(form);
+            forceMultiDayOffIfNotAllowed(form, activeServiceType);
+
+            setTimeout(refreshQuote, 0);
+        });
+
+        document.addEventListener("change", (e) => {
+            const box = e.target.closest('input[name="multiDay"][data-multiday]');
+            if (!box) return;
+
+            const form = box.closest("form.day-form");
+            if (!form || form !== activeForm) return;
+
+            selectedDates.clear();
+            clearAllTileSelections();
+            if (activeTile?.dataset?.date) {
+                selectedDates.add(activeTile.dataset.date);
+                setTileSelected(activeTile, true);
+            }
+
+            syncSelectedInputs(activeForm);
+            refreshQuote();
+        });
+
+        document.addEventListener("click", (e) => {
+            const tile = e.target.closest(".day-tile");
+            if (!tile) return;
+            if (!activeForm) return;
+
+            const box = qs(activeForm, 'input[name="multiDay"][data-multiday]');
+            if (!box || !box.checked) return;
+
+            if (!isDaycareService(activeServiceType) || isAfterHoursService(activeServiceType) || isBoardingService(activeServiceType)) return;
+
+            if (e.target.closest(".svc-btn") || e.target.closest("form.day-form")) return;
+
+            const d = tile.dataset.date;
+            if (!d) return;
+
+            if (selectedDates.has(d)) {
+                if (selectedDates.size === 1) return;
+                selectedDates.delete(d);
+                setTileSelected(tile, false);
+            } else {
+                selectedDates.add(d);
+                setTileSelected(tile, true);
+            }
+
+            syncSelectedInputs(activeForm);
+            refreshQuote();
+        });
+
+        document.addEventListener("change", (e) => {
+            if (!activeForm) return;
+            const form = e.target.closest("form.day-form");
+            if (!form || form !== activeForm) return;
+
+            const watched =
+                e.target.matches('select[name="time"]') ||
+                e.target.matches('select[name="dogCount"]') ||
+                e.target.matches('input[name="wantsAdvancePay"]') ||
+                e.target.matches('select[name="boardingNights"]');
+
+            if (watched) refreshQuote();
+        });
+
+    })();
+</script>
+
 
 <!-- Keep ALL weekly banners permanently visible (guarded) -->
 <script>
@@ -1095,103 +1313,7 @@
     })();
 </script>
 
-<!-- Live quote hook -->
-<script th:inline="javascript">
-    (function () {
-        async function fetchQuote({ svc, dateStr, timeStr, wantsAdvance, dogCount, boardingNights }) {
-            const params = new URLSearchParams({
-                serviceType: svc,
-                date: dateStr,
-                wantsAdvancePay: wantsAdvance ? 'true' : 'false'
-            });
-            if (timeStr) params.set('time', timeStr);
-            if (dogCount) params.set('dogCount', String(dogCount));
-            if (boardingNights) params.set('boardingNights', String(boardingNights));
-            try {
-                const res = await fetch('/booking/quote?' + params.toString(), { headers: { 'Accept': 'application/json' } });
-                if (!res.ok) return null;
-                return await res.json();
-            } catch { return null; }
-        }
-
-        function fmtMoneyUSD(n){
-            try{ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
-            catch{ return '$'+Number(n||0).toFixed(2); }
-        }
-
-        function wireDayTile(tile){
-            const form = tile.querySelector('.day-form'); if(!form) return;
-
-            const svcInput  = form.querySelector('input[name="serviceType"]');
-            const dateInput = form.querySelector('input[name="date"]');
-            const timeSel   = form.querySelector('select[name="time"]');
-            const prepayChk = form.querySelector('input[name="wantsAdvancePay"]');
-            const dogSel    = form.querySelector('select[name="dogCount"]');
-
-            const boardingNightsSel = form.querySelector('select[name="boardingNights"]');
-            const quoteEl = form.querySelector('[data-quote]');
-
-            function getDogCount(){ return Number(dogSel?.value || '1') || 1; }
-            function getBoardingNights(){ return Number(boardingNightsSel?.value || '1') || 1; }
-
-            async function refreshQuote(){
-                if(!quoteEl) return;
-
-                const svc = svcInput?.value || '';
-                const d   = dateInput?.value || '';
-                const t   = timeSel?.value || '';
-                const wants = !!(prepayChk && prepayChk.checked);
-
-                if(!svc || !d){
-                    quoteEl.textContent = 'Est. —';
-                    quoteEl.title = '';
-                    return;
-                }
-
-                const nDogs = getDogCount();
-                const svcLower = svc.toLowerCase();
-                const nights = svcLower.includes('boarding') ? getBoardingNights() : 1;
-
-                const q = await fetchQuote({
-                    svc,
-                    dateStr: d,
-                    timeStr: t,
-                    wantsAdvance: wants,
-                    dogCount: nDogs,
-                    boardingNights: nights
-                });
-
-                if(!q || !q.amount){
-                    quoteEl.textContent = 'Est. —';
-                    quoteEl.title = '';
-                    return;
-                }
-
-                quoteEl.textContent = 'Est. ' + fmtMoneyUSD(Number(q.amount));
-                quoteEl.title = q.note || '';
-            }
-
-            // IMPORTANT:
-            // your other script sets svcInput/dateInput on button click.
-            // so we refresh AFTER that runs (next tick).
-            tile.querySelectorAll('.svc-btn').forEach(btn=>{
-                btn.addEventListener('click', ()=> setTimeout(refreshQuote, 0));
-            });
-
-            timeSel?.addEventListener('change', refreshQuote);
-            prepayChk?.addEventListener('change', refreshQuote);
-            dogSel?.addEventListener('change', refreshQuote);
-            boardingNightsSel?.addEventListener('change', refreshQuote);
-
-            refreshQuote();
-        }
-
-        document.addEventListener('DOMContentLoaded', ()=>{
-            document.querySelectorAll('.day-tile').forEach(wireDayTile);
-        });
-    })();
-</script>
-
+<!-- Confirm cancel -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('form.confirm-cancel').forEach(function (f) {
@@ -1203,6 +1325,8 @@
         });
     });
 </script>
+
+<!-- Page + browser title sync -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const titleEl = document.getElementById('pageTitle');
@@ -1214,13 +1338,10 @@
         function setTitlesFor(targetPane) {
             const isUploads = (targetPane === '#pane-uploads');
             const text = isUploads ? TITLE_UPLOADS : TITLE_BOOKING;
-            // page title
             titleEl.textContent = text;
-            // browser tab title
             document.title = text + ' | Dog Plaza';
         }
 
-        // On tab change (Bootstrap event)
         const tabsEl = document.getElementById('custTabs');
         if (tabsEl) {
             tabsEl.addEventListener('shown.bs.tab', function (ev) {
@@ -1229,16 +1350,16 @@
             });
         }
 
-        // On initial load (with or without hash)
         const initialHash = window.location.hash || '#pane-booking';
         setTitlesFor(initialHash);
 
-        // If the hash changes later (e.g., user types URL hash)
         window.addEventListener('hashchange', function () {
             setTitlesFor(window.location.hash || '#pane-booking');
         });
     });
 </script>
+
+<!-- Rates collapse initial behavior -->
 <script>
     document.addEventListener('DOMContentLoaded', function(){
         var el = document.getElementById('ratesCollapse');
@@ -1246,14 +1367,19 @@
         var w = window.innerWidth || document.documentElement.clientWidth;
         var collapse = window.bootstrap ? window.bootstrap.Collapse.getOrCreateInstance(el) : null;
         if (!collapse) return;
-        // If small screen and it's shown (because of server render), hide it.
+
         if (w < 768 && el.classList.contains('show')) { collapse.hide(); }
-        // If medium+ and it's hidden, show it.
         if (w >= 768 && !el.classList.contains('show')) { collapse.show(); }
     });
 </script>
+
+<!-- Your custom JS -->
 <script th:src="@{/js/custom.js?v=20251103}"></script>
+
+<!-- Bootstrap JS (must be loaded before tab activation code below) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Persistent collapse helper -->
 <script>
     setupPersistentCollapse({
         collapseId: 'ratesCollapse',
@@ -1262,55 +1388,32 @@
         applyOnMaxWidth: 767
     });
 </script>
+
+<!-- ONE tab+hash sync script (single source) -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const tabs = document.querySelectorAll('#custTabs [data-bs-toggle="tab"]');
         if (!window.bootstrap || !tabs.length) return;
 
-        // Open tab from hash (e.g., #pane-your or #pane-uploads)
         const openFromHash = () => {
             const hash = window.location.hash;
             if (!hash) return;
             const btn = document.querySelector(`#custTabs [data-bs-target="${hash}"]`);
             if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
         };
+
         openFromHash();
         window.addEventListener('hashchange', openFromHash);
 
-        // Keep hash in sync and scroll to top on tab change
         tabs.forEach(btn => {
             btn.addEventListener('shown.bs.tab', () => {
                 const target = btn.getAttribute('data-bs-target');
                 if (target) history.replaceState(null, '', target);
-                // Always scroll to top after switching tabs
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         });
     });
 </script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const tabs = document.querySelectorAll('#custTabs [data-bs-toggle="tab"]');
-        if (!window.bootstrap || !tabs.length) return;
 
-        // open from hash if present
-        const openFromHash = () => {
-            const hash = window.location.hash;
-            if (!hash) return;
-            const btn = document.querySelector(`#custTabs [data-bs-target="${hash}"]`);
-            if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
-        };
-        openFromHash();
-        window.addEventListener('hashchange', openFromHash);
-
-        // keep hash in sync when user clicks tabs
-        tabs.forEach(btn => {
-            btn.addEventListener('shown.bs.tab', () => {
-                const target = btn.getAttribute('data-bs-target');
-                if (target) history.replaceState(null, '', target);
-            });
-        });
-    });
-</script>
 </body>
 </html>
