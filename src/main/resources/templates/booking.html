@@ -110,6 +110,7 @@
          th:text="${errorMessage}"></div>
 
     <div class="alert alert-success"
+         data-autoclose="9000"
          th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
          th:text="${successMessage}"></div>
 

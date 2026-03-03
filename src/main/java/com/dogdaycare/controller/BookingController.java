@@ -888,18 +888,17 @@ public class BookingController {
 
             bookingRepository.saveAll(created);
 
+            // quotedRateAtLock is TOTAL for that booking
             BigDecimal grand = created.stream()
-                    .map(b -> {
-                        BigDecimal perDog = b.getQuotedRateAtLock() == null ? BigDecimal.ZERO : b.getQuotedRateAtLock();
-                        int dogs = (b.getDogCount() == null ? 1 : b.getDogCount());
-                        return perDog.multiply(BigDecimal.valueOf(dogs));
-                    })
+                    .map(b -> b.getQuotedRateAtLock() == null ? BigDecimal.ZERO : b.getQuotedRateAtLock())
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .setScale(2, RoundingMode.HALF_UP);
 
+            boolean anyPrepay = created.stream().anyMatch(Booking::isWantsAdvancePay);
+
             String msg = "Booked " + created.size() + " daycare day(s)! Total: $" + grand.toPlainString();
-            if (wantsAdvancePay) {
-                msg += " If eligible, we’ll contact you to process advance payment for discounted days.";
+            if (anyPrepay) {
+                msg += " We’ll contact you to process the advance payment at the discounted rate.";
             }
 
             redirectAttributes.addFlashAttribute("successMessage", msg);
@@ -937,7 +936,7 @@ public class BookingController {
 
         bookingRepository.save(booking);
 
-        String msg = "Booking submitted successfully!";
+        String msg = "Booking submitted successfully! Total: $" + total.toPlainString();
         if (wantsAdvancePayFinal) {
             msg += " We’ll contact you to process the advance payment at the discounted rate.";
         }
