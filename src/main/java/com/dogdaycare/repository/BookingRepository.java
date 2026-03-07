@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.dogdaycare.model.SetForgetPlan;
+
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByCustomer(User customer);
     List<Booking> findByDate(LocalDate date);
@@ -41,5 +43,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDate date,
             String statusToExclude
     );
+
+    List<Booking> findByCustomerAndDateAndStatusNotIgnoreCase(User customer, LocalDate date, String status);
+
+    List<Booking> findBySetForgetPlanAndDateGreaterThanEqual(SetForgetPlan plan, LocalDate date);
+
+    void deleteBySetForgetPlanAndDateGreaterThanEqual(SetForgetPlan plan, LocalDate date);
 
 }

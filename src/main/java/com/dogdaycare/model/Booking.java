@@ -33,6 +33,10 @@ public class Booking {
     private LocalDate date;
     private LocalTime time;
 
+    @ManyToOne
+    @JoinColumn(name = "set_forget_plan_id")
+    private SetForgetPlan setForgetPlan;
+
     // PENDING, APPROVED, CANCELED
     private String status = "APPROVED";
 
