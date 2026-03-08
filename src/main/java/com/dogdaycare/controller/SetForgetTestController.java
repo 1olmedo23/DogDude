@@ -1,4 +1,4 @@
-package com.dogdaycare.controller;
+/* package com.dogdaycare.controller;
 
 import com.dogdaycare.dto.SetForgetRuleRequest;
 import com.dogdaycare.model.SetForgetPlan;
@@ -169,3 +169,4 @@ public class SetForgetTestController {
         ));
     }
 }
+ */

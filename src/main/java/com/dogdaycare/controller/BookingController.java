@@ -1062,4 +1062,27 @@ public class BookingController {
         }
         return "redirect:/booking";
     }
+
+    @PostMapping("/set-forget/cancel")
+    public String cancelSetForgetPlan(Authentication authentication,
+                                      RedirectAttributes redirectAttributes) {
+
+        User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        try {
+            int deleted = setForgetService.cancelPlan(customer);
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Your Set & Forget plan was canceled. " + deleted + " future booking(s) were removed."
+            );
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Unable to cancel your Set & Forget plan right now."
+            );
+        }
+
+        return "redirect:/booking#pane-setforget";
+    }
 }

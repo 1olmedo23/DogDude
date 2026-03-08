@@ -87,7 +87,6 @@ public class SetForgetService {
         plan.setDogCount(dogCount);
         plan.setUpdatedAt(LocalDateTime.now(clock));
 
-        // Replace all current rules with the new set
         plan.getRules().clear();
 
         requestedRules.stream()
@@ -107,7 +106,6 @@ public class SetForgetService {
 
         SetForgetPlan savedPlan = setForgetPlanRepository.save(plan);
 
-        // Clear future generated bookings for this plan, then regenerate from the updated rules
         clearFutureGeneratedBookings(savedPlan);
         generateBookingsForPlan(savedPlan);
 
@@ -132,6 +130,22 @@ public class SetForgetService {
         return clearFutureGeneratedBookings(plan);
     }
 
+    @Transactional
+    public int cancelPlan(User customer) {
+        SetForgetPlan plan = setForgetPlanRepository.findByCustomerAndActiveTrue(customer).orElse(null);
+        if (plan == null || !plan.isActive()) {
+            return 0;
+        }
+
+        int deleted = clearFutureGeneratedBookingsWith24HourProtection(plan);
+
+        plan.setActive(false);
+        plan.setUpdatedAt(LocalDateTime.now(clock));
+        setForgetPlanRepository.save(plan);
+
+        return deleted;
+    }
+
     private int clearFutureGeneratedBookings(SetForgetPlan plan) {
         LocalDate today = LocalDate.now(clock);
 
@@ -143,6 +157,23 @@ public class SetForgetService {
         }
 
         return count;
+    }
+
+    private int clearFutureGeneratedBookingsWith24HourProtection(SetForgetPlan plan) {
+        LocalDate today = LocalDate.now(clock);
+
+        List<Booking> existing = bookingRepository
+                .findBySetForgetPlanAndDateGreaterThanEqualOrderByDateAsc(plan, today);
+
+        List<Booking> toDelete = existing.stream()
+                .filter(this::isAtLeast24HoursAway)
+                .toList();
+
+        if (!toDelete.isEmpty()) {
+            bookingRepository.deleteAll(toDelete);
+        }
+
+        return toDelete.size();
     }
 
     private int generateBookingsForPlan(SetForgetPlan plan) {
@@ -348,6 +379,17 @@ public class SetForgetService {
 
         ZonedDateTime now = ZonedDateTime.now(clock);
         ZonedDateTime bookingZdt = ZonedDateTime.of(date, time, clock.getZone());
+        long hours = Duration.between(now, bookingZdt).toHours();
+        return hours >= 24;
+    }
+
+    private boolean isAtLeast24HoursAway(Booking booking) {
+        if (booking == null || booking.getDate() == null || booking.getTime() == null) {
+            return false;
+        }
+
+        ZonedDateTime now = ZonedDateTime.now(clock);
+        ZonedDateTime bookingZdt = ZonedDateTime.of(booking.getDate(), booking.getTime(), clock.getZone());
         long hours = Duration.between(now, bookingZdt).toHours();
         return hours >= 24;
     }

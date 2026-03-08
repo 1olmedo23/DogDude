@@ -48,6 +48,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findBySetForgetPlanAndDateGreaterThanEqual(SetForgetPlan plan, LocalDate date);
 
+    List<Booking> findBySetForgetPlanAndDateGreaterThanEqualOrderByDateAsc(SetForgetPlan plan, LocalDate date);
+
     void deleteBySetForgetPlanAndDateGreaterThanEqual(SetForgetPlan plan, LocalDate date);
+
 
 }
