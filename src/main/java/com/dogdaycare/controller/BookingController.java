@@ -14,6 +14,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.dogdaycare.service.SetForgetService;
+import com.dogdaycare.dto.SetForgetRuleRequest;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import static org.springframework.format.annotation.DateTimeFormat.ISO;
@@ -38,6 +40,7 @@ public class BookingController {
     private final FileRepository fileRepository;
     private final PricingService pricingService;
     private final BundleService bundleService;
+    private final SetForgetService setForgetService;
 
     private final Clock clock;
 
@@ -48,6 +51,7 @@ public class BookingController {
                              FileRepository fileRepository,
                              PricingService pricingService,
                              BundleService bundleService,
+                             SetForgetService setForgetService,
                              Clock clock) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -56,6 +60,7 @@ public class BookingController {
         this.fileRepository = fileRepository;
         this.pricingService = pricingService;
         this.bundleService = bundleService;
+        this.setForgetService = setForgetService;
         this.clock = clock;
     }
 
@@ -197,6 +202,16 @@ public class BookingController {
         model.addAttribute("provisionalQuotes", provisionalQuotes);
     }
 
+    private Map<Short, Object> buildSetForgetRuleByDay(Object activeSetForgetPlanObj) {
+        Map<Short, Object> byDay = new HashMap<>();
+        if (activeSetForgetPlanObj instanceof com.dogdaycare.model.SetForgetPlan plan && plan.getRules() != null) {
+            plan.getRules().stream()
+                    .filter(r -> r != null && r.isActive())
+                    .forEach(r -> byDay.put(r.getDayOfWeek(), r));
+        }
+        return byDay;
+    }
+
     @GetMapping("/week-paid")
     @ResponseBody
     public Map<String, Boolean> isWeekPaid(
@@ -214,6 +229,27 @@ public class BookingController {
                               @ModelAttribute("successMessage") String successMessage,
                               @ModelAttribute("errorMessage") String errorMessage) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        var activeSetForgetPlan = setForgetService.getActivePlan(customer);
+        model.addAttribute("setForgetPlan", activeSetForgetPlan);
+        model.addAttribute("hasSetForgetPlan", activeSetForgetPlan != null);
+
+        model.addAttribute("setForgetRuleByDay", buildSetForgetRuleByDay(activeSetForgetPlan));
+        model.addAttribute("setForgetDays", List.of(
+                Map.of("value", (short) 1, "label", "Monday"),
+                Map.of("value", (short) 2, "label", "Tuesday"),
+                Map.of("value", (short) 3, "label", "Wednesday"),
+                Map.of("value", (short) 4, "label", "Thursday"),
+                Map.of("value", (short) 5, "label", "Friday"),
+                Map.of("value", (short) 6, "label", "Saturday"),
+                Map.of("value", (short) 7, "label", "Sunday")
+        ));
+
+        model.addAttribute("setForgetServices", List.of(
+                "Daycare (6 AM - 3 PM)",
+                "Daycare (6 AM - 8 PM)",
+                "Daycare After Hours (6 AM - 11 PM)"
+        ));
 
         // --- Base grouping you already show (bookings lists, files, etc.) ---
         prepareBookingPage(customer, model,
@@ -942,6 +978,64 @@ public class BookingController {
         }
         redirectAttributes.addFlashAttribute("successMessage", msg);
         return "redirect:/booking";
+    }
+
+    @PostMapping("/set-forget/save")
+    public String saveSetForgetPlan(Authentication authentication,
+                                    @RequestParam(name = "wantsAdvancePay", defaultValue = "false") boolean wantsAdvancePay,
+                                    @RequestParam(name = "dogCount", defaultValue = "1") Integer dogCount,
+                                    @RequestParam(name = "durationOption") String durationOption,
+                                    @RequestParam(name = "dayOfWeek", required = false) List<Short> dayOfWeek,
+                                    @RequestParam(name = "serviceType", required = false) List<String> serviceType,
+                                    @RequestParam(name = "dropoffTime", required = false) List<String> dropoffTime,
+                                    RedirectAttributes redirectAttributes) {
+
+        User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+
+        List<SetForgetRuleRequest> rules = new ArrayList<>();
+
+        if (dayOfWeek != null && serviceType != null && dropoffTime != null) {
+            int size = Math.min(dayOfWeek.size(), Math.min(serviceType.size(), dropoffTime.size()));
+
+            for (int i = 0; i < size; i++) {
+                Short day = dayOfWeek.get(i);
+                String svc = serviceType.get(i);
+                String time = dropoffTime.get(i);
+
+                if (day == null || svc == null || svc.isBlank()) {
+                    continue;
+                }
+
+                SetForgetRuleRequest req = new SetForgetRuleRequest();
+                req.setDayOfWeek(day);
+                req.setServiceType(svc);
+                req.setDropoffTime((time == null || time.isBlank()) ? "06:00" : time);
+                rules.add(req);
+            }
+        }
+
+        if (rules.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Please select at least one day and service for Set & Forget.");
+            return "redirect:/booking#pane-setforget";
+        }
+
+        try {
+            setForgetService.saveOrUpdatePlan(
+                    customer,
+                    wantsAdvancePay,
+                    dogCount,
+                    durationOption,
+                    rules
+            );
+
+            redirectAttributes.addFlashAttribute("successMessage", "Your Set & Forget plan has been saved.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to save your Set & Forget plan right now.");
+        }
+
+        return "redirect:/booking#pane-setforget";
     }
 
     @PostMapping("/cancel/{id}")
