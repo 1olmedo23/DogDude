@@ -229,6 +229,7 @@ public class BookingController {
                               @ModelAttribute("successMessage") String successMessage,
                               @ModelAttribute("errorMessage") String errorMessage) {
         User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        setForgetService.generateBookingsForActivePlan(customer);
 
         var activeSetForgetPlan = setForgetService.getActivePlan(customer);
         model.addAttribute("setForgetPlan", activeSetForgetPlan);
