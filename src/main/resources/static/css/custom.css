@@ -307,19 +307,29 @@ form button { width: 100%; }
     .day-form .btn.btn-sm { padding: .6rem .95rem; font-size: 1rem; }
 }
 
-/* 3) Tabs: wider hit area + sticky on phones */
+/* 3) Tabs: wider hit area + sticky on mobile/tablet */
 .nav-tabs .nav-link { white-space: nowrap; }
+
+body.page-booking .mobile-sticky-tabs{
+    position: static;
+    top: auto;
+    z-index: auto;
+    background: transparent;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+@media (max-width: 991.98px){
+    body.page-booking .mobile-sticky-tabs{
+        margin-bottom: 1rem !important;
+    }
+}
+
 @media (max-width: 575.98px){
     .nav-tabs .nav-link {
         padding: .75rem 1rem;
         font-weight: 600;
         text-align: center;
-    }
-    .mobile-sticky-tabs{
-        position: sticky;
-        top: 56px;           /* below navbar height */
-        z-index: 1010;       /* above content, below modals */
-        background: var(--bs-body-bg, #fff);
     }
 }
 
@@ -344,8 +354,8 @@ form button { width: 100%; }
 }
 
 /* 7) Ensure sticky elements don't collide with Bootstrap toasts/alerts */
-@media (max-width: 575.98px){
-    body { scroll-padding-top: 64px; } /* so anchored jumps don't hide under sticky tabs */
+@media (max-width: 991.98px){
+    body.page-booking { scroll-padding-top: 120px; }
 }
 
 /* ===============================
