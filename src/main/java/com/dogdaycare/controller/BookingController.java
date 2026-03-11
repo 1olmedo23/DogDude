@@ -935,7 +935,7 @@ public class BookingController {
 
             String msg = "Booked " + created.size() + " daycare day(s)! Total: $" + grand.toPlainString();
             if (anyPrepay) {
-                msg += " We’ll contact you to process the advance payment at the discounted rate.";
+                msg += " We’ll contact you to process payment.";
             }
 
             redirectAttributes.addFlashAttribute("successMessage", msg);
@@ -975,7 +975,7 @@ public class BookingController {
 
         String msg = "Booking submitted successfully! Total: $" + total.toPlainString();
         if (wantsAdvancePayFinal) {
-            msg += " We’ll contact you to process the advance payment at the discounted rate.";
+            msg += " We’ll contact you to process payment.";
         }
         redirectAttributes.addFlashAttribute("successMessage", msg);
         return "redirect:/booking";

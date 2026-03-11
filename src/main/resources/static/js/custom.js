@@ -57,24 +57,21 @@ function autoDismissAlerts() { /* no-op on purpose */ }
 
 
 // Auto-dismiss ALL alerts by default, EXCEPT those marked permanent.
-// - Default delay: 4000ms
+// - Default delay: 20000ms
 // - Override per alert with data-autoclose="7000" (ms) or data-autoclose (uses default)
 // - Prevent closing by adding data-permanent or the class .alert-static
 document.addEventListener('DOMContentLoaded', function () {
     const allAlerts = document.querySelectorAll('.alert');
 
     allAlerts.forEach(el => {
-        // Skip permanent/sticky banners
         if (el.hasAttribute('data-permanent') || el.classList.contains('alert-static')) return;
 
-        // Read delay (ms) or fall back to default
         const msRaw = el.getAttribute('data-autoclose');
-        const delay = msRaw && !isNaN(+msRaw) ? parseInt(msRaw, 10) : 4000;
+        const delay = msRaw && !isNaN(+msRaw) ? parseInt(msRaw, 10) : 20000;
 
         setTimeout(() => {
             try {
                 if (!document.body.contains(el)) return;
-                // Re-check permanence in case it was toggled later
                 if (el.hasAttribute('data-permanent') || el.classList.contains('alert-static')) return;
 
                 if (window.bootstrap?.Alert) {
@@ -82,7 +79,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     el.style.display = 'none';
                 }
-            } catch (_) { /* no-op */ }
+            } catch (_) {
+                /* no-op */
+            }
         }, delay);
     });
 });

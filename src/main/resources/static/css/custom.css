@@ -5,7 +5,7 @@
 @layer bootstrap-var-fallbacks {
     :root{
         --bs-border-color: #dee2e6;
-        --bs-body-bg: #ffffff;
+        --bs-body-bg: #b2e8f3;
         --bs-body-tertiary: #f8f9fa;
         --bs-body-secondary: #f0f2f5;
         --bs-info-border-subtle: #b6e0fe;
@@ -58,7 +58,10 @@ h1, h2, h5 { font-weight: 600; }
 /* Cards */
 .card { border-radius: 12px; transition: transform .3s ease, box-shadow .3s ease; }
 @media (hover: hover) {
-    .card:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 18px rgba(0,0,0,.08);
+    }
 }
 
 /* Forms */
@@ -626,4 +629,17 @@ body.page-map .map-link{
 
 body.page-map .map-link:hover{
     text-decoration: underline;
+}
+
+.svc-btn{
+    transition: all .15s ease;
+}
+
+.svc-btn:hover{
+    transform: translateY(-1px);
+}
+
+.svc-btn.active{
+    border-color: var(--bs-primary);
+    background: color-mix(in oklab, var(--bs-primary) 10%, white);
 }
