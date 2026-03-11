@@ -31,6 +31,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.dogdaycare.service.SetForgetService;
 
 @WebMvcTest(controllers = BookingController.class)
 @AutoConfigureMockMvc(addFilters = true)
@@ -46,6 +47,7 @@ class BookingControllerWebTests {
     @MockBean BundleService bundleService;
     @MockBean BookingLimitService bookingLimitService;
     @MockBean com.dogdaycare.service.CancelPolicyService cancelPolicyService;
+    @MockBean private SetForgetService setForgetService;
 
     // Spring Security will try to look this up; mock it so @WithMockUser works
     @MockBean UserDetailsService userDetailsService;
@@ -64,6 +66,8 @@ class BookingControllerWebTests {
         // Clock -> fixed “now”
         when(clock.getZone()).thenReturn(zone);
         when(clock.instant()).thenReturn(fixedInstant);
+        when(setForgetService.getActivePlan(any())).thenReturn(null);
+        when(setForgetService.generateBookingsForActivePlan(any())).thenReturn(0);
 
         // App user entity your controller expects
         customer = new User();
