@@ -11,36 +11,56 @@
 <body class="bg-light page-map">
 <div th:replace="~{fragments/navbar :: navbar('map')}"></div>
 
-<main class="container-fluid py-4">
+<main class="container-fluid py-4 py-lg-5">
+    <div class="map-shell">
 
-    <!-- Page header -->
-    <div class="text-center mb-3">
-        <h1 class="h4 mb-2">Map</h1>
+        <section class="map-hero p-4 p-lg-5 mb-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-xl-8">
+                    <h1 class="map-hero-title">Map & Directions</h1>
+                    <p class="map-hero-text">
+                        Please avoid breaking any traffic laws when coming to and from Fremont Dog Plaza.
+                        You are welcome to drive on the Stay Safe Street with your car, but please be aware
+                        that pedestrians and cyclists have the right of way.
+                    </p>
+                </div>
 
-        <h5 class="text-muted mx-auto" style="max-width: 900px;">
-            Dear customer, please avoid breaking any traffic laws when coming and going from Fremont Dog Plaza.
-            You are welcome to drive on the Stay Safe Street with your car. However, please be aware, pedestrians
-            and cyclists have the right of way.
-        </h5>
+                <div class="col-xl-4">
+                    <div class="map-side-card">
+                        <div class="map-side-label">Address</div>
+                        <div class="map-side-value">10506 Fremont Ave N, Seattle, WA 98133</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="map-card">
+            <div class="map-card-head">
+                <div>
+                    <h2 class="map-card-title">Street Map</h2>
+                    <p class="map-card-subtitle">Use the image below for a quick visual reference before arrival.</p>
+                </div>
+
+                <div class="map-actions">
+                    <a class="map-link-btn"
+                       href="https://www.google.com/maps?q=10506+Fremont+Ave+N,+Seattle,+WA+98133"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        📍 Open in Google Maps
+                    </a>
+                </div>
+            </div>
+
+            <div class="map-card-body">
+                <div class="map-frame-modern">
+                    <img class="map-img-modern"
+                         th:src="@{/images/street-map.png}"
+                         alt="Map showing the location of Fremont Dog Plaza">
+                </div>
+            </div>
+        </section>
+
     </div>
-
-    <!-- Link row (above image, right aligned) -->
-    <div class="d-flex justify-content-end mb-2">
-        <a class="map-link"
-           href="https://www.google.com/maps?q=10506+Fremont+Ave+N,+Seattle,+WA+98133"
-           target="_blank"
-           rel="noopener noreferrer">
-            📍 Open in Google Maps
-        </a>
-    </div>
-
-    <!-- Big image frame -->
-    <div class="map-frame shadow-sm">
-        <img class="map-img"
-             th:src="@{/images/street-map.png}"
-             alt="Map showing the location of Fremont Dog Plaza">
-    </div>
-
 </main>
 
 <script th:src="@{/js/custom.js?v=20251103}"></script>

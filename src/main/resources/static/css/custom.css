@@ -591,46 +591,6 @@ body.page-admin .tab-pane#bookings table {
     }
 }
 
-/* ===============================
-   Map page
-   =============================== */
-body.page-map .map-frame{
-    width: 100%;
-    border-radius: 16px;
-    background: #f8f9fa;
-    overflow: hidden;
-}
-
-/* Fill the available width, keep correct scale */
-body.page-map .map-img{
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 82vh;      /* cap on desktop/tablet */
-}
-
-/* Phones */
-@media (max-width: 575.98px){
-    body.page-map .map-frame{
-        border-radius: 14px;
-    }
-    body.page-map .map-img{
-        max-height: 86vh;  /* taller on mobile */
-    }
-}
-
-body.page-map .map-link{
-    background: rgba(255,255,255,0.9);
-    padding: .35rem .6rem;
-    border-radius: .5rem;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-body.page-map .map-link:hover{
-    text-decoration: underline;
-}
-
 .svc-btn{
     transition: all .15s ease;
 }
@@ -642,4 +602,210 @@ body.page-map .map-link:hover{
 .svc-btn.active{
     border-color: var(--bs-primary);
     background: color-mix(in oklab, var(--bs-primary) 10%, white);
+}
+
+/* ===============================
+   Map page styling
+   =============================== */
+
+body.page-map .map-shell{
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+body.page-map .map-hero{
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 1.5rem;
+    background:
+            radial-gradient(circle at top right, rgba(13,110,253,.14), transparent 25%),
+            radial-gradient(circle at bottom left, rgba(255,131,39,.12), transparent 25%),
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 18px 50px rgba(15, 23, 42, .07);
+}
+
+body.page-map .map-hero::after{
+    content: "";
+    position: absolute;
+    inset: auto -5% -35% auto;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: rgba(13,110,253,.05);
+    filter: blur(30px);
+    pointer-events: none;
+}
+
+body.page-map .map-hero-title{
+    font-size: clamp(1.9rem, 2.2vw, 2.5rem);
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: .9rem;
+}
+
+body.page-map .map-hero-text{
+    font-size: 1rem;
+    line-height: 1.65;
+    color: #475569;
+    max-width: 70ch;
+    margin-bottom: 0;
+}
+
+body.page-map .map-side-card{
+    border: 1px solid rgba(0,0,0,.06);
+    background: rgba(255,255,255,.86);
+    border-radius: 1rem;
+    padding: 1rem 1rem .95rem;
+    box-shadow: 0 10px 24px rgba(15,23,42,.04);
+    height: 100%;
+}
+
+body.page-map .map-side-label{
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6c757d;
+    margin-bottom: .35rem;
+    font-weight: 700;
+}
+
+body.page-map .map-side-value{
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.45;
+}
+
+body.page-map .map-card{
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 1.25rem;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(15,23,42,.05);
+    overflow: hidden;
+}
+
+body.page-map .map-card-head{
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+body.page-map .map-card-title{
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+body.page-map .map-card-subtitle{
+    font-size: .92rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+body.page-map .map-actions{
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+
+body.page-map .map-link-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    text-decoration: none;
+    border-radius: .85rem;
+    font-weight: 700;
+    padding: .75rem 1rem;
+    border: 1px solid rgba(13,110,253,.12);
+    background: rgba(13,110,253,.06);
+    color: #0d6efd;
+    transition: all .18s ease;
+}
+
+body.page-map .map-link-btn:hover{
+    background: rgba(13,110,253,.1);
+    color: #0a58ca;
+}
+
+body.page-map .map-card-body{
+    padding: 1rem;
+}
+
+body.page-map .map-frame-modern{
+    width: 100%;
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 1rem;
+    background: #f8fafc;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+}
+
+body.page-map .map-img-modern{
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    max-height: 82vh;
+    background: #fff;
+}
+
+@media (max-width: 991.98px){
+    body.page-map .map-actions{
+        justify-content: flex-start;
+    }
+
+    body.page-map .map-img-modern{
+        max-height: 60vh;
+    }
+}
+
+@media (max-width: 767.98px){
+    body.page-map .map-shell{
+        padding-left: .1rem;
+        padding-right: .1rem;
+    }
+
+    body.page-map .map-hero{
+        border-radius: 1.2rem;
+    }
+
+    body.page-map .map-card{
+        border-radius: 1.1rem;
+    }
+
+    body.page-map .map-frame-modern{
+        min-height: 240px;
+    }
+
+    body.page-map .map-img-modern{
+        max-height: 52vh;
+    }
+
+    body.page-map .map-link-btn{
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px){
+    body.page-map .map-card-head{
+        padding: 1rem;
+    }
+
+    body.page-map .map-card-body{
+        padding: .85rem;
+    }
+
+    body.page-map .map-hero-text{
+        font-size: .98rem;
+    }
 }
