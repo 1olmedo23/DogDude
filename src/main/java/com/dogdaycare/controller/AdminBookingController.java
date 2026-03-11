@@ -16,6 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.dogdaycare.service.SetForgetService;
 
 import java.math.BigDecimal;
 import java.time.*;
@@ -35,19 +36,22 @@ public class AdminBookingController {
     private final InvoiceRepository invoiceRepository;
     private final PricingService pricingService;
     private final BookingLimitService bookingLimitService;
+    private final SetForgetService setForgetService;
 
     public AdminBookingController(BookingRepository bookingRepository,
                                   EvaluationRepository evaluationRepository,
                                   EmergencyAllocationRepository emergencyAllocationRepository,
                                   InvoiceRepository invoiceRepository,
                                   PricingService pricingService,
-                                  BookingLimitService bookingLimitService) {
+                                  BookingLimitService bookingLimitService,
+                                  SetForgetService setForgetService) {
         this.bookingRepository = bookingRepository;
         this.evaluationRepository = evaluationRepository;
         this.emergencyAllocationRepository = emergencyAllocationRepository;
         this.invoiceRepository = invoiceRepository;
         this.pricingService = pricingService;
         this.bookingLimitService = bookingLimitService;
+        this.setForgetService = setForgetService;
     }
 
     private LocalDate weekStart(LocalDate any) { return any.with(DayOfWeek.MONDAY); }
@@ -139,6 +143,9 @@ public class AdminBookingController {
         bookingRepository.findById(id).ifPresent(booking -> {
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
+
+            setForgetService.addExceptionForBookingIfNeeded(booking, "ADMIN_CANCEL");
+
             emergencyAllocationRepository.deleteByBookingId(id);
             ra.addFlashAttribute("successMessage", "Booking canceled.");
         });

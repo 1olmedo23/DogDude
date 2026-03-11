@@ -9,6 +9,8 @@ import com.dogdaycare.repository.BookingRepository;
 import com.dogdaycare.repository.SetForgetPlanRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import com.dogdaycare.repository.SetForgetExceptionRepository;
+import com.dogdaycare.model.SetForgetException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,16 +35,19 @@ public class SetForgetService {
     private final BookingLimitService bookingLimitService;
     private final PricingService pricingService;
     private final BundleService bundleService;
+    private final SetForgetExceptionRepository setForgetExceptionRepository;
     private final Clock clock;
 
     public SetForgetService(SetForgetPlanRepository setForgetPlanRepository,
                             BookingRepository bookingRepository,
+                            SetForgetExceptionRepository setForgetExceptionRepository,
                             BookingLimitService bookingLimitService,
                             PricingService pricingService,
                             BundleService bundleService,
                             Clock clock) {
         this.setForgetPlanRepository = setForgetPlanRepository;
         this.bookingRepository = bookingRepository;
+        this.setForgetExceptionRepository = setForgetExceptionRepository;
         this.bookingLimitService = bookingLimitService;
         this.pricingService = pricingService;
         this.bundleService = bundleService;
@@ -146,6 +151,35 @@ public class SetForgetService {
         return deleted;
     }
 
+    @Transactional
+    public void addExceptionForBookingIfNeeded(Booking booking, String reason) {
+        if (booking == null || booking.getDate() == null) {
+            return;
+        }
+
+        SetForgetPlan plan = booking.getSetForgetPlan();
+
+        if (plan == null) {
+            plan = setForgetPlanRepository.findByCustomerAndActiveTrue(booking.getCustomer()).orElse(null);
+            if (plan == null || !plan.isActive()) {
+                return;
+            }
+        }
+
+        boolean exists = setForgetExceptionRepository.existsByPlanAndExceptionDate(plan, booking.getDate());
+        if (exists) {
+            return;
+        }
+
+        SetForgetException exception = new SetForgetException();
+        exception.setPlan(plan);
+        exception.setExceptionDate(booking.getDate());
+        exception.setReason(reason == null || reason.isBlank() ? "CUSTOMER_CANCEL" : reason);
+        exception.setCreatedAt(LocalDateTime.now(clock));
+
+        setForgetExceptionRepository.save(exception);
+    }
+
     private int clearFutureGeneratedBookings(SetForgetPlan plan) {
         LocalDate today = LocalDate.now(clock);
 
@@ -203,6 +237,11 @@ public class SetForgetService {
             LocalDate firstDate = nextOccurrence(today, rule.getDayOfWeek());
 
             for (LocalDate d = firstDate; !d.isAfter(effectiveEnd); d = d.plusWeeks(1)) {
+
+                boolean hasException = setForgetExceptionRepository.existsByPlanAndExceptionDate(plan, d);
+                if (hasException) {
+                    continue;
+                }
 
                 boolean alreadyBooked = !bookingRepository
                         .findByCustomerAndDateAndStatusNotIgnoreCase(customer, d, "CANCELED")

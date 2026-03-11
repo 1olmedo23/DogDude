@@ -1059,6 +1059,9 @@ public class BookingController {
 
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
+
+            setForgetService.addExceptionForBookingIfNeeded(booking, "CUSTOMER_CANCEL");
+
             redirectAttributes.addFlashAttribute("successMessage", "Your booking has been canceled.");
         }
         return "redirect:/booking";
