@@ -688,29 +688,227 @@ body.page-booking .mobile-sticky-tabs{
 }
 
 /* ===============================
+   Evaluation page
+   =============================== */
+body.page-eval{
+    background:
+            radial-gradient(circle at top right, rgba(13,110,253,.08), transparent 35%),
+            radial-gradient(circle at bottom left, rgba(255,131,39,.08), transparent 35%),
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+body.page-eval .eval-page{
+    padding: clamp(2rem, 4vw, 3rem) 0 3rem;
+}
+
+body.page-eval .eval-shell{
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+body.page-eval .eval-hero{
+    background:
+            radial-gradient(circle at top right, rgba(13,110,253,.10), transparent 35%),
+            radial-gradient(circle at bottom left, rgba(255,131,39,.10), transparent 35%),
+            linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.92));
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.75rem;
+    box-shadow: 0 20px 48px rgba(15,23,42,.06);
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+body.page-eval .eval-title{
+    font-size: clamp(2.1rem, 4vw, 3.2rem);
+    line-height: 1.08;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: .75rem;
+}
+
+body.page-eval .eval-intro-card{
+    background: rgba(255,255,255,.88);
+    border: 1px solid rgba(13,110,253,.10);
+    border-radius: 1.15rem;
+    box-shadow: 0 10px 24px rgba(15,23,42,.05);
+    padding: 1rem 1.1rem;
+    max-width: 680px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+body.page-eval .eval-intro-heading{
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: .6rem;
+    text-align: center;
+}
+
+body.page-eval .eval-intro-text{
+    color: #475569;
+    line-height: 1.65;
+    margin-bottom: .5rem;
+    text-align: center;
+}
+
+body.page-eval .eval-intro-text:last-child{
+    margin-bottom: 0;
+}
+
+body.page-eval .eval-form-card{
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.5rem;
+    box-shadow: 0 18px 40px rgba(15,23,42,.06);
+    background: rgba(255,255,255,.97);
+    padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+body.page-eval .eval-form-title{
+    font-size: clamp(1.7rem, 3vw, 2.2rem);
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1.25rem;
+    text-align: center;
+}
+
+body.page-eval .form-label{
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: .45rem;
+}
+
+body.page-eval .form-control{
+    border-radius: .85rem;
+    padding: .72rem .9rem;
+    border: 1px solid rgba(15,23,42,.12);
+    box-shadow: none;
+}
+
+body.page-eval .form-control:focus{
+    border-color: rgba(13,110,253,.45);
+    box-shadow: 0 0 0 .2rem rgba(13,110,253,.12);
+}
+
+body.page-eval .additional-dog-row{
+    border: 1px solid rgba(15,23,42,.08);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 6px 16px rgba(15,23,42,.04);
+}
+
+body.page-eval #upload-section .upload-input-row{
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+}
+
+body.page-eval .btn-sm{
+    padding: .38rem .72rem;
+    font-size: .82rem;
+    line-height: 1.15;
+    border-radius: .7rem;
+    min-height: auto;
+}
+
+body.page-eval .eval-submit-btn{
+    border-radius: .9rem;
+    font-weight: 700;
+    padding: .72rem 1rem;
+    box-shadow: 0 8px 18px rgba(15,23,42,.08);
+    font-size: .98rem;
+    line-height: 1.2;
+}
+
+body.page-eval .eval-back-row{
+    margin-top: 1.25rem;
+    display: flex;
+    justify-content: center;
+}
+
+body.page-eval .eval-back-btn{
+    border-radius: .75rem;
+    padding: .52rem .95rem;
+    min-width: 170px;
+    font-size: .95rem;
+    line-height: 1.2;
+}
+
+body.page-eval .remove-dog-btn,
+body.page-eval .remove-file-btn{
+    padding: .34rem .65rem;
+    font-size: .8rem;
+    line-height: 1.1;
+    border-radius: .65rem;
+    min-height: auto;
+}
+
+/* ===============================
    Evaluation page mobile polish
-   (scoped via body.page-eval)
    =============================== */
 @media (max-width: 767.98px){
-    body.page-eval .intro-text{
-        font-size: 1rem;
-        line-height: 1.5;
+    body.page-eval .eval-page{
+        padding-top: 1rem;
     }
-    body.page-eval .card{
-        padding: 1rem !important; /* tighten padding on phones only */
+
+    body.page-eval .eval-hero{
+        border-radius: 1.25rem;
+        padding: 1.1rem;
+        margin-bottom: 1rem;
     }
+
+    body.page-eval .eval-title{
+        font-size: clamp(1.9rem, 8vw, 2.5rem);
+    }
+
+    body.page-eval .eval-intro-card{
+        padding: .95rem .9rem;
+    }
+
+    body.page-eval .eval-form-card{
+        border-radius: 1.2rem;
+        padding: 1rem;
+    }
+
+    body.page-eval .eval-form-title{
+        font-size: 1.55rem;
+        margin-bottom: 1rem;
+    }
+
     body.page-eval .form-label{
         font-size: 1rem;
     }
-    body.page-eval .form-control,
-    body.page-eval .btn{
-        min-height: 44px; /* better tap targets */
+
+    body.page-eval .form-control{
+        min-height: 44px;
     }
+
+    body.page-eval .eval-submit-btn{
+        min-height: 44px;
+    }
+
+    body.page-eval .btn-sm,
+    body.page-eval .remove-dog-btn,
+    body.page-eval .remove-file-btn,
+    body.page-eval .eval-back-btn{
+        min-height: auto;
+    }
+
     body.page-eval #upload-section .upload-input-row{
         flex-wrap: wrap;
     }
+
     body.page-eval #upload-section .upload-input-row .btn{
         margin-top: .5rem;
+    }
+
+    body.page-eval .eval-back-row{
+        display: grid;
+    }
+
+    body.page-eval .eval-back-btn{
+        width: 100%;
     }
 }
 /* ===============================
