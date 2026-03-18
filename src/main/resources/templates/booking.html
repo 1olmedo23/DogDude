@@ -711,11 +711,11 @@
                     <div class="hero-kpis">
                         <div class="hero-kpi">
                             <div id="kpi1Label" class="kpi-label">Advance Pay</div>
-                            <div id="kpi1Value" class="kpi-value">Book eligible daycare to unlock discounted pricing.</div>
+                            <div id="kpi1Value" class="kpi-value">Select "Pay in adance" to unlock discounted pricing. (Payments will be made in person or over the phone)</div>
                         </div>
                         <div class="hero-kpi">
                             <div id="kpi2Label" class="kpi-label">Weekly Planning</div>
-                            <div id="kpi2Value" class="kpi-value">A pricing week runs Monday through Sunday for daycare bundle logic.</div>
+                            <div id="kpi2Value" class="kpi-value">Book multiple days a week to maximize savings.</div>
                         </div>
                         <div class="hero-kpi">
                             <div id="kpi3Label" class="kpi-label">Cancellations</div>
@@ -759,24 +759,24 @@
                                 <h4 class="d-none d-md-block fw-bold mb-2"><u>Rates</u></h4>
 
                                 <p class="mb-1">
-                                    <strong>Regular Rate</strong> → $50/Daycare &amp; $60/Daycare + Evening.
+                                    <strong>Regular Rate</strong> <br> → $50/Daycare <br> → $60/Daycare + Evening
                                 </p>
                                 <p class="mb-3">
-                                    <strong>Daycare + After Hours</strong> → $90 flat rate.
+                                    <strong>Daycare + After Hours</strong> → $90 flat rate
                                 </p>
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Discounted Rates</u></h4>
                                 <p class="mb-2">
-                                    <strong>Pay for daycare in advance to unlock discounts.</strong>
+                                    <strong>Select pay in advance to unlock discounts.</strong>
                                 </p>
                                 <p class="mb-1">
-                                    Prepay <strong>1–3 days</strong> → $45/Daycare &amp; $50/Daycare + Evening.
+                                    Prepay <strong>1–3 days</strong> <br> → $45/Daycare <br> → $50/Daycare + Evening
                                 </p>
                                 <p class="mb-2">
-                                    Prepay <strong>4+ days</strong> → $40/Daycare &amp; $45/Daycare + Evening.
+                                    Prepay <strong>4+ days</strong> <br> → $40/Daycare <br> → $45/Daycare + Evening
                                 </p>
                                 <p class="mb-3">
-                                    To activate the discount, select daycare dates below and check <strong>Pay in advance</strong>.
+                                    To activate the discount, check <strong>Pay in advance</strong> when booking.
                                 </p>
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Notes</u></h4>
@@ -787,7 +787,7 @@
                                 <p class="mb-3"><strong>A week is Monday through Sunday.</strong></p>
 
                                 <p class="mb-3">
-                                    Boarding is priced as a flat nightly rate. Based on your prior month of scheduling,
+                                    Boarding is priced as a flat nightly rate. Based on your prior month of scheduled boardings,
                                     you may qualify for discounted boarding rates, even within 24 hours.
                                 </p>
 
@@ -804,7 +804,7 @@
                         <div class="section-head d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 planner-nav">
                             <div>
                                 <div class="section-title">Booking Planner</div>
-                                <p class="section-subtitle">Select a service on any date to open the booking panel and live quote.</p>
+                                <p class="section-subtitle">Choose a service to open booking actions.</p>
                             </div>
                             <div class="d-flex gap-2 flex-column flex-sm-row">
                                 <a class="btn btn-outline-secondary planner-nav-btn" th:href="@{|/booking?start=${prevStart}|}">← Previous 2 Weeks</a>
@@ -2438,7 +2438,7 @@
                 kpis: [
                     {
                         label: 'Advance Pay',
-                        value: 'Select "Pay in adance" to unlock discounted pricing. (Payments will be made over the phone.)'
+                        value: 'Select "Pay in adance" to unlock discounted pricing. (Payments will be made in person or over the phone)'
                     },
                     {
                         label: 'Weekly Planning',
