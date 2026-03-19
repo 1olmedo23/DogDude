@@ -10,122 +10,139 @@
 <body class="bg-light page-about">
 <div th:replace="~{fragments/navbar :: navbar('about')}"></div>
 
-<div class="container py-5">
-    <h1 class="text-center fw-bold mb-4">About Fremont Dog Plaza</h1>
+<section class="about-page">
+    <div class="container">
 
-    <div class="row align-items-start g-4">
-        <div class="col-md-6">
-
-            <!-- Mobile-only toggle for LONG INTRO -->
-            <div class="d-md-none text-center mb-3">
-                <h5 class="mb-2">Learn More</h5>
-                <button class="btn btn-custom2 btn-sm"
-                        type="button"
-                        id="aboutIntroToggleBtn"
-                        aria-controls="aboutIntroText">
-                    View
-                </button>
-            </div>
-
-            <!-- LONG INTRO: collapsed on phones, always visible on md+ -->
-            <div id="aboutIntroText" class="collapse d-md-block mb-3">
-                <p>
-                    Hi! Welcome to the Fremont Dog Plaza, we are happy you found your way here. Our mission is simple,
-                    facilitate a safe environment for you and your dog. Every day we will strive to do our best
-                    to keep the small and large play groups separate and safe. We offer boarding, daycare,
-                    and grooming services. Our services and business model is not centered around staying at the
-                    facility, we take dogs on group walks too. Walking every dog in our facility, every day.
-                    The walks could last 45 minutes or 3 hours, all depending on how nice the weather is and how
-                    active the dogs are. After the dogs have been active, we offer a naptime every day
-                    from 3pm to 6pm for the health of your dog. This helps ensure they are not overworked and
-                    stressed due to high levels of intense play. During intense playtime your dog may become stinky.
-                    When a stinky dog plays at the Fremont Dog Plaza enough days every month, we will offer your dog a free grooming.
-                    It is your choice to accept or deny the grooming, however any dogs with excessive smell or poor hygiene will be turned away from care.
-                    Poor hygiene causes a risk of set-in germs and bacteria spreading to other dogs. For the safety of the dogs in our care we attempt to uphold
-                    the highest level of sanitation possible by making sure grooming is available, for free, to all of our returning
-                    and respected customers. With enough effort and dedication from our team we hope to make the Fremont Dog Plaza your pups home away from home.<br><br>
-                    The Fremont Dog Plaza was originally started in 2016 under the name Dog Dude Taylors. Taylor, who only wanted to spend more time with his dog at first,
-                    began walking and boarding dogs in the CapHill neighborhood of Seattle. Scout and Taylor walked together for almost two decades, and after years of walking and meeting new clients,
-                    something Scout loved to do, she passed away August of 2021 at the age of 18. However, that did not mean the end of a great experience. A great experience created for Scout to enjoy
-                    life with all her friends. Taylor plans to continue to work with dogs to this day and beyond. Expanding into the Fremont Dog Plaza and bringing great employees along the way.
-                    During this journey and every step down the road, we hope that we can be a positive part of your dog’s history. Their memories and to have them be safe is what matters most to us!<br><br>
-                    Along our journey we always look to improve and find new forms of innovation that can better impact the life of your dog. If there are any suggestions or concerns,
-                    please feel free to share them with us at any time. Also, if there are services you would like us to offer, please inform us. Thank you and we look forward to hearing from you soon!
-                </p>
-            </div>
-
-            <!-- ALWAYS VISIBLE (desktop + mobile): Hours & Contact -->
-            <h3 class="fw-bold mt-3">Hours of Operation</h3>
-            <p class="mb-2"><strong>Monday to Sunday:</strong> 5:30 AM – 7:30 PM</p>
-            <p class="mb-2"><strong>Daycare:</strong> 6 AM – 3 PM</p>
-            <p class="mb-2"><strong>Daycare + Evenings:</strong> 6 AM – 8 PM</p>
-            <p class="mb-2"><strong>Daycare + After Hours:</strong> 6 AM – 11 PM</p>
-            <p class="mb-2"><strong>Boarding:</strong> 24/7 with staff supervision</p>
-            <p class="mb-3"><strong>Additional Services:</strong> Contact us or ask our staff.</p>
-
-            <h3 class="fw-bold mt-4">Contact Us</h3>
-            <p class="mb-2"><strong>Email:</strong> fremontdogplaza@gmail.com</p>
-            <p class="mb-2"><strong>Phone:</strong> (206) 476-6117</p>
-            <p class="mb-0"><strong>Address:</strong> 10506 Fremont Avenue North, Seattle, WA 98133</p>
+        <div class="about-hero">
+            <h1 class="about-title">About Fremont Dog Plaza</h1>
         </div>
 
-        <div class="col-md-6">
+        <div class="row g-4 align-items-stretch">
+            <div class="col-lg-6 d-flex">
+                <div class="about-content-card h-100 w-100">
 
-            <!-- Team photo -->
-            <div class="p-3 bg-white rounded shadow">
-                <img th:src="@{/images/team.jpg}"
-                     alt="Our Team"
-                     class="w-100 rounded"
-                     style="object-fit: cover;">
-            </div>
+                    <div class="d-md-none text-center mb-3">
+                        <h5 class="mb-2">Learn More</h5>
+                        <button class="btn btn-custom2 btn-sm"
+                                type="button"
+                                id="aboutIntroToggleBtn"
+                                aria-controls="aboutIntroText">
+                            View
+                        </button>
+                    </div>
 
-            <!-- t-hug centered BELOW team photo -->
-            <div class="mt-3 d-flex justify-content-center">
-                <div class="col-12 col-md-10">
-                    <div class="p-3 bg-white rounded shadow">
-                        <div class="ratio ratio-4x3 rounded overflow-hidden">
-                            <img th:src="@{/images/t-hug.jpg}"
-                                 alt="Happy dog hugging"
-                                 class="w-100 h-100"
-                                 style="object-fit: cover; display:block;">
+                    <div id="aboutIntroText" class="collapse d-md-block mb-3">
+                        <div class="about-intro-card">
+                            <p class="about-intro-text">
+                                Hi! Welcome to the Fremont Dog Plaza, we are happy you found your way here. Our mission is simple:
+                                facilitate a safe environment for you and your dog. Every day we strive to keep small and large play groups
+                                separate and safe. We offer boarding, daycare, and grooming services, and our model is not centered around
+                                staying only at the facility — we take dogs on group walks too, walking every dog in our facility every day.
+                                These walks may last 45 minutes or up to 3 hours depending on the weather and the activity level of the dogs.
+                            </p>
+
+                            <p class="about-intro-text">
+                                After dogs have been active, we offer naptime every day from 3 PM to 6 PM for the health of your dog.
+                                This helps ensure they are not overworked or stressed by intense play. During active playtime, dogs may become stinky,
+                                and when a dog plays with us enough days each month, we may offer a free grooming. You can accept or decline the grooming,
+                                but dogs with excessive smell or poor hygiene may be turned away from care for the health and safety of other dogs.
+                            </p>
+
+                            <p class="about-intro-text">
+                                Fremont Dog Plaza began in 2016 under the name Dog Dude Taylors. Taylor originally only wanted to spend more time
+                                with his dog, Scout, and began walking and boarding dogs in Seattle’s CapHill neighborhood. Scout and Taylor walked
+                                together for almost two decades. After years of walking, meeting clients, and building memories, Scout passed away in
+                                August 2021 at the age of 18. Taylor continues that mission today through Fremont Dog Plaza, working with dogs,
+                                growing the business, and building a positive place for dogs and their families.
+                            </p>
+
+                            <p class="about-intro-text">
+                                Along our journey we always look to improve and find new ways to better impact the life of your dog. If you have suggestions,
+                                concerns, or services you’d like us to offer, please let us know. We look forward to hearing from you soon.
+                            </p>
                         </div>
                     </div>
+
+
+                    <h3 class="about-section-title">Hours of Operation</h3>
+                    <p class="about-detail"><strong>Monday to Sunday:</strong> 5:30 AM – 7:30 PM</p>
+                    <p class="about-detail"><strong>Daycare:</strong> 6 AM – 3 PM</p>
+                    <p class="about-detail"><strong>Daycare + Evenings:</strong> 6 AM – 8 PM</p>
+                    <p class="about-detail"><strong>Daycare + After Hours:</strong> 6 AM – 11 PM</p>
+                    <p class="about-detail"><strong>Boarding:</strong> 24/7 with staff supervision</p>
+                    <p class="about-detail"><strong>Additional Services:</strong> Contact us or ask our staff.</p>
+
+                    <h3 class="about-section-title">Contact Us</h3>
+                    <p class="about-detail"><strong>Email:</strong> fremontdogplaza@gmail.com</p>
+                    <p class="about-detail"><strong>Phone:</strong> (206) 476-6117</p>
+                    <p class="about-detail mb-0"><strong>Address:</strong> 10506 Fremont Avenue North, Seattle, WA 98133</p>
+                </div>
+            </div>
+
+            <div class="col-lg-6 d-flex">
+                <div class="row g-3 w-100">
+
+                    <div class="col-12">
+                        <div class="about-media-card">
+                            <img th:src="@{/images/team.webp}"
+                                 alt="Our Team"
+                                 class="about-media-img about-media-img-tall">
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="about-media-card">
+                            <img th:src="@{/images/t-hug.webp}"
+                                 alt="Happy dog hugging"
+                                 class="about-media-img about-media-img-mid">
+                        </div>
+                    </div>
+
+                    <!-- NEW IMAGE 1 -->
+                    <div class="col-12">
+                        <div class="about-media-card">
+                            <img th:src="@{/images/open-field.webp}"
+                                 alt="Dogs playing in open field"
+                                 class="about-media-img about-media-img-mid">
+                        </div>
+                    </div>
+
+                    <!-- NEW IMAGE 2 -->
+                    <div class="col-12">
+                        <div class="about-media-card">
+                            <img th:src="@{/images/o.webp}"
+                                 alt="Dog enjoying outdoor space"
+                                 class="about-media-img about-media-img-mid">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+
+            <div class="col-12 col-lg-6">
+                <div class="about-media-card">
+                    <img th:src="@{/images/dogs-in-pool.webp}"
+                         alt="Dogs in pool"
+                         class="about-media-img about-media-img-mid">
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <div class="about-media-card">
+                    <img th:src="@{/images/treats.webp}"
+                         alt="Dog treats"
+                         class="about-media-img about-media-img-mid">
                 </div>
             </div>
 
         </div>
-    </div> <!-- ✅ CLOSE the row here -->
 
-    <!-- ✅ Now this is truly full-width under BOTH columns -->
-    <div class="mt-4">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="p-3 bg-white rounded shadow">
-                    <div class="ratio ratio-4x3 rounded overflow-hidden">
-                        <img th:src="@{/images/dogs-in-pool.jpg}"
-                             alt="Dogs in pool"
-                             class="w-100 h-100"
-                             style="object-fit: cover; display:block;">
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="p-3 bg-white rounded shadow">
-                    <div class="ratio ratio-4x3 rounded overflow-hidden">
-                        <img th:src="@{/images/treats.jpg}"
-                             alt="Dog treats"
-                             class="w-100 h-100"
-                             style="object-fit: cover; display:block;">
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
+</section>
 
-</div> <!-- end .container -->
-
-<!-- Scripts -->
 <script th:src="@{/js/custom.js?v=20251103}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
