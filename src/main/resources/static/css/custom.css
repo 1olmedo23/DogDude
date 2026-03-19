@@ -1234,6 +1234,13 @@ body.page-about .about-media-img-grid{
     height: 280px;
 }
 
+body.page-about .home-outline-btn{
+    padding: .28rem 1rem;
+    font-size: .82rem;
+    line-height: 1.2;
+    border-radius: 999px;
+}
+
 /* ===============================
    About page mobile polish
    =============================== */

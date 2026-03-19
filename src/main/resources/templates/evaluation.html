@@ -16,17 +16,8 @@
             <div class="eval-hero">
                 <h1 class="eval-title">New Client Evaluation</h1>
 
-                <div class="d-md-none text-center mb-3">
-                    <h5 class="mb-2">Before you start</h5>
-                    <button class="btn btn-outline-primary btn-sm"
-                            type="button"
-                            id="evalIntroToggleBtn"
-                            aria-controls="evalIntro">
-                        View
-                    </button>
-                </div>
 
-                <div id="evalIntro" class="collapse d-md-block mt-2 mt-md-0">
+                <div class="mt-2 mt-md-0">
                     <div class="eval-intro-card">
                         <h5 class="eval-intro-heading">Welcome new clients!</h5>
                         <p class="eval-intro-text">
@@ -227,14 +218,5 @@
     })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    setupPersistentCollapse({
-        collapseId: 'evalIntro',
-        buttonId: 'evalIntroToggleBtn',
-        storageKey: 'evalIntroCollapsed',
-        applyOnMaxWidth: 767,
-        defaultCollapsed: true
-    });
-</script>
 </body>
 </html>

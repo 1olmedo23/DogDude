@@ -15,19 +15,10 @@
         <div class="services-hero-shell text-center">
             <h1 class="services-title">Our Services</h1>
 
-            <div class="d-md-none text-center mb-3">
-                <h5 class="mb-2">Before You Book</h5>
-                <button class="btn btn-custom2 btn-sm"
-                        type="button"
-                        id="servicesIntroToggleBtn"
-                        aria-controls="servicesIntro">
-                    View
-                </button>
-            </div>
 
-            <div id="servicesIntro" class="collapse d-md-block mt-2">
+            <div class="mt-2">
                 <p class="services-intro mx-auto mb-4">
-                    Only approved clients can book services. First-time customers, please submit an evaluation form.
+                    Only approved clients can book our services. First-time customers, please submit an evaluation form.
                     If you are a returning customer, please log in to book services.
                 </p>
 
@@ -127,14 +118,5 @@
 
 <script th:src="@{/js/custom.js?v=20251103}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    setupPersistentCollapse({
-        collapseId: 'servicesIntro',
-        buttonId: 'servicesIntroToggleBtn',
-        storageKey: 'servicesIntroCollapsed',
-        applyOnMaxWidth: 767,
-        defaultCollapsed: true
-    });
-</script>
 </body>
 </html>
