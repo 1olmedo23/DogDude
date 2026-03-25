@@ -1376,7 +1376,7 @@
                                                             <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" th:disabled="${weekPaid}">
                                                             <label class="form-check-label">Pay in advance</label>
                                                             <div class="form-text" data-prepay-msg
-                                                                 th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked ≥ 24 hours in advance to qualify.'">
+                                                                 th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked 24 hours in advance to qualify.'">
                                                                 ≥ 24 hours to qualify.
                                                             </div>
                                                         </div>
@@ -1500,20 +1500,19 @@
                                             <div class="form-check mb-2 small" id="bookingFlowAdvanceWrap">
                                                 <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" id="bookingFlowAdvancePay">
                                                 <label class="form-check-label" for="bookingFlowAdvancePay">Pay in advance</label>
-                                                <div class="form-text" id="bookingFlowPrepayMsg">Must be booked ≥ 24 hours in advance to qualify.</div>
+                                                <div class="form-text" id="bookingFlowPrepayMsg">Must be booked 24 hours in advance to qualify.</div>
                                             </div>
 
                                             <div class="form-check mb-2 small" id="bookingFlowMultiWrap">
                                                 <input class="form-check-input" type="checkbox" name="multiDay" value="true" data-multiday id="bookingFlowMultiDay">
                                                 <label class="form-check-label" for="bookingFlowMultiDay">Book multiple days</label>
-                                                <div class="form-text">Turn this on, then tap other days in the calendar to add or remove them.</div>
+                                                <div class="form-text">Click this, then tap other days above or below to add or remove them.</div>
                                             </div>
                                         </div>
 
                                         <div id="multiDayHelper" class="multiday-helper" aria-live="polite">
-                                            <div class="multiday-helper-title">Multi-day mode is on</div>
+                                            <div class="multiday-helper-title">Select other dates</div>
                                             <p class="multiday-helper-text">
-                                                Service selected. Now tap another day above or below to add or remove dates.
                                                 Service will be the same for each day selected.
                                             </p>
                                         </div>
@@ -2315,7 +2314,7 @@
             flowMultiDay.checked = false;
             flowMultiDay.disabled = false;
 
-            flowPrepayMsg.textContent = 'Must be booked ≥ 24 hours in advance to qualify.';
+            flowPrepayMsg.textContent = 'Must be booked 24 hours in advance to qualify.';
 
             boardingOnly.classList.add('d-none');
             daycareOnly.classList.remove('d-none');
@@ -2612,37 +2611,60 @@
             const isDaycare = svcLower.includes('daycare');
             const isAfterHours = svcLower.includes('after hours');
             const isBoarding = svcLower.includes('boarding');
+            const isStandardDaycare = isDaycare && !isAfterHours && !isBoarding;
 
             refs.boardingOnly.classList.toggle('d-none', !isBoarding);
             refs.daycareOnly.classList.toggle('d-none', !isDaycare || isAfterHours);
 
-            if (!isBoarding) refs.flowBoardingNights.value = "1";
+            if (!isBoarding) {
+                refs.flowBoardingNights.value = "1";
+            }
 
-            if (!isDaycare || isAfterHours) return;
+            const wasChecked = refs.flowAdvancePay.checked;
+
+            refs.flowAdvancePay.disabled = true;
+            refs.flowPrepayMsg.textContent = '';
+
+            if (!isStandardDaycare) {
+                refs.flowAdvancePay.checked = false;
+                return;
+            }
+
+            if (!dateStr || !timeStr) {
+                refs.flowAdvancePay.checked = false;
+                refs.flowPrepayMsg.textContent = 'Select a date and time to check advance-pay eligibility.';
+                return;
+            }
 
             try {
                 const res = await fetch(`/booking/week-paid?date=${encodeURIComponent(dateStr)}`, {
                     headers: { 'Accept': 'application/json' }
                 });
 
-                let weekPaid = false;
-                if (res.ok) {
-                    const data = await res.json();
-                    weekPaid = !!data.weekPaid;
+                if (!res.ok) {
+                    throw new Error(`week-paid failed: ${res.status}`);
                 }
 
+                const data = await res.json();
+                const weekPaid = !!data.weekPaid;
+
                 const dt = new Date(`${dateStr}T${timeStr}:00`);
+                if (Number.isNaN(dt.getTime())) {
+                    throw new Error('Invalid booking date/time');
+                }
+
                 const now = new Date();
                 const hrs = (dt.getTime() - now.getTime()) / (1000 * 60 * 60);
                 const eligible = !weekPaid && hrs >= 24;
 
                 refs.flowAdvancePay.disabled = !eligible;
-                if (!eligible && refs.flowAdvancePay.checked) refs.flowAdvancePay.checked = false;
+                refs.flowAdvancePay.checked = eligible ? wasChecked : false;
 
                 refs.flowPrepayMsg.textContent = weekPaid
                     ? 'This week is already paid. Additional daycare bookings are regular rate.'
-                    : (hrs >= 24 ? '' : 'Must be booked ≥ 24 hours in advance to qualify.');
-            } catch {
+                    : (eligible ? '' : 'Must be booked 24 hours in advance to qualify.');
+            } catch (err) {
+                console.error('refreshSharedPrepay failed:', err);
                 refs.flowAdvancePay.disabled = true;
                 refs.flowAdvancePay.checked = false;
                 refs.flowPrepayMsg.textContent = 'Advance-pay eligibility could not be verified. Please try another selection.';
@@ -2733,7 +2755,7 @@
 
             if (!watched) return;
 
-            if (e.target === refs.flowTime || e.target === refs.flowAdvancePay) {
+            if (e.target === refs.flowTime) {
                 await refreshSharedPrepay();
             }
 
