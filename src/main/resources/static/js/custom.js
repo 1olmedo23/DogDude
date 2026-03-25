@@ -439,3 +439,21 @@ window.setupPersistentCollapse = function(opts){
         console && console.warn && console.warn('setupPersistentCollapse error:', e);
     }
 };
+
+function highlightBookingDetails() {
+    const card = document.querySelector('.booking-flow-card');
+    if (!card) return;
+
+    card.classList.add('is-active');
+
+    //  remove highlight after a few seconds
+   // setTimeout(() => {
+        //card.classList.remove('is-active');
+    //}, 4000);
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.svc-btn')) {
+        highlightBookingDetails();
+    }
+});

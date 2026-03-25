@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<!--    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Book a Service</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/custom.css?v=20251103}">
@@ -568,36 +568,147 @@
             opacity:.7;
         }
 
-        @media (max-width: 1199.98px){
+        @media (max-width: 1599.98px){
             .hero-kpis{
                 grid-template-columns:1fr;
             }
+
             .settings-grid{
                 grid-template-columns:repeat(2, minmax(0, 1fr));
             }
+
+            .booking-hero{
+                padding:1.5rem !important;
+            }
+
+            .hero-kpi{
+                padding:1rem 1rem .95rem;
+            }
+
+            .hero-kpi .kpi-value{
+                font-size:1rem;
+                line-height:1.5;
+            }
         }
 
-        @media (max-width: 991.98px){
+        @media (max-width: 1399.98px){
             .calendar-grid{
-                grid-template-columns:repeat(3, 1fr);
+                grid-template-columns:repeat(2, 1fr);
             }
+
             .calendar-label{
                 display:none;
             }
-        }
 
-        @media (max-width: 767.98px){
             .booking-shell{
-                padding-left:.1rem;
-                padding-right:.1rem;
+                max-width:100%;
             }
 
             .booking-hero{
                 border-radius:1.2rem;
             }
 
+            .section-card .section-head,
+            .section-card .section-body,
+            .bookings-wrap .wrap-head,
+            .bookings-wrap .wrap-body{
+                padding:1rem;
+            }
+
+            .planner-banner{
+                padding:1rem !important;
+            }
+
+            .planner-banner .text-compact{
+                max-width:none;
+            }
+
+            .planner-banner p,
+            .planner-banner li,
+            .planner-banner .small,
+            .planner-banner .form-text{
+                font-size:1rem;
+                line-height:1.55;
+            }
+
+            .planner-nav{
+                flex-direction:column;
+                align-items:stretch !important;
+            }
+
+            .planner-nav-btn{
+                width:100%;
+                min-width:0;
+            }
+
+            .booking-flow-body{
+                padding:1rem;
+            }
+
+            .booking-flow-meta{
+                grid-template-columns:1fr;
+                gap:.75rem;
+            }
+
             .dashboard-tabs .nav-item{
                 min-width:calc(50% - .4rem);
+            }
+
+            .bookings-wrap h3{
+                font-size:1.35rem;
+            }
+        }
+
+        @media (max-width: 767.98px){
+            .booking-shell{
+                padding-left:.15rem;
+                padding-right:.15rem;
+            }
+
+            .booking-hero{
+                padding:1.1rem !important;
+                border-radius:1.1rem;
+            }
+
+            #pageTitle{
+                font-size:1.8rem !important;
+                line-height:1.1;
+                margin-bottom:.75rem !important;
+            }
+
+            #pageDescription{
+                font-size:1rem !important;
+                line-height:1.55;
+            }
+
+            .hero-kpis{
+                gap:.75rem;
+            }
+
+            .hero-kpi{
+                padding:.85rem .9rem;
+                border-radius:.9rem;
+            }
+
+            .hero-kpi .kpi-label{
+                font-size:.74rem;
+            }
+
+            .hero-kpi .kpi-value{
+                font-size:.95rem;
+                line-height:1.45;
+            }
+
+            .dashboard-tabs{
+                gap:.5rem;
+                padding:.35rem;
+                border-radius:1rem;
+            }
+
+            .dashboard-tabs .nav-link{
+                padding:.8rem .9rem;
+                font-size:.95rem;
+                text-align:center;
             }
 
             .calendar-grid{
@@ -608,60 +719,345 @@
             .day-tile{
                 min-height:unset;
                 padding:.9rem;
+                border-radius:.9rem;
+            }
+
+            .day-tile .tile-head{
+                padding-bottom:.45rem;
+                margin-bottom:.65rem;
+            }
+
+            .day-tile .tile-head strong{
+                font-size:.98rem;
+                line-height:1.3;
+            }
+
+            .service-actions{
+                gap:.45rem;
+            }
+
+            .svc-btn.btn-sm{
+                font-size:.95rem;
+                padding:.7rem .85rem;
+                line-height:1.2;
+                white-space:normal;
+            }
+
+            .booking-flow-head{
+                padding:.9rem 1rem;
+            }
+
+            .booking-flow-body{
+                padding:1rem;
+            }
+
+            .booking-flow-value{
+                font-size:.96rem;
+                line-height:1.4;
+            }
+
+            .booking-flow-card .form-label.small,
+            .day-form .form-label.small{
+                font-size:.95rem;
+            }
+
+            .booking-flow-card .form-select,
+            .booking-flow-card .form-control,
+            .day-form .form-select.form-select-sm,
+            .day-form .form-control.form-control-sm{
+                font-size:1rem;
+                padding:.65rem .8rem;
+                min-height:44px;
+                height:auto;
+            }
+
+            .booking-flow-card .btn,
+            .planner-nav-btn,
+            .bookings-wrap .btn,
+            .uploads-card-grid .btn{
+                min-height:44px;
             }
 
             .settings-grid{
                 grid-template-columns:1fr;
             }
 
-            .planner-nav{
-                flex-direction:column;
-                align-items:stretch!important;
+            .booking-category-head{
+                padding:.9rem .95rem .8rem;
             }
 
-            .planner-nav-btn{
-                width:100%;
+            .booking-category-body{
+                padding:.9rem;
+            }
+
+            .list-group-modern .list-group-item{
+                padding:.9rem;
+            }
+
+            .table-responsive table{
+                font-size:.92rem;
             }
         }
 
         @media (max-width: 575.98px){
-            .dashboard-tabs{
-                gap:.5rem;
-                padding:.35rem;
-                border-radius:1rem;
-            }
-
             .dashboard-tabs .nav-item{
                 min-width:100%;
             }
 
             .dashboard-tabs .nav-link{
-                padding:.85rem .95rem;
                 text-align:left;
             }
 
-            .hero-eyebrow{
-                font-size:.76rem;
+            .planner-banner h5{
+                font-size:1.05rem;
             }
 
-            .day-form-panel{
-                padding:.8rem;
+            .planner-banner p{
+                font-size:.98rem;
+                line-height:1.55;
+            }
+
+            .calendar-grid{
+                grid-template-columns:1fr;
+                gap:.75rem;
+            }
+
+            .calendar-cell .badge-booked{
+                margin-left:0;
+            }
+
+            .day-tile{
+                padding:.85rem;
+            }
+
+            .day-tile .tile-head strong{
+                font-size:1rem;
             }
 
             .svc-btn.btn-sm{
-                font-size:.98rem;
-                padding:.65rem .9rem;
+                width:100%;
+                font-size:.96rem;
+                padding:.75rem .9rem;
             }
 
-            .day-form .form-select.form-select-sm,
-            .day-form .form-control.form-control-sm{
-                font-size:1rem;
-                padding:.55rem .75rem;
-                height:auto;
+            .booking-flow-head .btn{
+                width:100%;
+            }
+
+            .booking-flow-body .d-flex.align-items-center.justify-content-between{
+                flex-direction:column;
+                align-items:stretch !important;
+            }
+
+            .booking-flow-body .d-flex.align-items-center.justify-content-between .btn{
+                width:100%;
+            }
+
+            .quote-pill{
+                width:100%;
+                justify-content:center;
+                margin-right:0;
+            }
+
+            .bookings-wrap .list-group-item{
+                padding:.85rem .9rem;
             }
 
             body{
                 scroll-padding-top:64px;
+            }
+        }
+
+        /* ===============================
+   Mobile UX Polish (Booking Page)
+   =============================== */
+
+        @media (max-width: 767.98px){
+
+            /* Make important sections breathe */
+            .planner-banner,
+            .section-card,
+            .booking-flow-card,
+            .bookings-wrap{
+                margin-bottom: .9rem;
+            }
+
+            /* Make instruction text easier to scan */
+            .planner-banner ul{
+                padding-left: 1rem;
+                margin-bottom: .5rem;
+            }
+
+            .planner-banner li{
+                margin-bottom: .4rem;
+            }
+
+            /* Highlight pricing blocks more clearly */
+            .planner-banner{
+                border-radius: 1rem;
+                box-shadow: 0 4px 12px rgba(0,0,0,.06);
+            }
+
+            /* Make day tiles feel more tappable */
+            .day-tile{
+                transition: transform .12s ease, box-shadow .12s ease;
+            }
+
+            .day-tile:active{
+                transform: scale(.98);
+                box-shadow: 0 3px 10px rgba(0,0,0,.12);
+            }
+
+            /* Better spacing between service buttons */
+            .service-actions{
+                margin-top: .5rem;
+            }
+
+            /* Improve readability of selected state */
+            .day-tile.is-selected{
+                box-shadow: 0 0 0 2px rgba(13,110,253,.25);
+            }
+
+            /* Improve quote pill visibility */
+            .quote-pill{
+                font-size: .95rem;
+                padding: .55rem .8rem;
+                border-radius: .8rem;
+            }
+
+            /* Make headings less cramped */
+            h2, h3, h4{
+                line-height: 1.25;
+            }
+
+            /* Reduce visual clutter in cards */
+            .section-card,
+            .booking-flow-card{
+                border-radius: 1rem;
+            }
+
+            /* Slightly bigger tap targets overall */
+            button,
+            .btn{
+                letter-spacing: .2px;
+            }
+        }
+
+        /* ===============================
+   Booking Details Highlight
+   =============================== */
+
+        .booking-flow-card.is-active {
+            border: 2px solid rgba(13,110,253,.35);
+            box-shadow: 0 8px 24px rgba(13,110,253,.15);
+            transform: translateY(-2px);
+            transition: all .2s ease;
+        }
+
+        /* subtle pulse when activated */
+        .booking-flow-card.is-active {
+            animation: bookingGlow .4s ease;
+        }
+
+        @keyframes bookingGlow {
+            0% {
+                box-shadow: 0 0 0 rgba(13,110,253,0);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(13,110,253,.08);
+            }
+            100% {
+                box-shadow: 0 8px 24px rgba(13,110,253,.15);
+            }
+        }
+
+        .booking-flow-card.is-active {
+            border: 2px solid rgba(13, 22, 255, 0.51);
+            box-shadow: 0 8px 24px rgba(13,110,253,.15);
+            transform: translateY(-2px);
+            transition: all .2s ease;
+        }
+
+        /* ===============================
+   Multi-day guidance state
+   =============================== */
+
+        .multiday-helper{
+            display:none;
+            border:1px solid rgba(13,110,253,.16);
+            background:linear-gradient(180deg, #f5f9ff 0%, #eef5ff 100%);
+            color:#0b4a6f;
+            border-radius:.95rem;
+            padding:.85rem 1rem;
+            margin-bottom:1rem;
+            box-shadow:0 10px 24px rgba(13,110,253,.08);
+        }
+
+        .multiday-helper.is-visible{
+            display:block;
+        }
+
+        .multiday-helper-title{
+            font-size:.82rem;
+            font-weight:800;
+            letter-spacing:.04em;
+            text-transform:uppercase;
+            margin-bottom:.2rem;
+            color:#0d6efd;
+        }
+
+        .multiday-helper-text{
+            margin:0;
+            font-size:.95rem;
+            line-height:1.5;
+            color:#334155;
+        }
+
+        .page-booking.multiday-guidance-active .svc-btn{
+            opacity:.45;
+            pointer-events:none;
+        }
+
+        .page-booking.multiday-guidance-active .svc-btn.active{
+            opacity:1;
+        }
+
+        .page-booking.multiday-guidance-active .day-tile{
+            cursor:pointer;
+        }
+
+        .page-booking.multiday-guidance-active .day-tile::after{
+            content:"Tap here to add";
+            display:block;
+            margin-top:.7rem;
+            padding:.45rem .6rem;
+            border:1px dashed rgba(13,110,253,.22);
+            border-radius:.7rem;
+            background:rgba(13,110,253,.04);
+            color:#0d6efd;
+            font-size:.8rem;
+            font-weight:700;
+            text-align:center;
+        }
+
+        .page-booking.multiday-guidance-active .day-tile.is-selected::after{
+            content:"Selected — tap again to remove";
+            color:#0b7285;
+            border-color:rgba(11,114,133,.25);
+            background:rgba(11,114,133,.05);
+        }
+
+        .page-booking.multiday-guidance-active .day-tile.is-booked::after{
+            display:none;
+        }
+
+        @media (max-width: 575.98px){
+            .multiday-helper-text{
+                font-size:.96rem;
+            }
+
+            .page-booking.multiday-guidance-active .day-tile::after{
+                font-size:.84rem;
             }
         }
     </style>
@@ -780,10 +1176,10 @@
                                 </p>
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Notes</u></h4>
-                                <p class="mb-1">When you pay in advance for a week, any bookings made after are counted as regular rate for that week.</p>
+                                <p class="mb-1">When you pay in advance for a week, any bookings made after payment are counted as regular rate for that week.</p>
                                 <p class="mb-1">Daycare booked within 24 hours of drop off will not count toward the discounted rate.</p>
                                 <p class="mb-1">Discounted boarding rates are still upheld even if booked within 24 hours.</p>
-                                <p class="mb-1">Payment will be collected separately via phone or in person.</p>
+                                <p class="mb-1"><strong>Payment</strong> will be collected separately via phone or in person.</p><br>
                                 <p class="mb-3"><strong>A week is Monday through Sunday.</strong></p>
 
                                 <p class="mb-3">
@@ -793,9 +1189,9 @@
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Cancellations</u></h4>
                                 <p class="mb-1">You can cancel at any time.</p>
-                                <p class="mb-1">Any cancellations made after payment will be counted toward redeemable tickets accepted up to 30 days after cancellation.</p>
-                                <p class="mb-1">Tickets will be automatically applied when booking future services.</p>
-                                <p class="mb-0"><strong>Boarding</strong> cancellations must be made 72 hours in advance.</p>
+                                <p class="mb-1">Any cancellations made after payment will be automatically credited for next service if within 30 days.</p>
+                                <p class="mb-1">Credit will expire after 30 days.</p>
+                                <p class="mb-0"><strong>Boarding cancellations </strong>must be made 72 hours in advance.</p>
                             </div>
                         </div>
                     </section>
@@ -1112,6 +1508,14 @@
                                                 <label class="form-check-label" for="bookingFlowMultiDay">Book multiple days</label>
                                                 <div class="form-text">Turn this on, then tap other days in the calendar to add or remove them.</div>
                                             </div>
+                                        </div>
+
+                                        <div id="multiDayHelper" class="multiday-helper" aria-live="polite">
+                                            <div class="multiday-helper-title">Multi-day mode is on</div>
+                                            <p class="multiday-helper-text">
+                                                Service selected. Now tap another day above or below to add or remove dates.
+                                                Service will be the same for each day selected.
+                                            </p>
                                         </div>
 
                                         <div id="bookingFlowSelectedDatesSummary" class="form-text mb-3">Selected dates: —</div>
@@ -1716,7 +2120,7 @@
                                     <input type="text" class="form-control" name="displayName" placeholder="Rabies Vaccine">
                                 </div>
                                 <div class="col-lg-4">
-                                    <label class="form-label">Expiration date (If any)</label>
+                                    <label class="form-label">Expiration date</label>
                                     <input type="date" class="form-control" name="expirationDate">
                                 </div>
                                 <div class="col-12">
@@ -1838,6 +2242,7 @@
         const flowAdvanceWrap = document.getElementById('bookingFlowAdvanceWrap');
         const flowMultiWrap = document.getElementById('bookingFlowMultiWrap');
         const flowSelectedDatesSummary = document.getElementById('bookingFlowSelectedDatesSummary');
+        const multiDayHelper = document.getElementById('multiDayHelper');
         const closeBtn = document.getElementById('bookingFlowCloseBtn');
 
         const boardingOnly = document.querySelector('.booking-flow-boarding-only');
@@ -1845,7 +2250,7 @@
 
         if (!flowCard || !flowForm || !flowServiceInput || !flowDateInput || !flowTime || !flowDogCount ||
             !flowBoardingNights || !flowAdvancePay || !flowPrepayMsg || !flowMultiDay ||
-            !flowAdvanceWrap || !flowMultiWrap || !flowSelectedDatesSummary || !closeBtn ||
+            !flowAdvanceWrap || !flowMultiWrap || !flowSelectedDatesSummary || !multiDayHelper || !closeBtn ||
             !flowDate || !flowService || !flowEstimate || !flowQuote || !boardingOnly || !daycareOnly) {
             return;
         }
@@ -1867,11 +2272,27 @@
 
             if (!dates.length) {
                 flowSelectedDatesSummary.textContent = 'Selected dates: —';
+                flowDate.textContent = '—';
                 return;
             }
 
-            const pretty = dates.map(formatIsoDate).join(', ');
+            const pretty = dates.map(formatIsoDate).join(' - ');
             flowSelectedDatesSummary.textContent = 'Selected dates: ' + pretty;
+            flowDate.textContent = pretty;
+        }
+
+        function syncMultiDayGuidance() {
+            const isOn = !!flowMultiDay.checked && !flowMultiDay.disabled;
+
+            document.body.classList.toggle('multiday-guidance-active', isOn);
+            multiDayHelper.classList.toggle('is-visible', isOn);
+
+            setTimeout(() => {
+                flowCard.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }, 120);
         }
 
         function resetFlowCard() {
@@ -1904,7 +2325,9 @@
 
             updateSelectedDatesSummary();
 
-            /* ---------- NEW: clear tile selection ---------- */
+            syncMultiDayGuidance();
+
+            /* ---------- Clear tile selection ---------- */
 
             document.querySelectorAll('.day-tile.is-selected').forEach(tile => {
                 tile.classList.remove('is-selected');
@@ -1952,6 +2375,8 @@
             flowMultiDay.disabled = false;
             flowPrepayMsg.textContent = 'Checking advance-pay eligibility...';
 
+            syncMultiDayGuidance();
+
             const svcLower = service.toLowerCase();
             const isBoarding = svcLower.includes('boarding');
             const isDaycare = svcLower.includes('daycare');
@@ -1988,6 +2413,9 @@
             } catch {}
         });
 
+        flowMultiDay.addEventListener('change', syncMultiDayGuidance);
+        syncMultiDayGuidance();
+
         window.bookingFlowRefs = {
             flowCard,
             flowDate,
@@ -2006,6 +2434,7 @@
             flowAdvanceWrap,
             flowMultiWrap,
             flowSelectedDatesSummary,
+            multiDayHelper,
             boardingOnly,
             daycareOnly,
             updateSelectedDatesSummary,
@@ -2159,6 +2588,16 @@
             } else {
                 refs.flowMultiDay.disabled = false;
             }
+
+            if (typeof refs.updateSelectedDatesSummary === "function") {
+                refs.updateSelectedDatesSummary();
+            }
+
+            if (refs.multiDayHelper) {
+                const isOn = !!refs.flowMultiDay.checked && !refs.flowMultiDay.disabled;
+                document.body.classList.toggle('multiday-guidance-active', isOn);
+                refs.multiDayHelper.classList.toggle('is-visible', isOn);
+            }
         }
 
         async function refreshSharedPrepay() {
@@ -2311,6 +2750,7 @@
                 selectedDates.clear();
                 clearAllTileSelections();
                 setEstimate("Est. —");
+                document.body.classList.remove('multiday-guidance-active');
             }
         });
     })();
