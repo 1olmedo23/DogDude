@@ -1682,16 +1682,7 @@
                                     </select>
                                 </div>
 
-                                <div class="col-lg-4 d-flex align-items-end">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true"
-                                               id="sfAdvancePay"
-                                               th:checked="${hasSetForgetPlan and setForgetPlan.wantsAdvancePay}">
-                                        <label class="form-check-label" for="sfAdvancePay">
-                                            Request advance-pay pricing when eligible
-                                        </label>
-                                    </div>
-                                </div>
+                                <input type="hidden" name="wantsAdvancePay" value="true">
                             </div>
 
                             <div class="soft-panel mb-4">
@@ -1913,9 +1904,9 @@
                                                               th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
                                                             est.
                                                         </span>
-                                                        <span class="badge bg-secondary-subtle text-secondary ms-2"
-                                                              th:if="${b.dogCount != null and b.dogCount > 1}"
-                                                              th:text="'×' + ${b.dogCount}">×2</span>
+                                                        <span class="badge rounded-pill text-bg-light border"
+                                                              th:if="${b.dogCount > 1}"
+                                                              th:text="${b.dogCount} + ' Dogs'">2</span>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">
@@ -1965,9 +1956,9 @@
                                                               th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
                                                             est.
                                                         </span>
-                                                        <span class="badge bg-secondary-subtle text-secondary ms-2"
-                                                              th:if="${b.dogCount != null and b.dogCount > 1}"
-                                                              th:text="'×' + ${b.dogCount}">×2</span>
+                                                        <span class="badge rounded-pill text-bg-light border"
+                                                              th:if="${b.dogCount > 1}"
+                                                              th:text="${b.dogCount} + ' Dogs'">2</span>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">
@@ -2017,9 +2008,9 @@
                                                               th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
                                                             est.
                                                         </span>
-                                                        <span class="badge bg-secondary-subtle text-secondary ms-2"
-                                                              th:if="${b.dogCount != null and b.dogCount > 1}"
-                                                              th:text="'×' + ${b.dogCount}">×2</span>
+                                                        <span class="badge rounded-pill text-bg-light border"
+                                                              th:if="${b.dogCount > 1}"
+                                                              th:text="${b.dogCount} + ' Dogs'">2</span>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">
@@ -2064,9 +2055,9 @@
                                                         <span th:if="${b.quotedRateAtLock != null}"
                                                               class="badge bg-light text-dark ms-2"
                                                               th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
-                                                        <span class="badge bg-secondary-subtle text-secondary ms-2"
-                                                              th:if="${b.dogCount != null and b.dogCount > 1}"
-                                                              th:text="'×' + ${b.dogCount}">×2</span>
+                                                        <span class="badge rounded-pill text-bg-light border"
+                                                              th:if="${b.dogCount > 1}"
+                                                              th:text="${b.dogCount} + ' Dogs'">2</span>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">

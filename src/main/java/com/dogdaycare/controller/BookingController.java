@@ -536,15 +536,15 @@ public class BookingController {
                         "advanceEligible", true, // overall: some dates may be eligible; details are in note
                         "wantsAdvancePayApplied", wantsAdvancePay,
                         "weekAlreadyPaid", false, // varies by week; we keep it simple here
-                        "note", "Multi-day daycare quote (" + dates.size() + " day(s)) × " + dogCount
+                        "note", "Multi-day daycare quote (" + dates.size() + " day(s))"
                 );
             }
             amount = pricingService.previewDaycarePrice(
                     customer, date, serviceType, advanceEligible, wantsAdvancePayFinal
             );
             note = wantsAdvancePayFinal
-                    ? "Daycare prepay preview × " + dogCount
-                    : (advanceEligible ? "Daycare immediate preview × " + dogCount : "Daycare (not prepay-eligible) × " + dogCount);
+                    ? "Daycare prepay preview"
+                    : (advanceEligible ? "Daycare immediate preview" : "Daycare (not prepay-eligible)");
 
             var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, RoundingMode.HALF_UP);
 
