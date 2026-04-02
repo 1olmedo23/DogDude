@@ -659,6 +659,24 @@
             }
         }
 
+        /* Fix planner nav buttons for tablet / small desktop */
+        @media (min-width: 992px) and (max-width: 1399.98px){
+
+            .planner-nav{
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 0.5rem;
+            }
+
+            .planner-nav-btn{
+                width: auto;
+                min-width: 130px;
+                padding: 0.4rem 0.7rem;
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+        }
+
         @media (max-width: 767.98px){
             .booking-shell{
                 padding-left:.15rem;
@@ -1203,7 +1221,7 @@
                                 <p class="section-subtitle">Choose a service to open booking actions.</p>
                             </div>
                             <div class="d-flex gap-2 flex-column flex-sm-row">
-                                <a class="btn btn-outline-secondary planner-nav-btn" th:href="@{|/booking?start=${prevStart}|}">← Previous 2 Weeks</a>
+                                <a class="btn btn-outline-secondary planner-nav-btn" th:href="@{|/booking?start=${prevStart}|}">← Prev 2 Weeks</a>
                                 <a class="btn btn-outline-secondary planner-nav-btn" th:href="@{|/booking?start=${nextStart}|}">Next 2 Weeks →</a>
                             </div>
                         </div>
@@ -1216,14 +1234,14 @@
                                     <div class="alert alert-static week-banner text-center"
                                          th:classappend="${week1Paid} ? ' alert-info' : ' alert-secondary'">
                                         <div th:if="${!week1Paid}">
-                                            Week:
+                                            <!-- Week: -->
                                             <span th:text="${#temporals.format(week1Monday, 'MMM d')}"></span>
                                             –
                                             <span th:text="${#temporals.format(week1Monday.plusDays(6), 'MMM d')}"></span>
                                         </div>
                                         <div th:if="${week1Paid}">
                                             <strong>Week planned:</strong> You’ve already paid for this week’s daycare bundle. Additional daycare this week is regular rate.<br/>
-                                            Week:
+                                            <!-- Week: -->
                                             <span th:text="${#temporals.format(week1Monday, 'MMM d')}"></span>
                                             –
                                             <span th:text="${#temporals.format(week1Monday.plusDays(6), 'MMM d')}"></span>
@@ -1534,14 +1552,14 @@
                                     <div class="alert alert-static week-banner text-center"
                                          th:classappend="${week2Paid} ? ' alert-info' : ' alert-secondary'">
                                         <div th:if="${!week2Paid}">
-                                            Week:
+                                            <!-- Week: -->
                                             <span th:text="${#temporals.format(week2Monday, 'MMM d')}"></span>
                                             –
                                             <span th:text="${#temporals.format(week2Monday.plusDays(6), 'MMM d')}"></span>
                                         </div>
                                         <div th:if="${week2Paid}">
                                             <strong>Week planned:</strong> You’ve already paid for this week’s daycare bundle. Additional daycare this week is regular rate.<br/>
-                                            Week:
+                                            <!-- Week: -->
                                             <span th:text="${#temporals.format(week2Monday, 'MMM d')}"></span>
                                             –
                                             <span th:text="${#temporals.format(week2Monday.plusDays(6), 'MMM d')}"></span>
