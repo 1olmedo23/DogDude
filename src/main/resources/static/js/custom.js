@@ -86,6 +86,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value);
+}
+
 // ---------- Bookings (Admin) ----------
 function groupAndRenderAdminBookings(rows) {
     const tbody = document.getElementById('bookingTableBody');
@@ -96,15 +109,19 @@ function groupAndRenderAdminBookings(rows) {
     const csrfInput = document.querySelector('input[name="_csrf"]');
     const csrfToken = csrfInput ? csrfInput.value : '';
 
-    // NEW: include After Hours as its own group
+    const adjustmentOptions = [
+        -50, -45, -40, -35, -30, -25, -20, -15, -10, -5,
+        0,
+        5, 10, 15, 20, 25, 30, 35, 40, 45, 50
+    ];
+
     const groups = {
         'Daycare (6 AM - 3 PM)': [],
         'Daycare (6 AM - 8 PM)': [],
-        'Daycare After Hours (6 AM - 11 PM)': [], // NEW
+        'Daycare After Hours (6 AM - 11 PM)': [],
         'Boarding': []
     };
 
-    // Group rows by service
     rows.forEach(r => {
         const svc = (r.serviceType || '').toLowerCase();
         if (svc.includes('daycare') && r.serviceType.includes('6 AM - 3 PM')) {
@@ -112,38 +129,38 @@ function groupAndRenderAdminBookings(rows) {
         } else if (svc.includes('daycare') && r.serviceType.includes('6 AM - 8 PM')) {
             groups['Daycare (6 AM - 8 PM)'].push(r);
         } else if (svc.includes('daycare') && svc.includes('after hours')) {
-            groups['Daycare After Hours (6 AM - 11 PM)'].push(r); // NEW
+            groups['Daycare After Hours (6 AM - 11 PM)'].push(r);
         } else if (svc.includes('boarding')) {
             groups['Boarding'].push(r);
         }
     });
 
-    // Render groups in a stable order
     const renderOrder = [
         'Daycare (6 AM - 3 PM)',
         'Daycare (6 AM - 8 PM)',
-        'Daycare After Hours (6 AM - 11 PM)', // NEW
+        'Daycare After Hours (6 AM - 11 PM)',
         'Boarding'
     ];
 
     for (const title of renderOrder) {
         const list = groups[title];
 
-        // Group header row
-        tbody.insertAdjacentHTML('beforeend',
-            `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`);
+        tbody.insertAdjacentHTML(
+            'beforeend',
+            `<tr class="table-light"><td colspan="6" class="fw-bold">${title}</td></tr>`
+        );
 
         if (!list || list.length === 0) {
-            tbody.insertAdjacentHTML('beforeend',
-                `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`);
+            tbody.insertAdjacentHTML(
+                'beforeend',
+                `<tr><td colspan="6" class="text-muted">No bookings.</td></tr>`
+            );
             continue;
         }
 
-        // Sort by time (nulls last)
         list.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
         list.forEach(b => {
-            // status badge
             let badgeHtml = '';
             if (b.status && b.status.toUpperCase() === 'CANCELED') {
                 badgeHtml = ` <span class="badge bg-danger ms-1">Canceled</span>`;
@@ -153,52 +170,111 @@ function groupAndRenderAdminBookings(rows) {
                 badgeHtml = ` <span class="badge bg-info text-dark ms-1" title="Customer opted to pay in advance">Prepay</span>`;
             }
 
-            // price chip (quoted rate if present)
-            const priceTag = (b.liveAmount != null)
-                ? ` <span class="text-muted ms-1">(${formatCurrency(b.liveAmount)})</span>`
-                : (b.quotedRateAtLock
-                    ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
-                    : '');
-
-            // After Hours label add-on (always show $90 Flat)
             const isAfterHours = (b.serviceType || '').toLowerCase().includes('after hours');
             const afterHoursChip = isAfterHours
                 ? ` <span class="badge bg-info text-dark ms-1">$90 Flat</span>`
                 : '';
 
-            const markPaidForm = (!b.paid && (!b.status || b.status.toUpperCase() !== 'CANCELED')) ? `
-<form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline ms-2"
-      onsubmit="return confirm('Mark this booking as PAID?');">
-  ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
-  <button class="btn btn-sm btn-outline-success btn-mark-paid">Mark Paid (day)</button>
-</form>` : '';
-
-            // NEW: dog ×N badge (only when > 1)
             const dogBadge = (b.dogCount && b.dogCount > 1)
                 ? ` <span class="badge bg-secondary-subtle text-secondary ms-1">×${b.dogCount}</span>`
                 : '';
 
+            const finalAmountChip = (b.liveAmount != null)
+                ? ` <span class="text-muted ms-1">(${formatCurrency(b.liveAmount)})</span>`
+                : (b.quotedRateAtLock
+                    ? ` <span class="text-muted ms-1">(${formatCurrency(b.quotedRateAtLock)})</span>`
+                    : '');
+
+            const adjAmount = Number(b.manualAdjustmentAmount || 0);
+            const hasAdjustment = adjAmount !== 0;
+            const adjReason = (b.manualAdjustmentReason || '').trim();
+
+            let adjustmentSummary = '';
+            if (hasAdjustment) {
+                const sign = adjAmount > 0 ? '+' : '';
+                adjustmentSummary = `
+                    <div class="small mt-2">
+                        <span class="badge ${adjAmount > 0 ? 'bg-warning text-dark' : 'bg-secondary'}">
+                            Adj: ${sign}${formatCurrency(adjAmount)}
+                        </span>
+                        ${adjReason ? `<div class="text-muted mt-1">Reason: ${escapeHtml(adjReason)}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            const optionsHtml = adjustmentOptions.map(v => {
+                const selected = (v === adjAmount) ? 'selected' : '';
+                const label = v > 0 ? `+${v}` : `${v}`;
+                return `<option value="${v}" ${selected}>${label}</option>`;
+            }).join('');
+
+            const adjustmentForm = (b.status && b.status.toUpperCase() !== 'CANCELED') ? `
+                <form method="POST" action="/admin/bookings/adjust/${b.id}" class="mt-2 admin-adjust-form">
+                    ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label form-label-sm small mb-1">Adjust</label>
+                            <select name="amount" class="form-select form-select-sm">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label form-label-sm small mb-1">Message</label>
+                            <input
+                                type="text"
+                                name="reason"
+                                maxlength="120"
+                                class="form-control form-control-sm"
+                                placeholder="Late pickup fee"
+                                value="${escapeAttr(adjReason)}">
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            ` : '';
+
+            const markPaidForm = (!b.paid && (!b.status || b.status.toUpperCase() !== 'CANCELED')) ? `
+                <form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline ms-2"
+                      onsubmit="return confirm('Mark this booking as PAID?');">
+                  ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
+                  <button class="btn btn-sm btn-outline-success btn-mark-paid">Mark Paid (day)</button>
+                </form>` : '';
+
+            const cancelForm = (b.status === 'APPROVED') ? `
+                <form method="POST" action="/admin/bookings/cancel/${b.id}">
+                    ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
+                    <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
+                </form>` : '';
+
             const row = `
 <tr>
-  <td>${b.customerName}</td>
-  <td>${b.dogName || 'N/A'}${dogBadge}</td>
-  <td>${b.serviceType}${afterHoursChip}${badgeHtml}${priceTag}${markPaidForm}</td>
-  <td>${b.time || ''}</td>
-  <td>${b.status || ''}</td>
+  <td>${escapeHtml(b.customerName || '')}</td>
+  <td>${escapeHtml(b.dogName || 'N/A')}${dogBadge}</td>
   <td>
-    ${b.status === 'APPROVED' ? `
-      <form method="POST" action="/admin/bookings/cancel/${b.id}">
-        ${csrfToken ? `<input type="hidden" name="_csrf" value="${csrfToken}">` : ''}
-        <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
-      </form>` : ''
-            }
+    <div>
+      <span>${escapeHtml(b.serviceType || '')}</span>
+      ${afterHoursChip}
+      ${badgeHtml}
+      ${finalAmountChip}
+      ${markPaidForm}
+    </div>
+    ${adjustmentSummary}
+    ${adjustmentForm}
   </td>
+  <td>${escapeHtml(b.time || '')}</td>
+  <td>${escapeHtml(b.status || '')}</td>
+  <td>${cancelForm}</td>
 </tr>`;
             tbody.insertAdjacentHTML('beforeend', row);
         });
     }
 
     attachCancelConfirm();
+    attachAdjustmentConfirm();
 }
 
 function fetchBookings() {
@@ -239,6 +315,31 @@ function attachCancelConfirm() {
     document.querySelectorAll('.cancel-booking-btn').forEach(button => {
         button.removeEventListener('click', cancelHandler);
         button.addEventListener('click', cancelHandler);
+    });
+}
+
+function adjustmentHandler(e) {
+    const form = e.currentTarget;
+    const amount = form.querySelector('select[name="amount"]')?.value || '0';
+    const reason = form.querySelector('input[name="reason"]')?.value?.trim() || '';
+
+    let message = 'Save this booking adjustment?';
+
+    if (amount === '0') {
+        message = 'Clear this booking adjustment?';
+    } else {
+        message = `Save adjustment of ${amount > 0 ? '+' : ''}$${Math.abs(Number(amount))}${reason ? ` with message: "${reason}"` : ''}?`;
+    }
+
+    if (!confirm(message)) {
+        e.preventDefault();
+    }
+}
+
+function attachAdjustmentConfirm() {
+    document.querySelectorAll('.admin-adjust-form').forEach(form => {
+        form.removeEventListener('submit', adjustmentHandler);
+        form.addEventListener('submit', adjustmentHandler);
     });
 }
 

@@ -70,6 +70,40 @@ public class Booking {
     @Column(name = "dog_count", nullable = false)
     private Integer dogCount = 1;
 
+    // --- Admin manual adjustment ---
+    @Column(name = "manual_adjustment_amount", precision = 10, scale = 2)
+    private BigDecimal manualAdjustmentAmount;
+
+    @Column(name = "manual_adjustment_reason", length = 120)
+    private String manualAdjustmentReason;
+
+    @Column(name = "manual_adjustment_updated_at")
+    private LocalDateTime manualAdjustmentUpdatedAt;
+
     public Integer getDogCount() { return dogCount; }
     public void setDogCount(Integer dogCount) { this.dogCount = dogCount; }
+
+    public BigDecimal getManualAdjustmentAmount() {
+        return manualAdjustmentAmount;
+    }
+
+    public void setManualAdjustmentAmount(BigDecimal manualAdjustmentAmount) {
+        this.manualAdjustmentAmount = manualAdjustmentAmount;
+    }
+
+    public String getManualAdjustmentReason() {
+        return manualAdjustmentReason;
+    }
+
+    public void setManualAdjustmentReason(String manualAdjustmentReason) {
+        this.manualAdjustmentReason = manualAdjustmentReason;
+    }
+
+    public LocalDateTime getManualAdjustmentUpdatedAt() {
+        return manualAdjustmentUpdatedAt;
+    }
+
+    public void setManualAdjustmentUpdatedAt(LocalDateTime manualAdjustmentUpdatedAt) {
+        this.manualAdjustmentUpdatedAt = manualAdjustmentUpdatedAt;
+    }
 }

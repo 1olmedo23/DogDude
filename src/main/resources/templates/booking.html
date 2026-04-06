@@ -1914,6 +1914,7 @@
                                                               th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
                                                               (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                               th:text="${b.status}">APPROVED</span>
+
                                                         <span class="badge bg-light text-dark ms-2"
                                                               th:if="${b.quotedRateAtLock != null}"
                                                               th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
@@ -1922,9 +1923,28 @@
                                                               th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
                                                             est.
                                                         </span>
+
                                                         <span class="badge rounded-pill text-bg-light border"
                                                               th:if="${b.dogCount > 1}"
                                                               th:text="${b.dogCount} + ' Dogs'">2</span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount > 0}"
+                                                              th:text="'Adjusted +' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted +$0.00
+                                                        </span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount < 0}"
+                                                              th:text="'Adjusted ' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted -$0.00
+                                                        </span>
+
+                                                        <div class="small text-muted mt-1"
+                                                             th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount != 0 and b.manualAdjustmentReason != null and !#strings.isEmpty(b.manualAdjustmentReason)}"
+                                                             th:text="'Reason: ' + ${b.manualAdjustmentReason}">
+                                                            Reason: Late pickup
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">
@@ -1966,6 +1986,7 @@
                                                               th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
                                                                               (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                               th:text="${b.status}">APPROVED</span>
+
                                                         <span class="badge bg-light text-dark ms-2"
                                                               th:if="${b.quotedRateAtLock != null}"
                                                               th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
@@ -1974,9 +1995,28 @@
                                                               th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
                                                             est.
                                                         </span>
+
                                                         <span class="badge rounded-pill text-bg-light border"
                                                               th:if="${b.dogCount > 1}"
                                                               th:text="${b.dogCount} + ' Dogs'">2</span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount > 0}"
+                                                              th:text="'Adjusted +' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted +$0.00
+                                                        </span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount < 0}"
+                                                              th:text="'Adjusted ' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted -$0.00
+                                                        </span>
+
+                                                        <div class="small text-muted mt-1"
+                                                             th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount != 0 and b.manualAdjustmentReason != null and !#strings.isEmpty(b.manualAdjustmentReason)}"
+                                                             th:text="'Reason: ' + ${b.manualAdjustmentReason}">
+                                                            Reason: Late pickup
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">
@@ -2018,6 +2058,7 @@
                                                               th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
                                                               (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                               th:text="${b.status}">APPROVED</span>
+
                                                         <span class="badge bg-light text-dark ms-2"
                                                               th:if="${b.quotedRateAtLock != null}"
                                                               th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
@@ -2026,9 +2067,28 @@
                                                               th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
                                                             est.
                                                         </span>
+
                                                         <span class="badge rounded-pill text-bg-light border"
                                                               th:if="${b.dogCount > 1}"
                                                               th:text="${b.dogCount} + ' Dogs'">2</span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount > 0}"
+                                                              th:text="'Adjusted +' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted +$0.00
+                                                        </span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount < 0}"
+                                                              th:text="'Adjusted ' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted -$0.00
+                                                        </span>
+
+                                                        <div class="small text-muted mt-1"
+                                                             th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount != 0 and b.manualAdjustmentReason != null and !#strings.isEmpty(b.manualAdjustmentReason)}"
+                                                             th:text="'Reason: ' + ${b.manualAdjustmentReason}">
+                                                            Reason: Late pickup
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">
@@ -2070,12 +2130,32 @@
                                                               th:classappend="${b.status == 'APPROVED'} ? ' bg-success-subtle text-success' :
                                                                               (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                               th:text="${b.status}">APPROVED</span>
+
                                                         <span th:if="${b.quotedRateAtLock != null}"
                                                               class="badge bg-light text-dark ms-2"
                                                               th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+
                                                         <span class="badge rounded-pill text-bg-light border"
                                                               th:if="${b.dogCount > 1}"
                                                               th:text="${b.dogCount} + ' Dogs'">2</span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount > 0}"
+                                                              th:text="'Adjusted +' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted +$0.00
+                                                        </span>
+
+                                                        <span class="badge bg-warning text-dark ms-2"
+                                                              th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount < 0}"
+                                                              th:text="'Adjusted ' + ${#numbers.formatCurrency(b.manualAdjustmentAmount)}">
+                                                            Adjusted -$0.00
+                                                        </span>
+
+                                                        <div class="small text-muted mt-1"
+                                                             th:if="${b.manualAdjustmentAmount != null and b.manualAdjustmentAmount != 0 and b.manualAdjustmentReason != null and !#strings.isEmpty(b.manualAdjustmentReason)}"
+                                                             th:text="'Reason: ' + ${b.manualAdjustmentReason}">
+                                                            Reason: Late pickup
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div th:if="${b.status == 'APPROVED'}">

@@ -1,7 +1,7 @@
 package com.dogdaycare.dto;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;   // <-- needed
+import java.math.RoundingMode;
 import java.time.LocalTime;
 
 public class BookingRowDto {
@@ -26,6 +26,10 @@ public class BookingRowDto {
     // Multi-dog + live (tier-aware) amount
     private Integer dogCount;
     private BigDecimal liveAmount;
+
+    // Admin manual adjustment
+    private BigDecimal manualAdjustmentAmount;
+    private String manualAdjustmentReason;
 
     public BookingRowDto() {}
 
@@ -56,7 +60,6 @@ public class BookingRowDto {
         this.dogCount = dogCount;
     }
 
-    // New ctor that includes liveAmount (used by AdminBookingController)
     public BookingRowDto(Long id,
                          String customerName,
                          String customerEmail,
@@ -75,7 +78,27 @@ public class BookingRowDto {
         this.liveAmount = liveAmount;
     }
 
-    // --- getters/setters ---
+    // New ctor including manual adjustment data
+    public BookingRowDto(Long id,
+                         String customerName,
+                         String customerEmail,
+                         String dogName,
+                         String serviceType,
+                         LocalTime time,
+                         String status,
+                         boolean wantsAdvancePay,
+                         boolean advanceEligible,
+                         boolean paid,
+                         BigDecimal quotedRateAtLock,
+                         Integer dogCount,
+                         BigDecimal liveAmount,
+                         BigDecimal manualAdjustmentAmount,
+                         String manualAdjustmentReason) {
+        this(id, customerName, customerEmail, dogName, serviceType, time, status,
+                wantsAdvancePay, advanceEligible, paid, quotedRateAtLock, dogCount, liveAmount);
+        this.manualAdjustmentAmount = manualAdjustmentAmount;
+        this.manualAdjustmentReason = manualAdjustmentReason;
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -114,8 +137,19 @@ public class BookingRowDto {
     public void setDogCount(Integer dogCount) { this.dogCount = dogCount; }
 
     public BigDecimal getLiveAmount() {
-        // ensures JSON shows 270.00 not 270.0 and BigDecimal equality in the test
         return liveAmount == null ? null : liveAmount.setScale(2, RoundingMode.HALF_UP);
     }
     public void setLiveAmount(BigDecimal liveAmount) { this.liveAmount = liveAmount; }
+
+    public BigDecimal getManualAdjustmentAmount() {
+        return manualAdjustmentAmount == null ? null : manualAdjustmentAmount.setScale(2, RoundingMode.HALF_UP);
+    }
+    public void setManualAdjustmentAmount(BigDecimal manualAdjustmentAmount) {
+        this.manualAdjustmentAmount = manualAdjustmentAmount;
+    }
+
+    public String getManualAdjustmentReason() { return manualAdjustmentReason; }
+    public void setManualAdjustmentReason(String manualAdjustmentReason) {
+        this.manualAdjustmentReason = manualAdjustmentReason;
+    }
 }

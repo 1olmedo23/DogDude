@@ -23,6 +23,7 @@ import java.time.*;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/admin/bookings")
@@ -37,6 +38,12 @@ public class AdminBookingController {
     private final PricingService pricingService;
     private final BookingLimitService bookingLimitService;
     private final SetForgetService setForgetService;
+
+    private static final Set<Integer> ALLOWED_ADJUSTMENTS = Set.of(
+            -50, -45, -40, -35, -30, -25, -20, -15, -10, -5,
+            0,
+            5, 10, 15, 20, 25, 30, 35, 40, 45, 50
+    );
 
     public AdminBookingController(BookingRepository bookingRepository,
                                   EvaluationRepository evaluationRepository,
@@ -90,7 +97,9 @@ public class AdminBookingController {
                     b.isPaid(),
                     b.getQuotedRateAtLock(),
                     b.getDogCount(),
-                    liveAmountFor(b) // << used by custom.js price chip
+                    finalAmountFor(b),
+                    b.getManualAdjustmentAmount(),
+                    b.getManualAdjustmentReason()
             );
         }).toList();
     }
@@ -136,6 +145,45 @@ public class AdminBookingController {
                                             org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
                                     java.time.LocalDate date) {
         return bookingLimitService.snapshot(date);
+    }
+
+    @PostMapping("/adjust/{id}")
+    public String adjustBookingAmount(@PathVariable Long id,
+                                      @RequestParam("amount") Integer amount,
+                                      @RequestParam(value = "reason", required = false) String reason,
+                                      RedirectAttributes ra) {
+
+        if (amount == null || !ALLOWED_ADJUSTMENTS.contains(amount)) {
+            ra.addFlashAttribute("errorMessage", "Adjustment must be between -50 and 50 in $5 increments.");
+            return "redirect:/admin#bookings";
+        }
+
+        String cleanReason = (reason == null) ? "" : reason.trim();
+
+        if (amount != 0 && cleanReason.isBlank()) {
+            ra.addFlashAttribute("errorMessage", "Please enter a short reason for the adjustment.");
+            return "redirect:/admin#bookings";
+        }
+
+        if (cleanReason.length() > 120) {
+            ra.addFlashAttribute("errorMessage", "Adjustment reason must be 120 characters or fewer.");
+            return "redirect:/admin#bookings";
+        }
+
+        bookingRepository.findById(id).ifPresentOrElse(booking -> {
+            booking.setManualAdjustmentAmount(BigDecimal.valueOf(amount).setScale(2));
+            booking.setManualAdjustmentReason(cleanReason.isBlank() ? null : cleanReason);
+            booking.setManualAdjustmentUpdatedAt(LocalDateTime.now());
+            bookingRepository.save(booking);
+
+            if (amount == 0) {
+                ra.addFlashAttribute("successMessage", "Booking adjustment cleared.");
+            } else {
+                ra.addFlashAttribute("successMessage", "Booking adjustment updated.");
+            }
+        }, () -> ra.addFlashAttribute("errorMessage", "Booking not found."));
+
+        return "redirect:/admin#bookings";
     }
 
     @PostMapping("/cancel/{id}")
@@ -211,8 +259,18 @@ public class AdminBookingController {
         return "redirect:/admin#bookings";
     }
 
-    // ---------------- Live tier-aware per-booking total for Admin chip ----------------
-    private BigDecimal liveAmountFor(Booking b) {
+    private BigDecimal finalAmountFor(Booking b) {
+        BigDecimal base = baseAmountFor(b);
+        BigDecimal adjustment = normalizedAdjustment(b.getManualAdjustmentAmount());
+        return base.add(adjustment);
+    }
+
+    private BigDecimal normalizedAdjustment(BigDecimal adjustment) {
+        return adjustment == null ? BigDecimal.ZERO : adjustment;
+    }
+
+    // ---------------- baseAmountFor ----------------
+    private BigDecimal baseAmountFor(Booking b) {
 
         // If we have a locked price, ALWAYS use it for display.
         // NOTE: quoted_rate_at_lock in your DB is already the TOTAL for the booking
