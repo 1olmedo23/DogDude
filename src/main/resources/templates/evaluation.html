@@ -16,7 +16,6 @@
             <div class="eval-hero">
                 <h1 class="eval-title">New Client Evaluation</h1>
 
-
                 <div class="mt-2 mt-md-0">
                     <div class="eval-intro-card">
                         <h5 class="eval-intro-heading">Welcome new clients!</h5>
@@ -70,15 +69,20 @@
 
                     <div class="mt-3" id="additional-dogs-section">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="m-0">Additional Dogs <span class="text-muted">(optional)</span></h6>
+                            <h6 class="m-0">
+                                Additional Dogs <span class="text-muted">(optional)</span>
+                            </h6>
                             <small class="text-muted">Up to 4 more (5 total)</small>
                         </div>
 
                         <div id="additional-dogs-container"></div>
 
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-dog-btn">
+                        <button type="button"
+                                class="btn btn-outline-primary btn-sm mt-2"
+                                id="add-dog-btn">
                             + Add another dog
                         </button>
+
                         <div class="form-text" id="add-dog-help">
                             1 dog is the default. Only add more if needed.
                         </div>
@@ -87,21 +91,38 @@
                     <template id="additional-dog-row-template">
                         <div class="card p-3 mb-2 additional-dog-row">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong class="mb-0">Dog <span class="additional-dog-index"></span></strong>
-                                <button type="button" class="btn btn-sm btn-outline-danger remove-dog-btn" aria-label="Remove dog">Remove</button>
+                                <strong class="mb-0">
+                                    Dog <span class="additional-dog-index"></span>
+                                </strong>
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger remove-dog-btn"
+                                        aria-label="Remove dog">
+                                    Remove
+                                </button>
                             </div>
+
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label class="form-label">Dog name</label>
-                                    <input type="text" class="form-control" name="additionalDogNames" placeholder="e.g., Bella">
+                                    <input type="text"
+                                           class="form-control"
+                                           name="additionalDogNames"
+                                           placeholder="e.g., Bella">
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Dog breed</label>
-                                    <input type="text" class="form-control" name="additionalDogBreeds" placeholder="e.g., Labrador Retriever">
+                                    <input type="text"
+                                           class="form-control"
+                                           name="additionalDogBreeds"
+                                           placeholder="e.g., Labrador Retriever">
                                 </div>
                             </div>
                         </div>
                     </template>
+
+                    <!-- FILE UPLOAD SECTION TEMPORARILY DISABLED
 
                     <div class="mb-3" id="upload-section">
                         <label class="form-label d-flex justify-content-between align-items-center">
@@ -111,25 +132,45 @@
 
                         <div id="upload-inputs-container"></div>
 
-                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="add-file-btn">
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm mt-2"
+                                id="add-file-btn">
                             + Add another file
                         </button>
-                        <div class="form-text">You can add up to 5 attachments.</div>
+
+                        <div class="form-text">
+                            You can add up to 5 attachments.
+                        </div>
                     </div>
 
                     <template id="upload-input-template">
                         <div class="d-flex gap-2 align-items-center mb-2 upload-input-row">
-                            <input type="file" class="form-control" name="files" />
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-file-btn">Remove</button>
+                            <input type="file"
+                                   class="form-control"
+                                   name="files" />
+
+                            <button type="button"
+                                    class="btn btn-outline-danger btn-sm remove-file-btn">
+                                Remove
+                            </button>
                         </div>
                     </template>
 
-                    <button type="submit" class="btn btn-primary btn-lg mt-3 w-100 eval-submit-btn">Submit Evaluation</button>
+                    -->
+
+                    <button type="submit"
+                            class="btn btn-primary btn-lg mt-3 w-100 eval-submit-btn">
+                        Submit Evaluation
+                    </button>
+
                 </form>
             </div>
 
             <div class="eval-back-row">
-                <a class="btn btn-secondary eval-back-btn" th:href="@{/}">Back to Homepage</a>
+                <a class="btn btn-secondary eval-back-btn"
+                   th:href="@{/}">
+                    Back to Homepage
+                </a>
             </div>
 
         </div>
@@ -137,19 +178,26 @@
 </section>
 
 <script th:src="@{/js/custom.js?v=20251103}"></script>
+
+<!-- Additional Dogs Script -->
 <script>
     (function () {
         const MAX_TOTAL_DOGS = 5;
         const MAX_EXTRAS = MAX_TOTAL_DOGS - 1;
+
         const addBtn = document.getElementById('add-dog-btn');
         const container = document.getElementById('additional-dogs-container');
         const tmpl = document.getElementById('additional-dog-row-template');
 
         function updateIndices() {
             const rows = container.querySelectorAll('.additional-dog-row');
+
             rows.forEach((row, i) => {
                 const idxEl = row.querySelector('.additional-dog-index');
-                if (idxEl) idxEl.textContent = String(i + 2);
+
+                if (idxEl) {
+                    idxEl.textContent = String(i + 2);
+                }
             });
         }
 
@@ -160,15 +208,20 @@
 
         function addExtraDogRow() {
             const count = container.querySelectorAll('.additional-dog-row').length;
+
             if (count >= MAX_EXTRAS) return;
 
             const node = tmpl.content.cloneNode(true);
-            node.querySelector('.remove-dog-btn').addEventListener('click', function () {
-                this.closest('.additional-dog-row').remove();
-                updateIndices();
-                updateButtonState();
-            });
+
+            node.querySelector('.remove-dog-btn')
+                .addEventListener('click', function () {
+                    this.closest('.additional-dog-row').remove();
+                    updateIndices();
+                    updateButtonState();
+                });
+
             container.appendChild(node);
+
             updateIndices();
             updateButtonState();
         }
@@ -179,6 +232,9 @@
         }
     })();
 </script>
+
+<!-- FILE UPLOAD SCRIPT TEMPORARILY DISABLED
+
 <script>
     (function () {
         const MAX_FILES = 5;
@@ -196,18 +252,28 @@
 
         function addFileRow() {
             if (countRows() >= MAX_FILES) return;
+
             const node = tmpl.content.cloneNode(true);
-            node.querySelector('.remove-file-btn').addEventListener('click', function () {
-                this.closest('.upload-input-row').remove();
-                if (countRows() === 0) ensureAtLeastOne();
-                updateButtonState();
-            });
+
+            node.querySelector('.remove-file-btn')
+                .addEventListener('click', function () {
+                    this.closest('.upload-input-row').remove();
+
+                    if (countRows() === 0) {
+                        ensureAtLeastOne();
+                    }
+
+                    updateButtonState();
+                });
+
             container.appendChild(node);
             updateButtonState();
         }
 
         function ensureAtLeastOne() {
-            if (countRows() === 0) addFileRow();
+            if (countRows() === 0) {
+                addFileRow();
+            }
         }
 
         if (addBtn && container && tmpl) {
@@ -217,6 +283,9 @@
         }
     })();
 </script>
+
+-->
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
