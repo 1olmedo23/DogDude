@@ -2196,25 +2196,105 @@
                                 <div class="text-muted small mb-0">PDF, JPG, and PNG files are supported. You can also add an optional display name and expiration date.</div>
                             </div>
 
-                            <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <div class="row g-3">
+
+                                <!-- Vaccines -->
                                 <div class="col-lg-4">
-                                    <label class="form-label">File</label>
-                                    <input type="file" class="form-control" name="file" required>
-                                    <div class="form-text">Allowed: PDF, JPG, PNG</div>
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-header fw-semibold">
+                                            Vaccines
+                                        </div>
+                                        <div class="card-body">
+                                            <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">File</label>
+                                                    <input type="file" class="form-control" name="file" required>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">File name</label>
+                                                    <input type="text" class="form-control" name="displayName" placeholder="Example: Rabies Vaccine">
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">Expiration date</label>
+                                                    <input type="date" class="form-control" name="expirationDate" required>
+                                                    <div class="form-text">Required for vaccine records.</div>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <button class="btn btn-custom w-100">Upload Vaccine</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- Pet License(s) -->
                                 <div class="col-lg-4">
-                                    <label class="form-label">File name</label>
-                                    <input type="text" class="form-control" name="displayName" placeholder="Rabies Vaccine">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-header fw-semibold">
+                                            Pet License(s)
+                                        </div>
+                                        <div class="card-body">
+                                            <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">File</label>
+                                                    <input type="file" class="form-control" name="file" required>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">File name</label>
+                                                    <input type="text" class="form-control" name="displayName" placeholder="Example: King County Pet License">
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">Expiration date</label>
+                                                    <input type="date" class="form-control" name="expirationDate" required>
+                                                    <div class="form-text">Required for pet license records.</div>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <button class="btn btn-custom w-100">Upload License</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- Other -->
                                 <div class="col-lg-4">
-                                    <label class="form-label">Expiration date</label>
-                                    <input type="date" class="form-control" name="expirationDate">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-header fw-semibold">
+                                            Other
+                                        </div>
+                                        <div class="card-body">
+                                            <form th:action="@{/uploads}" method="post" enctype="multipart/form-data" class="row g-3">
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">File</label>
+                                                    <input type="file" class="form-control" name="file" required>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <label class="form-label">File name</label>
+                                                    <input type="text" class="form-control" name="displayName" placeholder="Example: Medication Instructions">
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <button class="btn btn-custom w-100">Upload File</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-12">
-                                    <button class="btn btn-custom">Upload</button>
-                                </div>
-                            </form>
+
+                            </div>
                         </div>
 
                         <hr class="my-4 hr-dashed"/>
@@ -2240,8 +2320,8 @@
                                         <tr th:each="f : ${files}">
                                             <td th:text="${f.fileName}">VetRecord.pdf</td>
                                             <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies Vaccine</td>
-                                            <td th:text="${f.expirationDate != null ? f.expirationDate : '—'}">2026-05-01</td>
-                                            <td th:text="${#temporals.format(f.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-03 10:15</td>
+                                            <td th:text="${f.expirationDate != null ? #temporals.format(f.expirationDate, 'MM-dd-yyyy') : '—'}">05-01-2026</td>
+                                            <td th:text="${#temporals.format(f.createdAt, 'MM-dd-yyyy')}">09-03-2025</td>
                                             <td class="text-end">
                                                 <a class="btn btn-sm btn-outline-secondary" th:href="@{'/uploads/' + ${f.id} + '/download'}">Download</a>
                                             </td>
