@@ -104,6 +104,16 @@
             </div>
 
             <h3 class="mb-3">User Accounts</h3>
+
+            <div class="alert alert-success"
+                 th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
+                 th:text="${successMessage}">
+            </div>
+
+            <div class="alert alert-danger"
+                 th:if="${errorMessage != null and !#strings.isEmpty(errorMessage)}"
+                 th:text="${errorMessage}">
+            </div>
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive table-wrap">
@@ -113,6 +123,7 @@
                                 <th>Username</th>
                                 <th>Role</th>
                                 <th>Status</th>
+                                <th>Change Password</th>
                                 <th>Toggle</th>
                             </tr>
                             </thead>
@@ -121,10 +132,40 @@
                                 <td th:text="${user.username}"></td>
                                 <td th:text="${user.role}"></td>
                                 <td th:text="${user.enabled ? 'Active' : 'Inactive'}"></td>
+
+                                <td>
+                                    <form th:if="${user.role == 'CUSTOMER'}"
+                                          th:action="@{'/admin/users/' + ${user.id} + '/password'}"
+                                          method="post"
+                                          class="d-flex align-items-center gap-2"
+                                          onsubmit="return confirm('Change password for this customer?');">
+                                        <input type="hidden" th:name="${_csrf.parameterName}"
+                                               th:value="${_csrf.token}"/>
+                                        <input type="password"
+                                               name="password"
+                                               class="form-control form-control-sm admin-password-input"
+                                               placeholder="New password"
+                                               required>
+
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input admin-password-toggle"
+                                                   type="checkbox">
+                                            <label class="form-check-label small">
+                                                Show
+                                            </label>
+                                        </div>
+
+                                        <button class="btn btn-sm btn-outline-primary" type="submit">Change</button>
+                                    </form>
+                                    <span th:if="${user.role != 'CUSTOMER'}" class="text-muted">—</span>
+                                </td>
+
                                 <td>
                                     <form th:action="@{'/admin/toggle/' + ${user.id}}" method="post">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                        <button class="btn btn-warning btn-sm" type="submit" th:text="${user.enabled ? 'Disable' : 'Enable'}"></button>
+                                        <input type="hidden" th:name="${_csrf.parameterName}"
+                                               th:value="${_csrf.token}"/>
+                                        <button class="btn btn-warning btn-sm" type="submit"
+                                                th:text="${user.enabled ? 'Disable' : 'Enable'}"></button>
                                     </form>
                                 </td>
                             </tr>
@@ -546,9 +587,51 @@
                     btn.textContent = actionLabel || 'Mark as paid';
                     form.appendChild(btn);
 
-                    form.addEventListener('submit', () => {
+                    form.addEventListener('submit', (e) => {
+                        if (!window.confirm('Mark this invoice as paid?')) {
+                            e.preventDefault();
+                            return;
+                        }
+
                         btn.disabled = true;
                         btn.textContent = 'Processing...';
+                    });
+
+                    tdAction.appendChild(form);
+                } else if (isRowPaid && r.invoiceId) {
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = '/admin/invoices/revert-paid';
+                    form.className = 'd-inline';
+
+                    const inpInvoiceId = document.createElement('input');
+                    inpInvoiceId.type = 'hidden';
+                    inpInvoiceId.name = 'invoiceId';
+                    inpInvoiceId.value = r.invoiceId;
+                    form.appendChild(inpInvoiceId);
+
+                    if (CSRF_NAME && CSRF_TOKEN) {
+                        const inpCsrf = document.createElement('input');
+                        inpCsrf.type = 'hidden';
+                        inpCsrf.name = CSRF_NAME;
+                        inpCsrf.value = CSRF_TOKEN;
+                        form.appendChild(inpCsrf);
+                    }
+
+                    const btn = document.createElement('button');
+                    btn.type = 'submit';
+                    btn.className = 'btn btn-sm btn-outline-danger';
+                    btn.textContent = 'Revert';
+                    form.appendChild(btn);
+
+                    form.addEventListener('submit', (e) => {
+                        if (!window.confirm('Revert this paid invoice back to unpaid?')) {
+                            e.preventDefault();
+                            return;
+                        }
+
+                        btn.disabled = true;
+                        btn.textContent = 'Reverting...';
                     });
 
                     tdAction.appendChild(form);
@@ -582,6 +665,33 @@
 
         document.addEventListener('DOMContentLoaded', loadWeekly);
     })();
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.admin-password-toggle').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                const form = checkbox.closest('form');
+                const input = form ? form.querySelector('.admin-password-input') : null;
+
+                if (!input) return;
+
+                input.type = checkbox.checked ? 'text' : 'password';
+            });
+        });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.admin-password-input').forEach(function (input) {
+            input.value = '';
+            input.type = 'password';
+        });
+
+        document.querySelectorAll('.admin-password-toggle').forEach(function (checkbox) {
+            checkbox.checked = false;
+        });
+    });
 </script>
 </body>
 </html>

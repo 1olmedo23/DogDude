@@ -245,6 +245,43 @@ public class AdminInvoiceController {
         return "redirect:/admin#invoicing";
     }
 
+    @PostMapping("/revert-paid")
+    public String revertPaid(
+            @RequestParam("invoiceId") Long invoiceId,
+            RedirectAttributes ra
+    ) {
+        Invoice invoice = invoiceRepository.findById(invoiceId).orElse(null);
+
+        if (invoice == null) {
+            ra.addFlashAttribute("invoiceMessage", "Invoice not found.");
+            return "redirect:/admin#invoicing";
+        }
+
+        String customerEmail = invoice.getCustomerEmail();
+        LocalDate ws = invoice.getWeekStart();
+        LocalDate we = invoice.getWeekEnd();
+
+        List<Booking> weekCustomerBookings = bookingRepository.findByDateBetween(ws, we).stream()
+                .filter(b -> b.getCustomer() != null)
+                .filter(b -> customerEmail.equals(b.getCustomer().getUsername()))
+                .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                .collect(Collectors.toList());
+
+        for (Booking b : weekCustomerBookings) {
+            b.setPaid(false);
+            b.setPaidAt(null);
+        }
+
+        bookingRepository.saveAll(weekCustomerBookings);
+
+        invoice.setPaid(false);
+        invoice.setPaidAt(null);
+        invoiceRepository.save(invoice);
+
+        ra.addFlashAttribute("invoiceMessage", "Invoice reverted to unpaid.");
+        return "redirect:/admin#invoicing";
+    }
+
     private BigDecimal finalAmountForInvoice(Booking b) {
         BigDecimal base = baseAmountForInvoice(b);
         BigDecimal adjustment = normalizedAdjustment(b.getManualAdjustmentAmount());

@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -143,6 +144,34 @@ public class AdminController {
                     approvalMessage
             );
         }
+        return "redirect:/admin";
+    }
+
+    @PostMapping("/users/{id}/password")
+    public String changeCustomerPassword(@PathVariable Long id,
+                                         @RequestParam String password,
+                                         RedirectAttributes ra) {
+        User user = userRepository.findById(id).orElse(null);
+
+        if (user == null) {
+            ra.addFlashAttribute("errorMessage", "User not found.");
+            return "redirect:/admin";
+        }
+
+        if (!"CUSTOMER".equalsIgnoreCase(user.getRole())) {
+            ra.addFlashAttribute("errorMessage", "Only customer passwords can be changed here.");
+            return "redirect:/admin";
+        }
+
+        if (password == null || password.isBlank()) {
+            ra.addFlashAttribute("errorMessage", "Password cannot be blank.");
+            return "redirect:/admin";
+        }
+
+        user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
+
+        ra.addFlashAttribute("successMessage", "Customer password updated.");
         return "redirect:/admin";
     }
 
