@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -61,6 +63,29 @@ public class AdminUploadsController {
                         uf.getFileType() != null ? uf.getFileType() : MediaType.APPLICATION_OCTET_STREAM_VALUE))
                 .contentLength(file.length())
                 .body(resource);
+    }
+
+    @PostMapping("/{id}/expiration")
+    public String updateExpirationDate(
+            @PathVariable Long id,
+            @RequestParam(value = "expirationDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expirationDate,
+            RedirectAttributes ra
+    ) {
+        UploadedFile uf = fileRepository.findById(id).orElse(null);
+
+        if (uf == null) {
+            ra.addFlashAttribute("errorMessage", "File not found.");
+            ra.addAttribute("openTab", "uploads");
+            return "redirect:/admin";
+        }
+
+        uf.setExpirationDate(expirationDate);
+        fileRepository.save(uf);
+
+        ra.addFlashAttribute("successMessage", "Expiration date updated.");
+        ra.addAttribute("openTab", "uploads");
+        return "redirect:/admin";
     }
 
     // NEW: Admin delete (removes file from disk and DB)

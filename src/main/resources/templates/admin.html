@@ -356,8 +356,28 @@
                                     <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies</td>
                                     <td th:text="${f.fileType != null ? f.fileType : '—'}">application/pdf</td>
                                     <td th:text="${f.sizeBytes != null ? f.sizeBytes + ' bytes' : '—'}">102400 bytes</td>
-                                    <td th:text="${f.expirationDate != null ? f.expirationDate : '—'}">2026-05-01</td>
-                                    <td th:text="${#temporals.format(f.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-03 10:15</td>
+                                    <td>
+                                        <div class="mb-2"
+                                             th:text="${f.expirationDate != null ? #temporals.format(f.expirationDate, 'MM-dd-yyyy') : '—'}">
+                                            05-01-2026
+                                        </div>
+
+                                        <form th:action="@{'/admin/uploads/' + ${f.id} + '/expiration'}"
+                                              method="post"
+                                              class="d-flex gap-2"
+                                              onsubmit="return confirm('Update expiration date for this file?');">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="date"
+                                                   name="expirationDate"
+                                                   class="form-control form-control-sm"
+                                                   th:value="${f.expirationDate}"
+                                                   aria-label="Expiration date">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                Update
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td th:text="${#temporals.format(f.createdAt, 'MM-dd-yyyy')}">2025-09-03 10:15</td>
                                     <td class="text-end">
                                         <a class="btn btn-sm btn-outline-secondary"
                                            th:href="@{'/admin/uploads/' + ${f.id} + '/download'}">
