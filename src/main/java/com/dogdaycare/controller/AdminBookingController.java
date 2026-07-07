@@ -40,9 +40,10 @@ public class AdminBookingController {
     private final SetForgetService setForgetService;
 
     private static final Set<Integer> ALLOWED_ADJUSTMENTS = Set.of(
-            -50, -45, -40, -35, -30, -25, -20, -15, -10, -5,
+            -100, -95, -90, -85, -80, -75, -70, -65, -60, -55,-50,
+            -45, -40, -35, -30, -25, -20, -15, -10, -5,
             0,
-            5, 10, 15, 20, 25, 30, 35, 40, 45, 50
+            5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100
     );
 
     public AdminBookingController(BookingRepository bookingRepository,
@@ -256,6 +257,23 @@ public class AdminBookingController {
         });
 
         ra.addFlashAttribute("successMessage", "Booking marked paid.");
+        return "redirect:/admin#bookings";
+    }
+
+    @PostMapping("/revert-paid/{id}")
+    public String revertBookingPaid(@PathVariable Long id, RedirectAttributes ra) {
+        Booking booking = bookingRepository.findById(id).orElse(null);
+
+        if (booking == null) {
+            ra.addFlashAttribute("errorMessage", "Booking not found.");
+            return "redirect:/admin#bookings";
+        }
+
+        booking.setPaid(false);
+        booking.setPaidAt(null);
+        bookingRepository.save(booking);
+
+        ra.addFlashAttribute("successMessage", "Booking payment reverted.");
         return "redirect:/admin#bookings";
     }
 

@@ -56,7 +56,7 @@ public class AdminController {
         // --- Users list (sorted) - reused by Uploads tab to label groups
         List<User> allUsersSorted = userRepository.findAll()
                 .stream()
-                .sorted(Comparator.comparing(User::getId))
+                .sorted(Comparator.comparing(User::getUsername, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
 
         // --- Uploads tab data

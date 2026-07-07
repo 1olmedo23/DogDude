@@ -14,163 +14,281 @@
          th:attr="data-name=${_csrf.parameterName},data-token=${_csrf.token}"
          style="display:none;"></div>
 
-    <!-- top-right actions -->
-    <div class="d-flex justify-content-end gap-2 mb-3 flex-wrap">
-        <!-- Back to Home (logs out) -->
-        <form th:action="@{/logout}" method="post" class="d-inline">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-            <button type="submit" class="btn btn-outline-secondary confirm-logout">Back to Home</button>
-        </form>
-
-        <!-- Explicit Log Out -->
-        <form th:action="@{/logout}" method="post" class="d-inline">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-            <button type="submit" class="btn btn-danger-custom confirm-logout">Log Out</button>
-        </form>
-    </div>
-
     <h1 class="mb-4 text-center">Admin Dashboard</h1>
 
-    <!-- Tabs -->
-    <ul class="nav nav-tabs mobile-sticky-tabs" id="adminTabs" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="evaluations-tab" data-bs-toggle="tab" data-bs-target="#evaluations" type="button" role="tab">Evaluations</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab">Employees</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">Bookings</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="invoicing-tab" data-bs-toggle="tab" data-bs-target="#invoicing" type="button" role="tab">Invoicing</button>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" th:href="@{/admin/emergency}">Emergency</a>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="uploads-tab" data-bs-toggle="tab" data-bs-target="#uploads" type="button" role="tab">Uploads</button>
-        </li>
-    </ul>
+    <!-- Tabs + Logout -->
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+        <ul class="nav nav-tabs mobile-sticky-tabs flex-grow-1" id="adminTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="evaluations-tab" data-bs-toggle="tab"
+                        data-bs-target="#evaluations" type="button" role="tab">
+                    Evaluations
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="employees-tab" data-bs-toggle="tab"
+                        data-bs-target="#employees" type="button" role="tab">
+                    Employees
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="bookings-tab" data-bs-toggle="tab"
+                        data-bs-target="#bookings" type="button" role="tab">
+                    Bookings
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="invoicing-tab" data-bs-toggle="tab"
+                        data-bs-target="#invoicing" type="button" role="tab">
+                    Invoicing
+                </button>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/emergency}">
+                    Emergency
+                </a>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="uploads-tab" data-bs-toggle="tab"
+                        data-bs-target="#uploads" type="button" role="tab">
+                    Uploads
+                </button>
+            </li>
+        </ul>
+
+        <form th:action="@{/logout}" method="post" class="d-inline ms-auto">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn btn-outline-danger btn-sm confirm-logout">
+                Log Out
+            </button>
+        </form>
+    </div>
 
     <div class="tab-content mt-3" id="adminTabsContent">
         <!-- Evaluations Tab -->
         <div class="tab-pane fade show active" id="evaluations" role="tabpanel">
-            <h3 class="mb-3">Client Evaluations</h3>
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="table-responsive table-wrap">
-                        <table class="table table-striped mb-0">
-                            <thead>
-                            <tr>
-                                <th>Client</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Dog</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="evaluation : ${evaluations}">
-                                <td th:text="${evaluation.clientName}"></td>
-                                <td th:text="${evaluation.email}"></td>
-                                <td th:text="${evaluation.phone}"></td>
-                                <td>
-                                    <!-- Primary dog -->
-                                    <div th:text="'1. ' + ${evaluation.dogName} + ' (' + ${evaluation.dogBreed} + ')'"></div>
 
-                                    <!-- Additional dogs (if any, numbered) -->
-                                    <div th:if="${evaluation.additionalDogs != null and #lists.size(evaluation.additionalDogs) > 0}" class="mt-1">
-                                        <span th:each="d, iter : ${evaluation.additionalDogs}">
-                                            <span th:text="${iter.index + 2} + '. ' + ${d.name} + ' (' + ${d.breed} + ')'"></span>
-                                            <br th:if="${!iter.last}" />
-                                        </span>
+            <div class="mb-5">
+                <h2 class="fw-bold mb-2">Evaluations</h2>
+            </div>
+
+            <!-- Client Evaluations -->
+            <div id="pendingEvaluationsSection" style="scroll-margin-top: 90px;">
+                <div class="mb-3">
+                    <h4 class="fw-semibold mb-1">Client Evaluations</h4>
+                </div>
+
+                <!-- Section Header -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body p-0">
+                        <div class="table-responsive table-wrap">
+                            <table class="table table-striped align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Dog</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+
+                                <tbody th:if="${#lists.isEmpty(evaluations)}">
+                                <tr>
+                                    <td colspan="6" class="text-muted py-3">
+                                        No evaluations to review right now.
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evaluation Cards -->
+                <div class="row g-3 mb-5" th:if="${!#lists.isEmpty(evaluations)}">
+                    <div class="col-lg-6" th:each="evaluation : ${evaluations}">
+                        <div class="card shadow-sm h-100 border-start border-4"
+                             th:classappend="${evaluation.approved ? ' border-success' : ' border-warning'}">
+
+                            <div class="card-body">
+
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                    <div>
+                                        <h5 class="mb-1" th:text="${evaluation.clientName}">Client Name</h5>
+                                        <div class="text-muted small" th:text="${evaluation.email}">
+                                            email@example.com
+                                        </div>
+                                        <div class="text-muted small" th:text="${evaluation.phone}">
+                                            (555) 555-5555
+                                        </div>
                                     </div>
-                                </td>
-                                <td th:text="${evaluation.approved ? 'Approved' : 'Pending'}"></td>
-                                <td>
-                                    <form th:if="${!evaluation.approved}" th:action="@{'/admin/approve/' + ${evaluation.id}}" method="post" class="d-flex">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                        <input type="password" name="password" placeholder="Set Password" required class="form-control form-control-sm me-2"/>
-                                        <button class="btn btn-custom btn-sm" type="submit">Approve</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
+
+                                    <span class="badge"
+                                          th:classappend="${evaluation.approved ? ' text-bg-success' : ' text-bg-warning'}"
+                                          th:text="${evaluation.approved ? 'Approved' : 'Pending'}">
+                            Pending
+                        </span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="fw-semibold mb-2">Dog Information</div>
+
+                                    <div class="border rounded p-2 bg-light mb-2">
+                                        <div class="fw-semibold"
+                                             th:text="${evaluation.dogName}">
+                                            Dog Name
+                                        </div>
+
+                                        <div class="text-muted small"
+                                             th:text="${evaluation.dogBreed}">
+                                            Breed
+                                        </div>
+                                    </div>
+
+                                    <div th:if="${evaluation.additionalDogs != null and #lists.size(evaluation.additionalDogs) > 0}">
+                                        <div class="border rounded p-2 bg-light mb-2"
+                                             th:each="d : ${evaluation.additionalDogs}">
+                                            <div class="fw-semibold" th:text="${d.name}">
+                                                Additional Dog
+                                            </div>
+
+                                            <div class="text-muted small"
+                                                 th:text="${d.breed}">
+                                                Breed
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <form th:if="${!evaluation.approved}"
+                                      th:action="@{'/admin/approve/' + ${evaluation.id}}"
+                                      method="post"
+                                      class="border-top pt-3">
+
+                                    <input type="hidden"
+                                           th:name="${_csrf.parameterName}"
+                                           th:value="${_csrf.token}"/>
+
+                                    <label class="form-label small fw-semibold">
+                                        Set Customer Password
+                                    </label>
+
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <input type="password"
+                                               name="password"
+                                               placeholder="New password"
+                                               required
+                                               class="form-control form-control-sm flex-grow-1"/>
+
+                                        <button class="btn btn-custom btn-sm"
+                                                type="submit">
+                                            Approve
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <div th:if="${evaluation.approved}"
+                                     class="border-top pt-3 text-muted small">
+                                    This evaluation has already been approved.
+                                </div>
+
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <h3 class="mb-3">User Accounts</h3>
+            <!-- User Accounts -->
+            <div id="userAccountsSection" style="scroll-margin-top: 90px;">
+                <div class="mb-3">
+                    <h4 class="fw-semibold mb-1">User Accounts</h4>
+                </div>
 
-            <div class="alert alert-success"
-                 th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
-                 th:text="${successMessage}">
-            </div>
+                <div class="alert alert-success"
+                     th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
+                     th:text="${successMessage}">
+                </div>
 
-            <div class="alert alert-danger"
-                 th:if="${errorMessage != null and !#strings.isEmpty(errorMessage)}"
-                 th:text="${errorMessage}">
-            </div>
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive table-wrap">
-                        <table class="table table-striped mb-0">
-                            <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Change Password</th>
-                                <th>Toggle</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="user : ${users}">
-                                <td th:text="${user.username}"></td>
-                                <td th:text="${user.role}"></td>
-                                <td th:text="${user.enabled ? 'Active' : 'Inactive'}"></td>
+                <div class="alert alert-danger"
+                     th:if="${errorMessage != null and !#strings.isEmpty(errorMessage)}"
+                     th:text="${errorMessage}">
+                </div>
 
-                                <td>
-                                    <form th:if="${user.role == 'CUSTOMER'}"
-                                          th:action="@{'/admin/users/' + ${user.id} + '/password'}"
-                                          method="post"
-                                          class="d-flex align-items-center gap-2"
-                                          onsubmit="return confirm('Change password for this customer?');">
-                                        <input type="hidden" th:name="${_csrf.parameterName}"
-                                               th:value="${_csrf.token}"/>
-                                        <input type="password"
-                                               name="password"
-                                               class="form-control form-control-sm admin-password-input"
-                                               placeholder="New password"
-                                               required>
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="table-responsive table-wrap">
+                            <table class="table table-striped align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Change Password</th>
+                                    <th>Toggle</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="user : ${users}">
+                                    <td th:text="${user.username}"></td>
+                                    <td th:text="${user.role}"></td>
+                                    <td>
+                                <span class="badge"
+                                      th:classappend="${user.enabled ? ' text-bg-success' : ' text-bg-secondary'}"
+                                      th:text="${user.enabled ? 'Active' : 'Inactive'}">
+                                    Active
+                                </span>
+                                    </td>
 
-                                        <div class="form-check mt-1">
-                                            <input class="form-check-input admin-password-toggle"
-                                                   type="checkbox">
-                                            <label class="form-check-label small">
-                                                Show
-                                            </label>
-                                        </div>
+                                    <td>
+                                        <form th:if="${user.role == 'CUSTOMER'}"
+                                              th:action="@{'/admin/users/' + ${user.id} + '/password'}"
+                                              method="post"
+                                              class="d-flex align-items-center gap-2 flex-wrap"
+                                              onsubmit="return confirm('Change password for this customer?');">
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
 
-                                        <button class="btn btn-sm btn-outline-primary" type="submit">Change</button>
-                                    </form>
-                                    <span th:if="${user.role != 'CUSTOMER'}" class="text-muted">—</span>
-                                </td>
+                                            <input type="password"
+                                                   name="password"
+                                                   class="form-control form-control-sm admin-password-input"
+                                                   style="width: 180px;"
+                                                   placeholder="New password"
+                                                   required>
 
-                                <td>
-                                    <form th:action="@{'/admin/toggle/' + ${user.id}}" method="post">
-                                        <input type="hidden" th:name="${_csrf.parameterName}"
-                                               th:value="${_csrf.token}"/>
-                                        <button class="btn btn-warning btn-sm" type="submit"
-                                                th:text="${user.enabled ? 'Disable' : 'Enable'}"></button>
-                                    </form>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
+                                            <div class="form-check mt-1">
+                                                <input class="form-check-input admin-password-toggle"
+                                                       type="checkbox">
+                                                <label class="form-check-label small">
+                                                    Show
+                                                </label>
+                                            </div>
+
+                                            <button
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    style="width: 80px;"
+                                                    type="submit">
+                                                Change
+                                            </button>
+                                        </form>
+
+                                        <span th:if="${user.role != 'CUSTOMER'}" class="text-muted">—</span>
+                                    </td>
+
+                                    <td>
+                                        <form th:action="@{'/admin/toggle/' + ${user.id}}" method="post">
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+                                            <button class="btn btn-warning btn-sm" type="submit"
+                                                    th:text="${user.enabled ? 'Disable' : 'Enable'}">
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -203,96 +321,173 @@
 
         <!-- Bookings Tab -->
         <div class="tab-pane fade" id="bookings" role="tabpanel">
-            <!-- Capacity ribbon
-            <div id="capacityRibbon" class="alert alert-secondary mb-3 d-flex flex-wrap gap-3 align-items-center alert-static">
-                <div><strong>Daycare:</strong> <span id="capDaycare">—</span> / <span id="capDaycareCap">—</span></div>
-                <div><strong>Boarding:</strong> <span id="capBoarding">—</span> / <span id="capBoardingCap">—</span></div>
-                <div><strong>Total:</strong> <span id="capTotal">—</span> / <span id="capTotalCap">—</span></div>
-                <div><strong>Emergency Used:</strong> <span id="capEmergency">—</span> / <span id="capEmergencyCap">—</span></div>
+
+            <div class="mb-5">
+                <h2 class="fw-bold mb-2">Bookings</h2>
             </div>
-            -->
 
-            <h3 class="mb-3">Bookings</h3>
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
-            <!-- sticky controls on phones -->
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 admin-sticky-controls">
-                <button class="btn btn-custom" id="todayBtn">Today</button>
-                <h4 id="bookingDateDisplay" class="mb-0"></h4>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-custom" id="prevDayBtn">← Previous Day</button>
-                    <button class="btn btn-custom" id="nextDayBtn">Next Day →</button>
+                    <!-- Left -->
+                    <div>
+                        <button class="btn btn-custom btn-sm" id="todayBtn">
+                            Today
+                        </button>
+                    </div>
+
+                    <!-- Center -->
+                    <div class="text-center flex-grow-1">
+                        <h4 class="fw-semibold mb-0">
+                            <span id="bookingDateDisplay"></span>
+                        </h4>
+                    </div>
+
+                    <!-- Right -->
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-custom btn-sm" id="prevDayBtn">
+                            ← Prev.
+                        </button>
+
+                        <button class="btn btn-custom btn-sm" id="nextDayBtn">
+                            Next →
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
             <div class="alert alert-success"
                  th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
-                 th:text="${successMessage}"></div>
+                 th:text="${successMessage}">
+            </div>
 
-            <div class="table-responsive table-wrap">
-                <table class="table table-striped mb-0">
-                    <thead>
-                    <tr>
-                        <th>Customer</th>
-                        <th>Dog</th>
-                        <th>Service</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                        <th>Cancel</th>
-                    </tr>
-                    </thead>
-                    <tbody id="bookingTableBody"><!-- populated by JS --></tbody>
-                </table>
+            <div class="mb-3">
+                <h4 class="fw-semibold mb-1">Bookings by Service</h4>
+                <div class="text-muted">
+                    Open an individual booking to view details and actions.
+                </div>
+            </div>
+
+            <div id="bookingServiceGroups" class="d-grid gap-3">
+                <!-- populated by JS -->
             </div>
         </div>
 
         <!-- Invoicing Tab -->
         <div class="tab-pane fade" id="invoicing" role="tabpanel">
-            <h3 class="mb-3">Weekly Invoicing</h3>
 
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-custom" id="prevWeekBtn">← Previous Week</button>
-                    <button class="btn btn-custom" id="nextWeekBtn">Next Week →</button>
-                </div>
-                <h5 id="invoiceWeekRange" class="mb-0"></h5>
+            <div class="mb-5">
+                <h2 class="fw-bold mb-2">Invoicing</h2>
             </div>
 
-            <div class="mb-2">
-                <span class="badge bg-secondary me-2" id="badgeCustomers">Customers: 0</span>
-                <span class="badge bg-success me-2" id="badgePaid">Paid: 0</span>
-                <span class="badge bg-warning text-dark" id="badgeUnpaid">Unpaid: 0</span>
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                    <!-- Left spacer keeps the date centered -->
+                    <div style="width: 190px;"></div>
+
+                    <!-- Center -->
+                    <div class="text-center flex-grow-1">
+                        <h4 id="invoiceWeekRange" class="fw-semibold mb-0"></h4>
+                    </div>
+
+                    <!-- Right -->
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-custom btn-sm" id="prevWeekBtn">
+                            ← Prev. Week
+                        </button>
+
+                        <button class="btn btn-custom btn-sm" id="nextWeekBtn">
+                            Next Week →
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="row g-2 mb-4">
+
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body py-2 d-flex justify-content-center">
+                            <div class="fw-semibold" id="badgeCustomers">
+                                Customers: 0
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div class="fw-semibold text-success" id="badgePaid">
+                                Paid: 0
+                            </div>
+
+                            <div class="fw-semibold" id="badgePaidAmount">
+                                $0.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div class="fw-semibold text-warning" id="badgeUnpaid">
+                                Unpaid: 0
+                            </div>
+
+                            <div class="fw-semibold" id="badgeUnpaidAmount">
+                                $0.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <div class="alert alert-success" th:if="${invoiceMessage}" th:text="${invoiceMessage}"></div>
 
-            <div class="table-responsive table-wrap">
-                <table id="invoicesWeeklyTable" class="table table-striped align-middle mb-0">
-                    <thead>
-                    <tr>
-                        <th>Customer</th>
-                        <th>Dog</th>
-                        <th>Email</th>
-                        <th>Total (live)</th>
-                        <th>Paid to date</th>
-                        <th>New since paid</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                    </thead>
-                    <tbody id="invoicesWeeklyTbody"><!-- populated by JS --></tbody>
-                    <tfoot>
-                    <tr class="fw-bold">
-                        <td colspan="3">Totals</td>
-                        <td id="invoiceGrandTotal">$0.00</td>
-                        <td id="invoicePaidToDateTotal">$0.00</td>
-                        <td id="invoiceNewSincePaidTotal">$0.00</td>
-                        <td colspan="2">
-                            <span class="me-3">Paid rows: <span id="badgePaidRows">0</span></span>
-                            <span>Unpaid rows: <span id="badgeUnpaidRows">0</span></span>
-                        </td>
-                    </tr>
-                    </tfoot>
-                </table>
+            <div class="mb-3">
+                <h4 class="fw-semibold mb-1">Weekly Invoice Summary</h4>
+            </div>
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-body p-0">
+                    <div class="table-responsive table-wrap">
+                        <table id="invoicesWeeklyTable" class="table table-striped align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Dog</th>
+                                <th>Email</th>
+                                <th>Total</th>
+                                <th>Paid to Date</th>
+                                <th>New Since Paid</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody id="invoicesWeeklyTbody">
+                            <!-- populated by JS -->
+                            </tbody>
+                            <tfoot>
+                            <tr class="fw-bold">
+                                <td colspan="3">Totals</td>
+                                <td id="invoiceGrandTotal">$0.00</td>
+                                <td id="invoicePaidToDateTotal">$0.00</td>
+                                <td id="invoiceNewSincePaidTotal">$0.00</td>
+                                <td colspan="2">
+                                    <span class="me-3">Paid rows: <span id="badgePaidRows">0</span></span>
+                                    <span>Unpaid rows: <span id="badgeUnpaidRows">0</span></span>
+                                </td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div class="alert alert-info">
@@ -302,98 +497,191 @@
 
         <!-- Uploads Tab -->
         <div class="tab-pane fade" id="uploads" role="tabpanel" aria-labelledby="uploads-tab">
-            <h3 class="mb-3">Customer Uploads</h3>
 
-            <form class="row g-2 mb-3" method="get" th:action="@{/admin}">
-                <div class="col-auto">
-                    <input type="text" class="form-control" name="q" placeholder="Search by email" th:value="${q}">
+            <div class="mb-5">
+                <h2 class="fw-bold mb-2">Uploads</h2>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form class="row g-2 align-items-end" method="get" th:action="@{/admin}">
+                        <div class="col-12 col-md-5">
+                            <label class="form-label small mb-1">Search by Email</label>
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   name="q"
+                                   placeholder="customer@email.com"
+                                   th:value="${q}">
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label small mb-1">Filter</label>
+                            <select class="form-select form-select-sm" name="filter">
+                                <option value="all" th:selected="${filter == 'all'}">All</option>
+                                <option value="expired" th:selected="${filter == 'expired'}">Expired</option>
+                                <option value="expiring" th:selected="${filter == 'expiring'}">Expiring in 30 days
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <input type="hidden" name="openTab" value="uploads"/>
+                            <button class="btn btn-custom btn-sm w-100">Filter</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="col-auto">
-                    <select class="form-select" name="filter">
-                        <option value="all" th:selected="${filter == 'all'}">All</option>
-                        <option value="expired" th:selected="${filter == 'expired'}">Expired</option>
-                        <option value="expiring" th:selected="${filter == 'expiring'}">Expiring in 30 days</option>
-                    </select>
-                </div>
-                <div class="col-auto">
-                    <input type="hidden" name="openTab" value="uploads"/>
-                    <button class="btn btn-primary">Filter</button>
-                </div>
-            </form>
+            </div>
 
             <div class="mt-2">
                 <div class="alert alert-success" th:if="${successMessage}" th:text="${successMessage}"></div>
                 <div class="alert alert-danger" th:if="${errorMessage}" th:text="${errorMessage}"></div>
             </div>
 
-            <div th:if="${#maps.isEmpty(byUser)}" class="alert alert-secondary">No uploads found.</div>
+            <div th:if="${#maps.isEmpty(byUser)}" class="alert alert-secondary">
+                No uploads found.
+            </div>
 
-            <div th:each="u : ${users}">
-                <div th:if="${byUser.containsKey(u.id)}" class="card mb-3 shadow-sm">
-                    <div class="card-header">
-                        <strong th:text="${u.username}">customer@example.com</strong>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive table-wrap">
-                            <table class="table table-sm table-striped mb-0">
-                                <thead class="table-light">
-                                <tr>
-                                    <th>File</th>
-                                    <th>Display Name</th>
-                                    <th>Type</th>
-                                    <th>Size</th>
-                                    <th>Expires</th>
-                                    <th>Uploaded</th>
-                                    <th>Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="f : ${byUser.get(u.id)}"
-                                    th:with="today=${T(java.time.LocalDate).now()}, soon=${T(java.time.LocalDate).now().plusDays(30)}"
-                                    th:classappend="${f.expirationDate != null and f.expirationDate.isBefore(today)} ? 'table-danger' :
-                                        (${f.expirationDate != null and !f.expirationDate.isAfter(soon)} ? 'table-warning' : '')">
-                                    <td th:text="${f.fileName}">VetRecord.pdf</td>
-                                    <td th:text="${f.displayName != null ? f.displayName : '—'}">Rabies</td>
-                                    <td th:text="${f.fileType != null ? f.fileType : '—'}">application/pdf</td>
-                                    <td th:text="${f.sizeBytes != null ? f.sizeBytes + ' bytes' : '—'}">102400 bytes</td>
-                                    <td>
-                                        <div class="mb-2"
-                                             th:text="${f.expirationDate != null ? #temporals.format(f.expirationDate, 'MM-dd-yyyy') : '—'}">
-                                            05-01-2026
+            <div class="d-grid gap-3" th:if="${!#maps.isEmpty(byUser)}">
+                <div th:each="u : ${users}"
+                     th:if="${byUser.containsKey(u.id)}"
+                     th:with="files=${byUser.get(u.id)}"
+                     class="card shadow-sm">
+
+                    <button class="card-header bg-white btn w-100 text-start"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            th:attr="data-bs-target='#uploadCustomerCollapse' + ${u.id}, aria-controls='uploadCustomerCollapse' + ${u.id}">
+                        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                            <div>
+                                <h5 class="mb-1" th:text="${u.username}">customer@email.com</h5>
+                                <div class="text-muted small">
+                                    <span th:text="${#lists.size(files)}">0</span>
+                                    <span> document(s)</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge text-bg-danger"
+                              th:if="${files.?[expirationDate != null and expirationDate.isBefore(T(java.time.LocalDate).now())].size() > 0}">
+                            Expired
+                        </span>
+
+                                <span class="badge text-bg-warning"
+                                      th:if="${files.?[expirationDate != null and !expirationDate.isBefore(T(java.time.LocalDate).now()) and !expirationDate.isAfter(T(java.time.LocalDate).now().plusDays(30))].size() > 0}">
+                            Expiring
+                        </span>
+
+                                <span class="badge text-bg-success"
+                                      th:if="${files.?[expirationDate != null and expirationDate.isBefore(T(java.time.LocalDate).now())].size() == 0
+                                  and files.?[expirationDate != null and !expirationDate.isBefore(T(java.time.LocalDate).now()) and !expirationDate.isAfter(T(java.time.LocalDate).now().plusDays(30))].size() == 0}">
+                            All current
+                        </span>
+                            </div>
+                        </div>
+                    </button>
+
+                    <div th:id="'uploadCustomerCollapse' + ${u.id}" class="collapse">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-lg-6"
+                                     th:each="f : ${files}"
+                                     th:with="
+                                today=${T(java.time.LocalDate).now()},
+                                soon=${T(java.time.LocalDate).now().plusDays(30)},
+                                isExpired=${f.expirationDate != null and f.expirationDate.isBefore(today)},
+                                isExpiring=${f.expirationDate != null and !f.expirationDate.isBefore(today) and !f.expirationDate.isAfter(soon)}
+                             ">
+
+                                    <div class="card h-100 border-start border-4"
+                                         th:classappend="${isExpired} ? ' border-danger' : (${isExpiring} ? ' border-warning' : ' border-success')">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                                <div>
+                                                    <h6 class="mb-1"
+                                                        th:text="${f.displayName != null ? f.displayName : f.fileName}">
+                                                        File Display Name
+                                                    </h6>
+                                                    <div class="text-muted small" th:text="${f.fileName}">
+                                                        file.pdf
+                                                    </div>
+                                                </div>
+
+                                                <span class="badge text-bg-danger" th:if="${isExpired}">
+                                            Expired
+                                        </span>
+                                                <span class="badge text-bg-warning"
+                                                      th:if="${!isExpired and isExpiring}">
+                                            Expiring
+                                        </span>
+                                                <span class="badge text-bg-success"
+                                                      th:if="${!isExpired and !isExpiring}">
+                                            Current
+                                        </span>
+                                            </div>
+
+                                            <div class="row g-2 mb-3 small">
+                                                <div class="col-6">
+                                                    <div class="text-muted">Expires</div>
+                                                    <div class="fw-semibold"
+                                                         th:text="${f.expirationDate != null ? #temporals.format(f.expirationDate, 'MM-dd-yyyy') : '—'}">
+                                                        —
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-6">
+                                                    <div class="text-muted">Uploaded</div>
+                                                    <div class="fw-semibold"
+                                                         th:text="${#temporals.format(f.createdAt, 'MM-dd-yyyy')}">
+                                                        01-01-2026
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <form th:action="@{'/admin/uploads/' + ${f.id} + '/expiration'}"
+                                                  method="post"
+                                                  class="d-inline-flex align-items-center gap-2 mb-3"
+                                                  onsubmit="return confirm('Update expiration date for this file?');">
+                                                <input type="hidden" th:name="${_csrf.parameterName}"
+                                                       th:value="${_csrf.token}"/>
+
+                                                <input type="date"
+                                                       name="expirationDate"
+                                                       class="form-control form-control-sm"
+                                                       style="width:135px;"
+                                                       th:value="${f.expirationDate}"
+                                                       aria-label="Expiration date">
+
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-primary py-0 px-2">
+                                                    Save
+                                                </button>
+                                            </form>
+
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <a class="btn btn-sm btn-outline-secondary"
+                                                   th:href="@{'/admin/uploads/' + ${f.id} + '/download'}">
+                                                    Download
+                                                </a>
+
+                                                <form th:action="@{'/admin/uploads/' + ${f.id} + '/delete'}"
+                                                      method="post"
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Delete this file? This cannot be undone.');">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}"
+                                                           th:value="${_csrf.token}"/>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
+                                    </div>
 
-                                        <form th:action="@{'/admin/uploads/' + ${f.id} + '/expiration'}"
-                                              method="post"
-                                              class="d-flex gap-2"
-                                              onsubmit="return confirm('Update expiration date for this file?');">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                            <input type="date"
-                                                   name="expirationDate"
-                                                   class="form-control form-control-sm"
-                                                   th:value="${f.expirationDate}"
-                                                   aria-label="Expiration date">
-                                            <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                Update
-                                            </button>
-                                        </form>
-                                    </td>
-                                    <td th:text="${#temporals.format(f.createdAt, 'MM-dd-yyyy')}">2025-09-03 10:15</td>
-                                    <td class="text-end">
-                                        <a class="btn btn-sm btn-outline-secondary"
-                                           th:href="@{'/admin/uploads/' + ${f.id} + '/download'}">
-                                            Download
-                                        </a>
-                                        <form th:action="@{'/admin/uploads/' + ${f.id} + '/delete'}" method="post" class="d-inline"
-                                              onsubmit="return confirm('Delete this file? This cannot be undone.');">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div><!-- /.table-responsive -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
 
@@ -428,7 +716,7 @@
 
 <!-- Weekly invoicing JS block (unchanged logic) -->
 <script>
-    (function() {
+    (function () {
         const tbody = document.getElementById('invoicesWeeklyTbody');
         const weekRangeEl = document.getElementById('invoiceWeekRange');
         const prevBtn = document.getElementById('prevWeekBtn');
@@ -441,6 +729,8 @@
         const badgeCustomers = document.getElementById('badgeCustomers');
         const badgePaid = document.getElementById('badgePaid');
         const badgeUnpaid = document.getElementById('badgeUnpaid');
+        const badgePaidAmount = document.getElementById('badgePaidAmount');
+        const badgeUnpaidAmount = document.getElementById('badgeUnpaidAmount');
         const badgePaidRows = document.getElementById('badgePaidRows');
         const badgeUnpaidRows = document.getElementById('badgeUnpaidRows');
 
@@ -449,34 +739,42 @@
         const CSRF_TOKEN = csrfHook?.dataset?.token || '';
 
         function fmtMoney(n) {
-            try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(n); }
-            catch { return '$' + Number(n || 0).toFixed(2); }
+            try {
+                return new Intl.NumberFormat(undefined, {style: 'currency', currency: 'USD'}).format(n);
+            } catch {
+                return '$' + Number(n || 0).toFixed(2);
+            }
         }
 
         function mondayOf(d) {
             const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             const dow = (dt.getDay() + 6) % 7; // Mon=0
             dt.setDate(dt.getDate() - dow);
-            dt.setHours(0,0,0,0);
+            dt.setHours(0, 0, 0, 0);
             return dt;
         }
+
         function sundayOf(monday) {
             const s = new Date(monday);
             s.setDate(s.getDate() + 6);
             return s;
         }
-        function iso(d) { return d.toISOString().slice(0,10); }
+
+        function iso(d) {
+            return d.toISOString().slice(0, 10);
+        }
+
         function fmtRange(monday) {
             const s = sundayOf(monday);
-            const fmt = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            const fmt = (d) => d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
             return `${fmt(monday)} – ${fmt(s)}`;
         }
 
         let currentMonday = mondayOf(new Date()); // default to current week
 
         async function loadWeekly() {
-            const params = new URLSearchParams({ start: iso(currentMonday) });
-            const res = await fetch('/admin/invoices/weekly?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+            const params = new URLSearchParams({start: iso(currentMonday)});
+            const res = await fetch('/admin/invoices/weekly?' + params.toString(), {headers: {'Accept': 'application/json'}});
             const rows = await res.json();
             renderWeekly(rows);
         }
@@ -490,6 +788,8 @@
             let paidToDateTotal = 0;
             let newSincePaidTotal = 0;
             let paidCount = 0;
+            let paidAmount = 0;
+            let unpaidAmount = 0;
 
             if (badgeCustomers) badgeCustomers.textContent = `Customers: ${rows.length}`;
 
@@ -502,7 +802,12 @@
                 grandTotal += amount;
                 paidToDateTotal += previouslyPaid;
                 newSincePaidTotal += delta;
-                if (isPaid) paidCount++;
+                if (isPaid) {
+                    paidCount++;
+                }
+
+                paidAmount += previouslyPaid;
+                unpaidAmount += delta;
 
                 const tr = document.createElement('tr');
 
@@ -589,7 +894,7 @@
                         const inpStart = document.createElement('input');
                         inpStart.type = 'hidden';
                         inpStart.name = 'start';
-                        inpStart.value = (new Date(currentMonday.getTime() - currentMonday.getTimezoneOffset()*60000)).toISOString().slice(0,10);
+                        inpStart.value = (new Date(currentMonday.getTime() - currentMonday.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
                         form.appendChild(inpStart);
                     }
 
@@ -667,10 +972,12 @@
             if (paidToDateTotalEl) paidToDateTotalEl.textContent = fmtMoney(paidToDateTotal);
             if (newSincePaidTotalEl) newSincePaidTotalEl.textContent = fmtMoney(newSincePaidTotal);
 
-            if (badgePaid)   badgePaid.textContent   = `Paid: ${paidCount}`;
+            if (badgePaid) badgePaid.textContent = `Paid: ${paidCount}`;
             if (badgeUnpaid) badgeUnpaid.textContent = `Unpaid: ${rows.length - paidCount}`;
+            if (badgePaidAmount) badgePaidAmount.textContent = fmtMoney(paidAmount);
+            if (badgeUnpaidAmount) badgeUnpaidAmount.textContent = fmtMoney(unpaidAmount);
 
-            if (badgePaidRows)   badgePaidRows.textContent   = paidCount;
+            if (badgePaidRows) badgePaidRows.textContent = paidCount;
             if (badgeUnpaidRows) badgeUnpaidRows.textContent = (rows.length - paidCount);
         }
 
