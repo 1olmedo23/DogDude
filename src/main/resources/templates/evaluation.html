@@ -21,7 +21,6 @@
                         <h5 class="eval-intro-heading">Welcome new clients!</h5>
                         <p class="eval-intro-text">
                             Please complete the required information to submit your evaluation.
-                            Provide vaccination and pet license records if available—if not, bring them to your in-person visit.
                         </p>
                         <p class="eval-intro-text">
                             After submitting the evaluation, you’ll receive an email with next steps.
@@ -39,7 +38,7 @@
                     </ul>
                 </div>
 
-                <form method="post" enctype="multipart/form-data" novalidate>
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                     <div class="mb-3">
@@ -48,8 +47,22 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Phone</label>
-                        <input type="text" class="form-control" name="phone" required>
+                        <label class="form-label" for="phone">Phone</label>
+
+                        <input type="tel"
+                               class="form-control"
+                               id="phone"
+                               name="phone"
+                               required
+                               inputmode="numeric"
+                               autocomplete="tel"
+                               maxlength="20"
+                               placeholder="(206) 377-9994">
+
+                        <div class="invalid-feedback">
+                            Enter a valid 10-digit phone number.
+                        </div>
+
                     </div>
 
                     <div class="mb-3">
@@ -230,6 +243,95 @@
             addBtn.addEventListener('click', addExtraDogRow);
             updateButtonState();
         }
+    })();
+</script>
+
+<script>
+    (function () {
+        const phoneInput = document.getElementById('phone');
+
+        if (!phoneInput) {
+            return;
+        }
+
+        function getDigits(value) {
+            return value.replace(/\D/g, '');
+        }
+
+        function containsOnlyAllowedCharacters(value) {
+            return /^[0-9().\s-]*$/.test(value);
+        }
+
+        function formatPhoneNumber(digits) {
+            if (digits.length <= 3) {
+                return digits;
+            }
+
+            if (digits.length <= 6) {
+                return '(' + digits.substring(0, 3) + ') '
+                    + digits.substring(3);
+            }
+
+            return '(' + digits.substring(0, 3) + ') '
+                + digits.substring(3, 6) + '-'
+                + digits.substring(6);
+        }
+
+        function setPhoneValidity(message) {
+            phoneInput.setCustomValidity(message);
+            phoneInput.classList.toggle('is-invalid', message !== '');
+        }
+
+        function validatePhone() {
+            const digits = getDigits(phoneInput.value);
+
+            if (phoneInput.value.length === 0) {
+                setPhoneValidity('');
+                return false;
+            }
+
+            if (!containsOnlyAllowedCharacters(phoneInput.value)) {
+                setPhoneValidity(
+                    'Phone number can only contain numbers and standard formatting.'
+                );
+                return false;
+            }
+
+            if (digits.length !== 10) {
+                setPhoneValidity(
+                    'Enter a valid 10-digit U.S. phone number.'
+                );
+                return false;
+            }
+
+            setPhoneValidity('');
+            return true;
+        }
+
+        phoneInput.addEventListener('input', function () {
+            const originalValue = phoneInput.value;
+
+            if (!containsOnlyAllowedCharacters(originalValue)) {
+                setPhoneValidity(
+                    'Phone number can only contain numbers and standard formatting.'
+                );
+                return;
+            }
+
+            const digits = getDigits(originalValue);
+
+            if (digits.length > 10) {
+                setPhoneValidity(
+                    'Phone number cannot contain more than 10 digits.'
+                );
+                return;
+            }
+
+            phoneInput.value = formatPhoneNumber(digits);
+            validatePhone();
+        });
+
+        phoneInput.addEventListener('blur', validatePhone);
     })();
 </script>
 

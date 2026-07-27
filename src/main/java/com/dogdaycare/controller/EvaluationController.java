@@ -103,7 +103,11 @@ public class EvaluationController {
             // timestamp
             evaluation.setCreatedAt(java.time.LocalDateTime.now());
 
-            // Save to DB (entity hooks serialize extras into JSON column)
+// Store all phone numbers consistently as exactly 10 digits.
+            String normalizedPhone = evaluation.getPhone().replaceAll("\\D", "");
+            evaluation.setPhone(normalizedPhone);
+
+// Save to DB (entity hooks serialize extras into JSON column)
             evaluationRepository.save(evaluation);
 
             // Save files to disk (up to 5)
@@ -149,7 +153,7 @@ public class EvaluationController {
                     .append("-----------------------\n\n")
                     .append("Client name: ").append(evaluation.getClientName()).append("\n")
                     .append("Email: ").append(evaluation.getEmail()).append("\n")
-                    .append("Phone: ").append(evaluation.getPhone()).append("\n\n")
+                    .append("Phone: ").append(formatPhoneForDisplay(evaluation.getPhone())).append("\n\n")
                     .append("Primary dog: ").append(evaluation.getDogName())
                     .append(" (").append(evaluation.getDogBreed()).append(")\n")
                     .append("Additional dogs: ").append(extrasText).append("\n\n")
@@ -180,6 +184,25 @@ public class EvaluationController {
         } catch (Exception e) {
             throw new RuntimeException("Error processing evaluation: " + e.getMessage());
         }
+    }
+
+    private String formatPhoneForDisplay(String phone) {
+        if (phone == null) {
+            return "";
+        }
+
+        String digits = phone.replaceAll("\\D", "");
+
+        if (digits.length() != 10) {
+            return phone;
+        }
+
+        return String.format(
+                "(%s) %s-%s",
+                digits.substring(0, 3),
+                digits.substring(3, 6),
+                digits.substring(6)
+        );
     }
 
     // ----------------- SHARED HTML BUILDER -----------------

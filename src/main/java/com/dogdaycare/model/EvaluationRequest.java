@@ -3,7 +3,7 @@ package com.dogdaycare.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.AssertTrue;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -94,11 +94,22 @@ public class EvaluationRequest {
     private String clientName;
 
     @NotBlank(message = "Phone is required")
-    @Pattern(
-            regexp = "^(\\+\\d{1,2}\\s?)?\\(?\\d{3}\\)?[\\s.-]?\\d{3}[\\s.-]?\\d{4}$",
-            message = "Invalid phone number format"
-    )
     private String phone;
+
+    @AssertTrue(message = "Phone number must contain exactly 10 digits")
+    public boolean isPhoneDigitCountValid() {
+        if (phone == null || phone.isBlank()) {
+            return true;
+        }
+
+        // Only permit digits and common U.S. phone-number formatting characters.
+        if (!phone.matches("^[0-9().\\s-]+$")) {
+            return false;
+        }
+
+        String digits = phone.replaceAll("\\D", "");
+        return digits.length() == 10;
+    }
 
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email is required")
