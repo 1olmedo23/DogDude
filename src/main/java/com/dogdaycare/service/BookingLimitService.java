@@ -43,9 +43,12 @@ public class BookingLimitService {
 
         int total = daycare + boarding;
 
-        // Derive emergency usage from total vs normal caps so cancellations instantly free capacity.
         int normalCap = daycareCap + boardingCap;
-        int emergencyUsed = Math.max(0, Math.min(emergencyCap, total - normalCap));
+
+        int emergencyUsed = Math.max(
+                0,
+                Math.min(emergencyCap, total - normalCap)
+        );
 
         return new EmergencyCounts(
                 date,
@@ -76,19 +79,20 @@ public class BookingLimitService {
         return false;
     }
 
-    /** Should an admin emergency spot be used for the given service? */
+    /** Should an admin booking use an emergency spot? */
     public boolean shouldUseEmergency(LocalDate date, String serviceType) {
         EmergencyCounts c = snapshot(date);
 
-        boolean totalOk = c.getTotal() < c.totalCap();
-        boolean emergencyAvailable = c.emergencyRemaining() > 0;
-
-        if (isDaycare(serviceType)) {
-            return (c.getDaycare() >= c.daycareCap()) && totalOk && emergencyAvailable;
-        } else if (isBoarding(serviceType)) {
-            return (c.getBoarding() >= c.boardingCap()) && totalOk && emergencyAvailable;
+        // Reject unknown service types.
+        if (!isDaycare(serviceType) && !isBoarding(serviceType)) {
+            return false;
         }
-        return false;
+
+        int normalCap = c.daycareCap() + c.boardingCap();
+
+        return c.getTotal() >= normalCap
+                && c.getTotal() < c.totalCap()
+                && c.emergencyRemaining() > 0;
     }
 
     /** Can we consume an emergency spot (regardless of service)? */
