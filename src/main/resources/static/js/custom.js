@@ -395,7 +395,6 @@ function groupAndRenderAdminBookings(rows) {
     });
 
     attachCancelConfirm();
-    attachAdjustmentConfirm();
 }
 
 function fetchBookings() {
@@ -436,31 +435,6 @@ function attachCancelConfirm() {
     document.querySelectorAll('.cancel-booking-btn').forEach(button => {
         button.removeEventListener('click', cancelHandler);
         button.addEventListener('click', cancelHandler);
-    });
-}
-
-function adjustmentHandler(e) {
-    const form = e.currentTarget;
-    const amount = form.querySelector('select[name="amount"]')?.value || '0';
-    const reason = form.querySelector('input[name="reason"]')?.value?.trim() || '';
-
-    let message = 'Save this booking adjustment?';
-
-    if (amount === '0') {
-        message = 'Clear this booking adjustment?';
-    } else {
-        message = `Save adjustment of ${amount > 0 ? '+' : ''}$${Math.abs(Number(amount))}${reason ? ` with message: "${reason}"` : ''}?`;
-    }
-
-    if (!confirm(message)) {
-        e.preventDefault();
-    }
-}
-
-function attachAdjustmentConfirm() {
-    document.querySelectorAll('.admin-adjust-form').forEach(form => {
-        form.removeEventListener('submit', adjustmentHandler);
-        form.addEventListener('submit', adjustmentHandler);
     });
 }
 

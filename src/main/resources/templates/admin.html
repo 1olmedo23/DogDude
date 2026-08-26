@@ -361,6 +361,10 @@
                  th:if="${successMessage != null and !#strings.isEmpty(successMessage)}"
                  th:text="${successMessage}">
             </div>
+            <div class="alert alert-danger"
+                 th:if="${errorMessage != null and !#strings.isEmpty(errorMessage)}"
+                 th:text="${errorMessage}">
+            </div>
 
             <div class="mb-3">
                 <h4 class="fw-semibold mb-1">Bookings by Service</h4>

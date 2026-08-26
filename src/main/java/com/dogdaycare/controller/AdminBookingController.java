@@ -155,7 +155,10 @@ public class AdminBookingController {
                                       RedirectAttributes ra) {
 
         if (amount == null || !ALLOWED_ADJUSTMENTS.contains(amount)) {
-            ra.addFlashAttribute("errorMessage", "Adjustment must be between -50 and 50 in $5 increments.");
+            ra.addFlashAttribute(
+                    "errorMessage",
+                    "Adjustment must be between -100 and 100 in $5 increments."
+            );
             return "redirect:/admin#bookings";
         }
 
