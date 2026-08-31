@@ -1,5 +1,18 @@
-let currentBookingDate = new Date();
-let currentInvoiceWeekStart = getLastCompletedWeekStart(); // Monday of last completed week
+function bookingDateFromUrl() {
+    const value = new URLSearchParams(window.location.search).get('date');
+
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return new Date();
+    }
+
+    const [year, month, day] = value.split('-').map(Number);
+    const parsed = new Date(year, month - 1, day);
+
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+let currentBookingDate = bookingDateFromUrl();
+let currentInvoiceWeekStart = getLastCompletedWeekStart();
 let paidEmailsForWeek = new Set();
 
 // ---------- Helpers ----------
@@ -242,6 +255,7 @@ function groupAndRenderAdminBookings(rows) {
                 const adjustmentForm = !isCanceled ? `
                     <form method="POST" action="/admin/bookings/adjust/${b.id}" class="admin-adjust-form mt-3">
                         ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
+                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
                         <div class="d-flex align-items-end gap-3 flex-wrap mt-2">
                             <div>
                                 <label class="form-label small mb-1">Adjust</label>
@@ -278,6 +292,7 @@ function groupAndRenderAdminBookings(rows) {
                     <form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline"
                           onsubmit="return confirm('Mark this booking as PAID?');">
                         ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
+                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
                         <button class="btn btn-outline-success btn-sm">Mark Paid</button>
                     </form>
                 ` : '';
@@ -286,6 +301,7 @@ function groupAndRenderAdminBookings(rows) {
                     <form method="POST" action="/admin/bookings/revert-paid/${b.id}" class="d-inline"
                           onsubmit="return confirm('Revert this booking back to unpaid?');">
                         ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
+                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
                         <button class="btn btn-outline-danger btn-sm">Revert Paid</button>
                     </form>
                 ` : '';
@@ -293,6 +309,7 @@ function groupAndRenderAdminBookings(rows) {
                 const cancelForm = isApproved ? `
                     <form method="POST" action="/admin/bookings/cancel/${b.id}" class="d-inline">
                         ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
+                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
                         <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
                     </form>
                 ` : '';

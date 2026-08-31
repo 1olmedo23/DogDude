@@ -64,6 +64,13 @@ public class AdminBookingController {
 
     private LocalDate weekStart(LocalDate any) { return any.with(DayOfWeek.MONDAY); }
     private LocalDate weekEnd(LocalDate ws) { return ws.plusDays(6); }
+    private String bookingsRedirect(LocalDate date) {
+        if (date == null) {
+            return "redirect:/admin#bookings";
+        }
+
+        return "redirect:/admin?date=" + date + "#bookings";
+    }
 
     // ---------------- JSON consumed by admin page (Bookings tab) ----------------
     @GetMapping
@@ -73,7 +80,18 @@ public class AdminBookingController {
     ) {
         List<Booking> bookings = bookingRepository.findByDate(date);
 
-        return bookings.stream().map(b -> {
+        return bookings.stream()
+                .sorted(
+                        Comparator.comparing(
+                                        Booking::getTime,
+                                        Comparator.nullsLast(Comparator.naturalOrder())
+                                )
+                                .thenComparing(
+                                        Booking::getId,
+                                        Comparator.nullsLast(Comparator.naturalOrder())
+                                )
+                )
+                .map(b -> {
             String email = (b.getCustomer() != null) ? b.getCustomer().getUsername() : "N/A";
 
             Optional<EvaluationRequest> evalOpt =
@@ -152,6 +170,8 @@ public class AdminBookingController {
     public String adjustBookingAmount(@PathVariable Long id,
                                       @RequestParam("amount") Integer amount,
                                       @RequestParam(value = "reason", required = false) String reason,
+                                      @RequestParam(value = "date", required = false)
+                                      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                                       RedirectAttributes ra) {
 
         if (amount == null || !ALLOWED_ADJUSTMENTS.contains(amount)) {
@@ -159,19 +179,19 @@ public class AdminBookingController {
                     "errorMessage",
                     "Adjustment must be between -100 and 100 in $5 increments."
             );
-            return "redirect:/admin#bookings";
+            return bookingsRedirect(date);
         }
 
         String cleanReason = (reason == null) ? "" : reason.trim();
 
         if (amount != 0 && cleanReason.isBlank()) {
             ra.addFlashAttribute("errorMessage", "Please enter a short reason for the adjustment.");
-            return "redirect:/admin#bookings";
+            return bookingsRedirect(date);
         }
 
         if (cleanReason.length() > 120) {
             ra.addFlashAttribute("errorMessage", "Adjustment reason must be 120 characters or fewer.");
-            return "redirect:/admin#bookings";
+            return bookingsRedirect(date);
         }
 
         bookingRepository.findById(id).ifPresentOrElse(booking -> {
@@ -187,11 +207,15 @@ public class AdminBookingController {
             }
         }, () -> ra.addFlashAttribute("errorMessage", "Booking not found."));
 
-        return "redirect:/admin#bookings";
+        return bookingsRedirect(date);
     }
 
     @PostMapping("/cancel/{id}")
-    public String cancelBooking(@PathVariable Long id, RedirectAttributes ra) {
+    public String cancelBooking(
+            @PathVariable Long id,
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            RedirectAttributes ra) {
         bookingRepository.findById(id).ifPresent(booking -> {
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
@@ -201,12 +225,16 @@ public class AdminBookingController {
             emergencyAllocationRepository.deleteByBookingId(id);
             ra.addFlashAttribute("successMessage", "Booking canceled.");
         });
-        return "redirect:/admin";
+        return bookingsRedirect(date);
     }
 
     // Mark a single booking (day) as PAID (unchanged logic)
     @PostMapping("/mark-paid/{id}")
-    public String markDayPaid(@PathVariable Long id, RedirectAttributes ra) {
+    public String markDayPaid(
+            @PathVariable Long id,
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            RedirectAttributes ra) {
         bookingRepository.findById(id).ifPresent(b -> {
             // 1) mark this single booking paid
             if (!"CANCELED".equalsIgnoreCase(b.getStatus()) && !b.isPaid()) {
@@ -260,16 +288,20 @@ public class AdminBookingController {
         });
 
         ra.addFlashAttribute("successMessage", "Booking marked paid.");
-        return "redirect:/admin#bookings";
+        return bookingsRedirect(date);
     }
 
     @PostMapping("/revert-paid/{id}")
-    public String revertBookingPaid(@PathVariable Long id, RedirectAttributes ra) {
+    public String revertBookingPaid(
+            @PathVariable Long id,
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            RedirectAttributes ra) {
         Booking booking = bookingRepository.findById(id).orElse(null);
 
         if (booking == null) {
             ra.addFlashAttribute("errorMessage", "Booking not found.");
-            return "redirect:/admin#bookings";
+            return bookingsRedirect(date);
         }
 
         booking.setPaid(false);
@@ -277,7 +309,7 @@ public class AdminBookingController {
         bookingRepository.save(booking);
 
         ra.addFlashAttribute("successMessage", "Booking payment reverted.");
-        return "redirect:/admin#bookings";
+        return bookingsRedirect(date);
     }
 
     private BigDecimal finalAmountFor(Booking b) {
