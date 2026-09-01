@@ -167,4 +167,219 @@ class BookingControllerWebTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/booking"));
     }
+
+    @Test
+    void postBooking_validDaycareBooking_savesBooking() throws Exception {
+
+        LocalDate bookingDate = LocalDate.of(2025, 11, 2);
+
+        // No existing booking for this customer on the selected date
+        when(bookingRepository.findByCustomerAndDate(customer, bookingDate))
+                .thenReturn(List.of());
+
+        // Capacity is available
+        when(bookingLimitService.canCustomerBook(
+                bookingDate,
+                "Daycare (6 AM - 8 PM)"
+        )).thenReturn(true);
+
+        // Expected daycare price per dog
+        when(pricingService.previewDaycarePrice(
+                eq(customer),
+                eq(bookingDate),
+                eq("Daycare (6 AM - 8 PM)"),
+                anyBoolean(),
+                anyBoolean()
+        )).thenReturn(new BigDecimal("50.00"));
+
+        mvc.perform(post("/booking")
+                        .param("serviceType", "Daycare (6 AM - 8 PM)")
+                        .param("date", "2025-11-02")
+                        .param("time", "06:30")
+                        .param("dogCount", "1")
+                        .param("wantsAdvancePay", "false")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "successMessage",
+                        "Booking submitted successfully! Total: $50.00"
+                ));
+
+        verify(bookingRepository).save(argThat(booking ->
+                booking.getCustomer() == customer
+                        && "Daycare (6 AM - 8 PM)".equals(booking.getServiceType())
+                        && bookingDate.equals(booking.getDate())
+                        && LocalTime.of(6, 30).equals(booking.getTime())
+                        && "APPROVED".equals(booking.getStatus())
+                        && Integer.valueOf(1).equals(booking.getDogCount())
+                        && new BigDecimal("50.00").compareTo(booking.getQuotedRateAtLock()) == 0
+                        && !booking.isWantsAdvancePay()
+        ));
+    }
+
+    @Test
+    void postBooking_rejectsDuplicateSameDayBooking() throws Exception {
+
+        LocalDate bookingDate = LocalDate.of(2025, 11, 2);
+
+        Booking existingBooking = new Booking();
+        existingBooking.setCustomer(customer);
+        existingBooking.setServiceType("Daycare (6 AM - 3 PM)");
+        existingBooking.setDate(bookingDate);
+        existingBooking.setTime(LocalTime.of(6, 0));
+        existingBooking.setStatus("APPROVED");
+
+        when(bookingRepository.findByCustomerAndDate(customer, bookingDate))
+                .thenReturn(List.of(existingBooking));
+
+        mvc.perform(post("/booking")
+                        .param("serviceType", "Daycare (6 AM - 8 PM)")
+                        .param("date", "2025-11-02")
+                        .param("time", "06:30")
+                        .param("dogCount", "1")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "errorMessage",
+                        "You have already booked a service for this day."
+                ));
+
+        verify(bookingRepository, never()).save(any(Booking.class));
+        verify(bookingLimitService, never())
+                .canCustomerBook(any(LocalDate.class), anyString());
+    }
+
+
+    @Test
+    void postBooking_multipleDogs_savesCorrectTotal() throws Exception {
+
+        LocalDate bookingDate = LocalDate.of(2025, 11, 2);
+
+        when(bookingRepository.findByCustomerAndDate(customer, bookingDate))
+                .thenReturn(List.of());
+
+        when(bookingLimitService.canCustomerBook(
+                bookingDate,
+                "Daycare (6 AM - 8 PM)"
+        )).thenReturn(true);
+
+        when(pricingService.previewDaycarePrice(
+                eq(customer),
+                eq(bookingDate),
+                eq("Daycare (6 AM - 8 PM)"),
+                anyBoolean(),
+                anyBoolean()
+        )).thenReturn(new BigDecimal("50.00"));
+
+        mvc.perform(post("/booking")
+                        .param("serviceType", "Daycare (6 AM - 8 PM)")
+                        .param("date", "2025-11-02")
+                        .param("time", "06:30")
+                        .param("dogCount", "3")
+                        .param("wantsAdvancePay", "false")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "successMessage",
+                        "Booking submitted successfully! Total: $150.00"
+                ));
+
+        verify(bookingRepository).save(argThat(booking ->
+                booking.getCustomer() == customer
+                        && "Daycare (6 AM - 8 PM)".equals(booking.getServiceType())
+                        && bookingDate.equals(booking.getDate())
+                        && LocalTime.of(6, 30).equals(booking.getTime())
+                        && "APPROVED".equals(booking.getStatus())
+                        && Integer.valueOf(3).equals(booking.getDogCount())
+                        && new BigDecimal("150.00")
+                        .compareTo(booking.getQuotedRateAtLock()) == 0
+        ));
+    }
+
+
+    @Test
+    void cancelBooking_whenPolicyAllows_cancelsBooking() throws Exception {
+
+        Booking booking = new Booking();
+        booking.setId(77L);
+        booking.setCustomer(customer);
+        booking.setServiceType("Daycare (6 AM - 8 PM)");
+        booking.setDate(LocalDate.of(2025, 11, 5));
+        booking.setTime(LocalTime.of(6, 30));
+        booking.setStatus("APPROVED");
+
+        when(bookingRepository.findById(77L))
+                .thenReturn(Optional.of(booking));
+
+        when(cancelPolicyService.canCustomerCancel(booking, clock))
+                .thenReturn(true);
+
+        mvc.perform(post("/booking/cancel/77")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "successMessage",
+                        "Your booking has been canceled."
+                ));
+
+        verify(bookingRepository).save(booking);
+
+        verify(setForgetService)
+                .addExceptionForBookingIfNeeded(booking, "CUSTOMER_CANCEL");
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "CANCELED",
+                booking.getStatus()
+        );
+    }
+
+
+    @Test
+    void cancelBooking_whenPolicyBlocks_doesNotCancelBooking() throws Exception {
+
+        Booking booking = new Booking();
+        booking.setId(88L);
+        booking.setCustomer(customer);
+        booking.setServiceType("Boarding");
+        booking.setDate(LocalDate.of(2025, 11, 1));
+        booking.setTime(LocalTime.of(6, 30));
+        booking.setStatus("APPROVED");
+
+        when(bookingRepository.findById(88L))
+                .thenReturn(Optional.of(booking));
+
+        when(cancelPolicyService.canCustomerCancel(booking, clock))
+                .thenReturn(false);
+
+        when(cancelPolicyService.policyMessage(booking))
+                .thenReturn("This booking can no longer be canceled.");
+
+        mvc.perform(post("/booking/cancel/88")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "errorMessage",
+                        "This booking can no longer be canceled."
+                ));
+
+        verify(bookingRepository, never()).save(any(Booking.class));
+
+        verify(setForgetService, never())
+                .addExceptionForBookingIfNeeded(any(Booking.class), anyString());
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "APPROVED",
+                booking.getStatus()
+        );
+    }
 }

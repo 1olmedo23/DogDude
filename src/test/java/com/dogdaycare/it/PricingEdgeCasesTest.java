@@ -23,12 +23,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @WithMockUser(username = "admin", roles = "ADMIN")
 @Transactional
-class PricingEdgeCasesIT {
+@ActiveProfiles("test")
+class PricingEdgeCasesTest {
 
     @Autowired MockMvc mvc;
 
