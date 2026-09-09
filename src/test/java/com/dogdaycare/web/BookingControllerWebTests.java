@@ -382,4 +382,49 @@ class BookingControllerWebTests {
                 booking.getStatus()
         );
     }
+
+    @Test
+    void postBooking_existingSetForgetBooking_isRejected() throws Exception {
+        // This test class uses its own fixed clock: October 31, 2025.
+        LocalDate bookedDate = LocalDate.of(2025, 11, 2);
+
+        com.dogdaycare.model.SetForgetPlan plan =
+                new com.dogdaycare.model.SetForgetPlan();
+
+        plan.setId(200L);
+        plan.setCustomer(customer);
+        plan.setActive(true);
+
+        Booking generatedBooking = new Booking();
+        generatedBooking.setId(901L);
+        generatedBooking.setCustomer(customer);
+        generatedBooking.setSetForgetPlan(plan);
+        generatedBooking.setDate(bookedDate);
+        generatedBooking.setTime(LocalTime.of(6, 30));
+        generatedBooking.setServiceType("Daycare (6 AM - 3 PM)");
+        generatedBooking.setStatus("APPROVED");
+
+        when(bookingRepository.findByCustomerAndDate(customer, bookedDate))
+                .thenReturn(List.of(generatedBooking));
+
+        mvc.perform(post("/booking")
+                        .param("serviceType", "Daycare (6 AM - 8 PM)")
+                        .param("date", bookedDate.toString())
+                        .param("time", "08:00")
+                        .param("dogCount", "1")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "errorMessage",
+                        "You have already booked a service for this day."
+                ));
+
+        verify(bookingRepository, never()).save(any(Booking.class));
+        verify(bookingRepository, never()).saveAll(anyList());
+
+        verify(bookingLimitService, never())
+                .canCustomerBook(any(LocalDate.class), anyString());
+    }
 }
