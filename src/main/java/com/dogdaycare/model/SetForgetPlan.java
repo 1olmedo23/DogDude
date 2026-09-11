@@ -33,6 +33,9 @@ public class SetForgetPlan {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    @Column(name = "auto_renew", nullable = false)
+    private boolean autoRenew = false;
+
     @Column(name = "wants_advance_pay", nullable = false)
     private boolean wantsAdvancePay = false;
 
@@ -47,4 +50,14 @@ public class SetForgetPlan {
 
     @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SetForgetRule> rules = new ArrayList<>();
+
+    @Transient
+    public String getDurationOption() {
+        if (autoRenew) return "INDEFINITE";
+        if (startDate == null || endDate == null) return null;
+        if (endDate.equals(startDate.plusMonths(3))) return "THREE_MONTHS";
+        if (endDate.equals(startDate.plusMonths(6))) return "SIX_MONTHS";
+        if (endDate.equals(startDate.plusMonths(12))) return "TWELVE_MONTHS";
+        return null;
+    }
 }

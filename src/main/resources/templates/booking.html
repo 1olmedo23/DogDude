@@ -1666,7 +1666,8 @@
                         <div class="soft-panel mb-4">
                             <div class="form-hint-stack">
                                 <div class="form-text">Every week the selected service will be booked.</div>
-                                <div class="form-text">Plans will end on the End Date listed below. If you wish to renew, simply set and save your new plan on or before the listed End Date.</div>
+                                <div class="form-text">Editing your weekly schedule keeps the current term. Choosing a different duration starts a new term today.</div>
+                                <div class="form-text">Fixed-term plans stop on their end date. Save on or after that date to start another term.</div>
                                 <div class="form-text">Selecting Indefinite will automatically renew yearly.</div>
                                 <div class="form-text">You will be charged weekly.</div>
                             </div>
@@ -1679,13 +1680,26 @@
                                 <div class="col-lg-4">
                                     <label class="form-label">Duration</label>
                                     <select name="durationOption" class="form-select" required>
-                                        <option value="THREE_MONTHS">3 Months</option>
+                                        <option value="" disabled
+                                                th:selected="${hasSetForgetPlan and setForgetPlan.durationOption == null}">
+                                            Select duration
+                                        </option>
+                                        <option value="THREE_MONTHS"
+                                                th:selected="${!hasSetForgetPlan or setForgetPlan.durationOption == 'THREE_MONTHS'}">
+                                            3 Months
+                                        </option>
                                         <option value="SIX_MONTHS"
-                                                th:selected="${hasSetForgetPlan and setForgetPlan.endDate != null}">
+                                                th:selected="${hasSetForgetPlan and setForgetPlan.durationOption == 'SIX_MONTHS'}">
                                             6 Months
                                         </option>
-                                        <option value="TWELVE_MONTHS">12 Months</option>
-                                        <option value="INDEFINITE">Indefinite</option>
+                                        <option value="TWELVE_MONTHS"
+                                                th:selected="${hasSetForgetPlan and setForgetPlan.durationOption == 'TWELVE_MONTHS'}">
+                                            12 Months
+                                        </option>
+                                        <option value="INDEFINITE"
+                                                th:selected="${hasSetForgetPlan and setForgetPlan.durationOption == 'INDEFINITE'}">
+                                            Indefinite
+                                        </option>
                                     </select>
                                 </div>
 

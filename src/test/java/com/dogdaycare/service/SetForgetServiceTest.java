@@ -385,6 +385,49 @@ class SetForgetServiceTest {
         assertEquals("CANCELED", canceled.getStatus());
     }
 
+    @Test
+    void savePlan_distinguishesIndefiniteFromFixedTwelveMonths() {
+        when(setForgetPlanRepository.save(any(SetForgetPlan.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(setForgetPlanRepository.findByCustomerAndActiveTrue(customer))
+                .thenReturn(Optional.empty());
+
+        // Check the duration choice without generating bookings.
+        when(bookingLimitService.canCustomerBook(
+                any(LocalDate.class), anyString()
+        )).thenReturn(false);
+
+        List<SetForgetRuleRequest> rules = List.of(
+                rule((short) 2, "Daycare (6 AM - 8 PM)", "06:30")
+        );
+
+        SetForgetPlan indefinite = setForgetService.saveOrUpdatePlan(
+                customer, false, 1, "INDEFINITE", rules
+        );
+
+        assertTrue(indefinite.isAutoRenew());
+        assertEquals(
+                LocalDate.now(clock).plusYears(1),
+                indefinite.getEndDate()
+        );
+
+        indefinite.setId(200L);
+        when(setForgetPlanRepository.findByCustomerAndActiveTrue(customer))
+                .thenReturn(Optional.of(indefinite));
+
+        SetForgetPlan fixed = setForgetService.saveOrUpdatePlan(
+                customer, false, 1, "TWELVE_MONTHS", rules
+        );
+
+        assertSame(indefinite, fixed);
+        assertFalse(fixed.isAutoRenew());
+        assertEquals(
+                LocalDate.now(clock).plusMonths(12),
+                fixed.getEndDate()
+        );
+    }
+
     @BeforeEach
     void setup() {
 

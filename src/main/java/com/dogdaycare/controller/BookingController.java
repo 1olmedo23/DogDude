@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import jakarta.transaction.Transactional;
 
 @Controller
 @RequestMapping("/booking")
@@ -1040,6 +1041,7 @@ public class BookingController {
     }
 
     @PostMapping("/cancel/{id}")
+    @Transactional
     public String cancelBooking(@PathVariable Long id,
                                 Authentication authentication,
                                 RedirectAttributes redirectAttributes) {
@@ -1057,10 +1059,12 @@ public class BookingController {
                 return "redirect:/booking";
             }
 
+            setForgetService.addExceptionForBookingIfNeeded(
+                    booking, "CUSTOMER_CANCEL"
+            );
+
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
-
-            setForgetService.addExceptionForBookingIfNeeded(booking, "CUSTOMER_CANCEL");
 
             redirectAttributes.addFlashAttribute("successMessage", "Your booking has been canceled.");
         }

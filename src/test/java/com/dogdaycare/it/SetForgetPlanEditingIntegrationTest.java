@@ -27,6 +27,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.dogdaycare.model.SetForgetPlan;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import java.time.Period;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +74,145 @@ class SetForgetPlanEditingIntegrationTest {
         customer.setRole("CUSTOMER");
         customer.setEnabled(true);
         customer = userRepository.saveAndFlush(customer);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "THREE_MONTHS, 3, false",
+            "SIX_MONTHS, 6, false",
+            "TWELVE_MONTHS, 12, false",
+            "INDEFINITE, 12, true"
+    })
+    void planGeneratesEveryEligibleTuesdayThroughItsEndDate(
+            String duration, int months, boolean autoRenew
+    ) {
+        SetForgetPlan plan = setForgetService.saveOrUpdatePlan(
+                customer, true, 1, duration,
+                List.of(rule((short) 2, "06:30"))
+        );
+        Long planId = plan.getId();
+        flushAndClear();
+
+        LocalDate expectedEnd =
+                LocalDate.of(2026, 9, 14).plusMonths(months);
+
+        SetForgetPlan stored =
+                entityManager.find(SetForgetPlan.class, planId);
+
+        assertEquals(expectedEnd, stored.getEndDate());
+        assertEquals(autoRenew, stored.isAutoRenew());
+        assertEquals(duration, stored.getDurationOption());
+
+        // September 15 is inside the 24-hour cutoff.
+        // The first eligible Tuesday is September 22.
+        List<LocalDate> expectedDates = LocalDate.of(2026, 9, 22)
+                .datesUntil(expectedEnd.plusDays(1), Period.ofWeeks(1))
+                .toList();
+
+        // This helper also fails if any date has duplicate bookings.
+        List<LocalDate> actualDates = bookingIdsByDate().keySet().stream()
+                .sorted()
+                .toList();
+
+        assertEquals(expectedDates, actualDates);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "THREE_MONTHS, false",
+            "SIX_MONTHS, false",
+            "TWELVE_MONTHS, false",
+            "INDEFINITE, true"
+    })
+    void renewalExtendsOnlyIndefinite_andDoesNotDuplicateBookings(
+            String duration, boolean autoRenew
+    ) {
+        SetForgetPlan plan = setForgetService.saveOrUpdatePlan(
+                customer, true, 1, duration,
+                List.of(rule((short) 3, "06:30"))
+        );
+
+        Long planId = plan.getId();
+        LocalDate originalEnd = plan.getEndDate();
+        Map<LocalDate, Long> originalIds = bookingIdsByDate();
+        Map<Long, BigDecimal> originalPrices = bookingPricesById();
+        flushAndClear();
+
+        ZoneId zone = ZoneId.of("America/Los_Angeles");
+
+        // The day before the end date: do not renew yet.
+        when(clock.instant()).thenReturn(
+                originalEnd.minusDays(1).atStartOfDay(zone).toInstant()
+        );
+
+        assertEquals(
+                0,
+                setForgetService.generateBookingsForActivePlan(customer)
+        );
+        flushAndClear();
+
+        assertEquals(
+                originalEnd,
+                entityManager.find(SetForgetPlan.class, planId).getEndDate()
+        );
+        flushAndClear();
+
+        // Move the test clock to midnight on the end date.
+        when(clock.instant()).thenReturn(
+                originalEnd.atStartOfDay(zone).toInstant()
+        );
+
+        int created =
+                setForgetService.generateBookingsForActivePlan(customer);
+        flushAndClear();
+
+        LocalDate expectedEnd =
+                autoRenew ? originalEnd.plusYears(1) : originalEnd;
+
+        assertEquals(
+                expectedEnd,
+                entityManager.find(SetForgetPlan.class, planId).getEndDate()
+        );
+        assertEquals(autoRenew, created > 0);
+
+        Map<LocalDate, Long> afterRenewal = bookingIdsByDate();
+        Map<Long, BigDecimal> afterPrices = bookingPricesById();
+
+        originalIds.forEach((date, id) ->
+                assertEquals(id, afterRenewal.get(date)));
+        originalPrices.forEach((id, price) ->
+                assertEquals(price, afterPrices.get(id)));
+
+        if (autoRenew) {
+            // For this annual plan, the old end date is Tuesday.
+            // Wednesday at 6:30 AM is more than 24 hours away.
+            List<LocalDate> expectedNewDates = originalEnd.plusDays(1)
+                    .datesUntil(expectedEnd.plusDays(1), Period.ofWeeks(1))
+                    .toList();
+
+            List<LocalDate> actualNewDates = afterRenewal.keySet().stream()
+                    .filter(date -> date.isAfter(originalEnd))
+                    .sorted()
+                    .toList();
+
+            assertEquals(expectedNewDates, actualNewDates);
+            assertEquals(expectedNewDates.size(), created);
+        } else {
+            assertEquals(originalIds, afterRenewal);
+        }
+
+        // A repeated check must not renew twice or duplicate bookings.
+        assertEquals(
+                0,
+                setForgetService.generateBookingsForActivePlan(customer)
+        );
+        flushAndClear();
+
+        assertEquals(afterRenewal, bookingIdsByDate());
+        assertEquals(
+                expectedEnd,
+                entityManager.find(SetForgetPlan.class, planId).getEndDate()
+        );
     }
 
     @Test
