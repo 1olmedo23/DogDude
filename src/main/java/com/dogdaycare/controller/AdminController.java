@@ -46,10 +46,12 @@ public class AdminController {
                                  @RequestParam(value = "q", required = false) String q,
                                  @RequestParam(value = "filter", required = false, defaultValue = "all") String filter,
                                  @RequestParam(value = "openTab", required = false) String openTab) {
-        // --- Evaluations (keep recent/pending)
+        // --- Evaluations
+        List<EvaluationRequest> allEvaluations = evaluationRepository.findAll();
+
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
-        List<EvaluationRequest> evaluations = evaluationRepository.findAll()
-                .stream()
+
+        List<EvaluationRequest> evaluations = allEvaluations.stream()
                 .filter(e -> !e.isApproved() || e.getCreatedAt().isAfter(threeDaysAgo))
                 .collect(Collectors.toList());
 
@@ -57,6 +59,82 @@ public class AdminController {
         List<User> allUsersSorted = userRepository.findAll()
                 .stream()
                 .sorted(Comparator.comparing(User::getUsername, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+
+        // --- Customer account display data
+        Map<String, EvaluationRequest> evaluationByEmail = allEvaluations.stream()
+                .filter(e -> e.getEmail() != null && !e.getEmail().isBlank())
+                .collect(Collectors.toMap(
+                        e -> e.getEmail().trim().toLowerCase(Locale.ROOT),
+                        e -> e,
+                        (first, second) -> {
+                            if (first.getCreatedAt() == null) return second;
+                            if (second.getCreatedAt() == null) return first;
+
+                            return second.getCreatedAt().isAfter(first.getCreatedAt())
+                                    ? second
+                                    : first;
+                        }
+                ));
+
+        Comparator<User> customerDogNameComparator = Comparator.comparing(
+                (User user) -> {
+                    if (user.getUsername() == null) {
+                        return null;
+                    }
+
+                    EvaluationRequest evaluation = evaluationByEmail.get(
+                            user.getUsername().trim().toLowerCase(Locale.ROOT)
+                    );
+
+                    if (evaluation == null
+                            || evaluation.getDogName() == null
+                            || evaluation.getDogName().isBlank()) {
+                        return null;
+                    }
+
+                    return evaluation.getDogName().trim();
+                },
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+        ).thenComparing(
+                User::getUsername,
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+        );
+
+        List<User> customerUsers = allUsersSorted.stream()
+                .filter(user -> "CUSTOMER".equalsIgnoreCase(user.getRole()))
+                .sorted(customerDogNameComparator)
+                .collect(Collectors.toList());
+
+        Map<Long, EvaluationRequest> evaluationByUserId = new HashMap<>();
+
+        for (User user : customerUsers) {
+            if (user.getUsername() == null) {
+                continue;
+            }
+
+            EvaluationRequest evaluation = evaluationByEmail.get(
+                    user.getUsername().trim().toLowerCase(Locale.ROOT)
+            );
+
+            if (evaluation != null) {
+                evaluationByUserId.put(user.getId(), evaluation);
+            }
+        }
+
+        List<User> staffUsers = allUsersSorted.stream()
+                .filter(user ->
+                        "ADMIN".equalsIgnoreCase(user.getRole())
+                                || "EMPLOYEE".equalsIgnoreCase(user.getRole()))
+                .sorted(
+                        Comparator.comparing(
+                                User::getRole,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                        ).thenComparing(
+                                User::getUsername,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                        )
+                )
                 .collect(Collectors.toList());
 
         // --- Uploads tab data
@@ -93,6 +171,10 @@ public class AdminController {
         // --- Model
         model.addAttribute("evaluations", evaluations);
         model.addAttribute("users", allUsersSorted);
+
+        model.addAttribute("customerUsers", customerUsers);
+        model.addAttribute("evaluationByUserId", evaluationByUserId);
+        model.addAttribute("staffUsers", staffUsers);
 
         // Uploads tab attrs
         model.addAttribute("q", q);
