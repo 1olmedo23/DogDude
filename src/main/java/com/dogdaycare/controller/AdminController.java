@@ -12,6 +12,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.dogdaycare.service.UploadService;
+import java.io.File;
+import java.nio.file.Path;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,17 +30,20 @@ public class AdminController {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final FileRepository fileRepository;
+    private final UploadService uploadService;
 
     public AdminController(EvaluationRepository evaluationRepository,
                            UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            EmailService emailService,
-                           FileRepository fileRepository) {
+                           FileRepository fileRepository,
+                           UploadService uploadService) {
         this.evaluationRepository = evaluationRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.fileRepository = fileRepository;
+        this.uploadService = uploadService;
     }
 
     // Admin dashboard (now also hydrates the Uploads tab model)
@@ -49,10 +55,8 @@ public class AdminController {
         // --- Evaluations
         List<EvaluationRequest> allEvaluations = evaluationRepository.findAll();
 
-        LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
-
         List<EvaluationRequest> evaluations = allEvaluations.stream()
-                .filter(e -> !e.isApproved() || e.getCreatedAt().isAfter(threeDaysAgo))
+                .filter(e -> !e.isApproved())
                 .collect(Collectors.toList());
 
         // --- Users list (sorted) - reused by Uploads tab to label groups
@@ -139,11 +143,44 @@ public class AdminController {
 
         // --- Uploads tab data
         List<User> usersForUploads;
+
         if (q != null && !q.isBlank()) {
-            String ql = q.toLowerCase();
+            String ql = q.trim().toLowerCase(Locale.ROOT);
+
             usersForUploads = allUsersSorted.stream()
-                    .filter(u -> u.getUsername() != null && u.getUsername().toLowerCase().contains(ql))
+                    .filter(user -> {
+
+                        // Search by email
+                        if (user.getUsername() != null
+                                && user.getUsername().toLowerCase(Locale.ROOT).contains(ql)) {
+                            return true;
+                        }
+
+                        // Find the evaluation information associated with this customer
+                        EvaluationRequest evaluation = null;
+
+                        if (user.getUsername() != null) {
+                            evaluation = evaluationByEmail.get(
+                                    user.getUsername().trim().toLowerCase(Locale.ROOT)
+                            );
+                        }
+
+                        if (evaluation == null) {
+                            return false;
+                        }
+
+                        // Search by client name
+                        if (evaluation.getClientName() != null
+                                && evaluation.getClientName().toLowerCase(Locale.ROOT).contains(ql)) {
+                            return true;
+                        }
+
+                        // Search by dog name
+                        return evaluation.getDogName() != null
+                                && evaluation.getDogName().toLowerCase(Locale.ROOT).contains(ql);
+                    })
                     .collect(Collectors.toList());
+
         } else {
             usersForUploads = allUsersSorted;
         }
@@ -226,6 +263,52 @@ public class AdminController {
                     approvalMessage
             );
         }
+        return "redirect:/admin";
+    }
+
+    @PostMapping("/deny/{id}")
+    public String denyEvaluation(@PathVariable Long id, RedirectAttributes ra) {
+
+        EvaluationRequest evaluation = evaluationRepository.findById(id).orElse(null);
+
+        if (evaluation == null) {
+            ra.addFlashAttribute("errorMessage", "Evaluation not found.");
+            return "redirect:/admin";
+        }
+
+        if (evaluation.isApproved()) {
+            ra.addFlashAttribute(
+                    "errorMessage",
+                    "An approved evaluation cannot be denied."
+            );
+            return "redirect:/admin";
+        }
+
+        List<UploadedFile> evaluationFiles =
+                fileRepository.findByEvaluationRequestIdOrderByCreatedAtDesc(id);
+
+        for (UploadedFile uploadedFile : evaluationFiles) {
+            try {
+                Path path = uploadService.resolveDownloadPath(uploadedFile);
+                File fileOnDisk = path.toFile();
+
+                if (fileOnDisk.exists()) {
+                    fileOnDisk.delete();
+                }
+            } catch (Exception ignored) {
+                // Legacy disk cleanup should not prevent denying the evaluation.
+            }
+
+            fileRepository.delete(uploadedFile);
+        }
+
+        evaluationRepository.delete(evaluation);
+
+        ra.addFlashAttribute(
+                "successMessage",
+                "Evaluation denied and removed."
+        );
+
         return "redirect:/admin";
     }
 
