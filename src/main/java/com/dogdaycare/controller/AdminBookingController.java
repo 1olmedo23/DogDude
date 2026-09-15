@@ -76,11 +76,41 @@ public class AdminBookingController {
     @GetMapping
     @ResponseBody
     public List<BookingRowDto> getBookingsByDate(
-            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+            @RequestParam("date")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         List<Booking> bookings = bookingRepository.findByDate(date);
 
+        /*
+         * Customers who currently have a non-canceled booking for this date.
+         *
+         * If one of these customers also has an older canceled booking for the
+         * same date, the canceled booking is kept in the database but hidden
+         * from the admin Bookings tab.
+         */
+        Set<Long> customersWithActiveBooking = bookings.stream()
+                .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                .filter(b -> b.getCustomer() != null && b.getCustomer().getId() != null)
+                .map(b -> b.getCustomer().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
         return bookings.stream()
+
+                // Keep all active bookings.
+                // Keep a canceled booking only when the customer has not
+                // rebooked another active service for this same date.
+                .filter(b -> {
+                    if (!"CANCELED".equalsIgnoreCase(b.getStatus())) {
+                        return true;
+                    }
+
+                    if (b.getCustomer() == null || b.getCustomer().getId() == null) {
+                        return true;
+                    }
+
+                    return !customersWithActiveBooking.contains(b.getCustomer().getId());
+                })
+
                 .sorted(
                         Comparator.comparing(
                                         Booking::getTime,
@@ -92,35 +122,42 @@ public class AdminBookingController {
                                 )
                 )
                 .map(b -> {
-            String email = (b.getCustomer() != null) ? b.getCustomer().getUsername() : "N/A";
+                    String email = (b.getCustomer() != null)
+                            ? b.getCustomer().getUsername()
+                            : "N/A";
 
-            Optional<EvaluationRequest> evalOpt =
-                    (email == null || "N/A".equals(email))
-                            ? Optional.empty()
-                            : evaluationRepository.findTopByEmailOrderByCreatedAtDesc(email);
+                    Optional<EvaluationRequest> evalOpt =
+                            (email == null || "N/A".equals(email))
+                                    ? Optional.empty()
+                                    : evaluationRepository.findTopByEmailOrderByCreatedAtDesc(email);
 
-            String customerName = evalOpt.map(EvaluationRequest::getClientName).orElse(email != null ? email : "N/A");
-            String dogName = evalOpt.map(EvaluationRequest::getDogName).orElse("N/A");
+                    String customerName = evalOpt
+                            .map(EvaluationRequest::getClientName)
+                            .orElse(email != null ? email : "N/A");
 
-            // IMPORTANT: include both the historical lock and the current live (tier-aware) amount
-            return new BookingRowDto(
-                    b.getId(),
-                    customerName,
-                    email,
-                    dogName,
-                    b.getServiceType(),
-                    b.getTime(),
-                    b.getStatus(),
-                    b.isWantsAdvancePay(),
-                    b.isAdvanceEligible(),
-                    b.isPaid(),
-                    b.getQuotedRateAtLock(),
-                    b.getDogCount(),
-                    finalAmountFor(b),
-                    b.getManualAdjustmentAmount(),
-                    b.getManualAdjustmentReason()
-            );
-        }).toList();
+                    String dogName = evalOpt
+                            .map(EvaluationRequest::getDogName)
+                            .orElse("N/A");
+
+                    return new BookingRowDto(
+                            b.getId(),
+                            customerName,
+                            email,
+                            dogName,
+                            b.getServiceType(),
+                            b.getTime(),
+                            b.getStatus(),
+                            b.isWantsAdvancePay(),
+                            b.isAdvanceEligible(),
+                            b.isPaid(),
+                            b.getQuotedRateAtLock(),
+                            b.getDogCount(),
+                            finalAmountFor(b),
+                            b.getManualAdjustmentAmount(),
+                            b.getManualAdjustmentReason()
+                    );
+                })
+                .toList();
     }
 
     // ---------------- Optional server-side view (unchanged) ----------------

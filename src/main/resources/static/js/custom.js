@@ -138,7 +138,7 @@ function groupAndRenderAdminBookings(rows) {
     const csrfToken = csrfHook?.dataset?.token || '';
 
     const adjustmentOptions = [
-        -100, -95, -90, -85, -80, -75, -70, -65, -60, -55,-50,
+        -100, -95, -90, -85, -80, -75, -70, -65, -60, -55, -50,
         -45, -40, -35, -30, -25, -20, -15, -10, -5,
         0,
         5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100
@@ -151,15 +151,44 @@ function groupAndRenderAdminBookings(rows) {
         'Boarding': []
     };
 
+    const canceledBookings = [];
+
+    /*
+     * Separate canceled bookings from active service groups.
+     *
+     * This means:
+     * - service counters only count non-canceled bookings
+     * - canceled bookings appear in their own section at the bottom
+     */
     rows.forEach(r => {
+        const isCanceled =
+            String(r.status || '').toUpperCase() === 'CANCELED';
+
+        if (isCanceled) {
+            canceledBookings.push(r);
+            return;
+        }
+
         const svc = (r.serviceType || '').toLowerCase();
 
-        if (svc.includes('daycare') && (r.serviceType || '').includes('6 AM - 3 PM')) {
+        if (
+            svc.includes('daycare') &&
+            (r.serviceType || '').includes('6 AM - 3 PM')
+        ) {
             groups['Daycare (6 AM - 3 PM)'].push(r);
-        } else if (svc.includes('daycare') && (r.serviceType || '').includes('6 AM - 8 PM')) {
+
+        } else if (
+            svc.includes('daycare') &&
+            (r.serviceType || '').includes('6 AM - 8 PM')
+        ) {
             groups['Daycare (6 AM - 8 PM)'].push(r);
-        } else if (svc.includes('daycare') && svc.includes('after hours')) {
+
+        } else if (
+            svc.includes('daycare') &&
+            svc.includes('after hours')
+        ) {
             groups['Daycare After Hours (6 AM - 11 PM)'].push(r);
+
         } else if (svc.includes('boarding')) {
             groups['Boarding'].push(r);
         }
@@ -172,218 +201,405 @@ function groupAndRenderAdminBookings(rows) {
         'Boarding'
     ];
 
+    /*
+     * Reusable booking card.
+     *
+     * showServiceType is true for the Canceled Bookings section because
+     * canceled bookings from multiple services are displayed together.
+     */
+    function renderBookingCard(
+        b,
+        bookingIndex,
+        sectionKey,
+        showServiceType = false
+    ) {
+        const detailsId =
+            `bookingDetails_${sectionKey}_${b.id || bookingIndex}`;
+
+        const isCanceled =
+            String(b.status || '').toUpperCase() === 'CANCELED';
+
+        const isApproved =
+            String(b.status || '').toUpperCase() === 'APPROVED';
+
+        const bookingBg = bookingIndex % 2 === 0
+            ? 'bg-white'
+            : 'bg-light';
+
+        const statusBadge = isCanceled
+            ? `<span class="badge text-bg-danger">Canceled</span>`
+            : `<span class="badge text-bg-success">Booked</span>`;
+
+        /*
+         * Canceled bookings are not part of payment/invoicing,
+         * so do not show Paid / Unpaid / Prepay badges on them.
+         */
+        const paidBadge = isCanceled
+            ? ''
+            : (
+                b.paid
+                    ? `<span class="badge text-bg-success">Paid</span>`
+                    : `<span class="badge text-bg-secondary">Unpaid</span>`
+            );
+
+        const prepayBadge =
+            (!isCanceled &&
+                !b.paid &&
+                b.wantsAdvancePay &&
+                b.advanceEligible)
+                ? `<span class="badge text-bg-info">Prepay</span>`
+                : '';
+
+        const dogBadge =
+            (b.dogCount && b.dogCount > 1)
+                ? `<span class="badge text-bg-secondary ms-1">×${b.dogCount}</span>`
+                : '';
+
+        const serviceDisplay = showServiceType
+            ? `
+                <div class="text-muted small">
+                    ${escapeHtml(b.serviceType || 'Service')}
+                </div>
+              `
+            : '';
+
+        const amount = b.liveAmount != null
+            ? formatCurrency(b.liveAmount)
+            : (
+                b.quotedRateAtLock
+                    ? formatCurrency(b.quotedRateAtLock)
+                    : '—'
+            );
+
+        const adjAmount = Number(b.manualAdjustmentAmount || 0);
+        const hasAdjustment = adjAmount !== 0;
+        const adjReason = (b.manualAdjustmentReason || '').trim();
+        const adjSign = adjAmount > 0 ? '+' : '';
+
+        const adjustmentSummary = hasAdjustment
+            ? `
+                <span class="badge ${adjAmount > 0 ? 'text-bg-warning' : 'text-bg-secondary'}">
+                    Adjustment: ${adjSign}${formatCurrency(adjAmount)}
+                </span>
+              `
+            : `<span class="text-muted">No price adjustment</span>`;
+
+        const optionsHtml = adjustmentOptions.map(v => {
+            const selected = (v === adjAmount) ? 'selected' : '';
+            const label = v > 0 ? `+${v}` : `${v}`;
+
+            return `<option value="${v}" ${selected}>${label}</option>`;
+        }).join('');
+
+        const adjustmentForm = !isCanceled ? `
+            <form method="POST"
+                  action="/admin/bookings/adjust/${b.id}"
+                  class="admin-adjust-form mt-3">
+
+                ${csrfToken
+            ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">`
+            : ''}
+
+                <input type="hidden"
+                       name="date"
+                       value="${isoFromLocalDate(currentBookingDate)}">
+
+                <div class="d-flex align-items-end gap-3 flex-wrap mt-2">
+
+                    <div>
+                        <label class="form-label small mb-1">
+                            Adjust
+                        </label>
+
+                        <select name="amount"
+                                class="form-select form-select-sm"
+                                style="width:90px;">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label small mb-1">
+                            Message
+                        </label>
+
+                        <input type="text"
+                               name="reason"
+                               maxlength="120"
+                               class="form-control form-control-sm"
+                               style="width:220px;"
+                               placeholder="Late pickup fee"
+                               value="${escapeAttr(adjReason)}">
+                    </div>
+
+                    <div>
+                        <button type="submit"
+                                class="btn btn-outline-primary btn-sm px-3">
+                            Save
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        ` : '';
+
+        const markPaidForm =
+            (!b.paid && !isCanceled) ? `
+                <form method="POST"
+                      action="/admin/bookings/mark-paid/${b.id}"
+                      class="d-inline"
+                      onsubmit="return confirm('Mark this booking as PAID?');">
+
+                    ${csrfToken
+                ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">`
+                : ''}
+
+                    <input type="hidden"
+                           name="date"
+                           value="${isoFromLocalDate(currentBookingDate)}">
+
+                    <button class="btn btn-outline-success btn-sm">
+                        Mark Paid
+                    </button>
+                </form>
+            ` : '';
+
+        const revertPaidForm =
+            (b.paid && !isCanceled) ? `
+                <form method="POST"
+                      action="/admin/bookings/revert-paid/${b.id}"
+                      class="d-inline"
+                      onsubmit="return confirm('Revert this booking back to unpaid?');">
+
+                    ${csrfToken
+                ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">`
+                : ''}
+
+                    <input type="hidden"
+                           name="date"
+                           value="${isoFromLocalDate(currentBookingDate)}">
+
+                    <button class="btn btn-outline-danger btn-sm">
+                        Revert Paid
+                    </button>
+                </form>
+            ` : '';
+
+        const cancelForm = isApproved ? `
+            <form method="POST"
+                  action="/admin/bookings/cancel/${b.id}"
+                  class="d-inline">
+
+                ${csrfToken
+            ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">`
+            : ''}
+
+                <input type="hidden"
+                       name="date"
+                       value="${isoFromLocalDate(currentBookingDate)}">
+
+                <button class="btn btn-danger-custom btn-sm cancel-booking-btn">
+                    Cancel
+                </button>
+            </form>
+        ` : '';
+
+        return `
+            <div class="border rounded mb-2 ${bookingBg}">
+
+                <button class="btn w-100 text-start p-3"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#${detailsId}"
+                        aria-expanded="false"
+                        aria-controls="${detailsId}">
+
+                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+
+                        <div>
+                            <div class="fw-semibold">
+                                ${escapeHtml(b.customerName || 'Customer')}
+                            </div>
+
+                            <div class="text-muted small">
+                                ${escapeHtml(b.dogName || 'N/A')}${dogBadge}
+                            </div>
+
+                            ${serviceDisplay}
+                        </div>
+
+                        <div class="text-end">
+
+                            <div class="fw-semibold">
+                                ${escapeHtml(formatBookingTime(b.time))}
+                            </div>
+
+                            <div class="mt-1 d-flex gap-1 justify-content-end flex-wrap">
+
+                                <span class="badge text-bg-light text-dark border">
+                                    Price: ${amount}
+                                </span>
+
+                                ${statusBadge}
+                                ${paidBadge}
+                                ${prepayBadge}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                </button>
+
+                <div id="${detailsId}" class="collapse">
+                    <div class="border-top p-3">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <div class="text-muted small">
+                                    Customer
+                                </div>
+
+                                <div class="fw-semibold">
+                                    ${escapeHtml(b.customerName || '—')}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="text-muted small">
+                                    Dog
+                                </div>
+
+                                <div class="fw-semibold">
+                                    ${escapeHtml(b.dogName || 'N/A')}${dogBadge}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="text-muted small">
+                                    Service
+                                </div>
+
+                                <div class="fw-semibold">
+                                    ${escapeHtml(b.serviceType || '—')}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="text-muted small">
+                                    Price
+                                </div>
+
+                                <div class="fw-semibold">
+                                    ${amount}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="text-muted small">
+                                    Adjustment
+                                </div>
+
+                                <div>
+                                    ${adjustmentSummary}
+                                </div>
+
+                                ${adjReason
+            ? `<div class="text-muted small mt-1">${escapeHtml(adjReason)}</div>`
+            : ''}
+                            </div>
+
+                        </div>
+
+                        ${adjustmentForm}
+
+                        <div class="d-flex gap-2 flex-wrap mt-3">
+                            ${markPaidForm}
+                            ${revertPaidForm}
+                            ${cancelForm}
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        `;
+    }
+
+
+    /*
+     * Active bookings by service.
+     */
     renderOrder.forEach((title, serviceIndex) => {
-        let serviceHeaderClass = 'bg-white';
+
+        let serviceHeaderClass = '';
+        let serviceHeaderStyle = '';
 
         switch (title) {
+
             case 'Daycare (6 AM - 3 PM)':
-                serviceHeaderClass = '';
-                serviceHeaderStyle = 'background-color: #086dd133;';
+                serviceHeaderStyle =
+                    'background-color: #086dd133;';
                 break;
 
             case 'Daycare (6 AM - 8 PM)':
-                serviceHeaderClass = '';
-                serviceHeaderStyle = 'background-color: #1887f533;';
+                serviceHeaderStyle =
+                    'background-color: #1887f533;';
                 break;
 
             case 'Daycare After Hours (6 AM - 11 PM)':
-                serviceHeaderClass = '';
-                serviceHeaderStyle = 'background-color: #086dd133;';
+                serviceHeaderStyle =
+                    'background-color: #086dd133;';
                 break;
 
             case 'Boarding':
-                serviceHeaderClass = '';
-                serviceHeaderStyle = 'background-color: #1887f533;';
+                serviceHeaderStyle =
+                    'background-color: #1887f533;';
                 break;
         }
+
         const list = groups[title] || [];
-        const serviceCollapseId = `bookingServiceCollapse${serviceIndex}`;
 
-        list.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        const serviceCollapseId =
+            `bookingServiceCollapse${serviceIndex}`;
 
-        const countBadgeClass = list.length > 0 ? 'text-bg-primary' : 'text-bg-secondary';
+        list.sort(
+            (a, b) =>
+                (a.time || '').localeCompare(b.time || '')
+        );
 
-        const bookingsHtml = list.length === 0
-            ? `<div class="text-muted p-3">No bookings for this service.</div>`
-            : list.map((b, bookingIndex) => {
-                const detailsId = `bookingDetails${serviceIndex}_${b.id || bookingIndex}`;
+        /*
+         * list contains only active bookings now,
+         * so canceled bookings cannot inflate this number.
+         */
+        const countBadgeClass =
+            list.length > 0
+                ? 'text-bg-primary'
+                : 'text-bg-secondary';
 
-                const isCanceled = b.status && b.status.toUpperCase() === 'CANCELED';
-                const isApproved = b.status && b.status.toUpperCase() === 'APPROVED';
+        const bookingsHtml =
+            list.length === 0
 
-                const bookingBg = bookingIndex % 2 === 0
-                    ? 'bg-white'
-                    : 'bg-light';
-
-                const statusBadge = isCanceled
-                    ? `<span class="badge text-bg-danger">Canceled</span>`
-                    : `<span class="badge text-bg-success">Booked</span>`;
-
-                const paidBadge = b.paid
-                    ? `<span class="badge text-bg-success">Paid</span>`
-                    : `<span class="badge text-bg-secondary">Unpaid</span>`;
-
-                const prepayBadge = (!b.paid && b.wantsAdvancePay && b.advanceEligible)
-                    ? `<span class="badge text-bg-info">Prepay</span>`
-                    : '';
-
-                const dogBadge = (b.dogCount && b.dogCount > 1)
-                    ? `<span class="badge text-bg-secondary ms-1">×${b.dogCount}</span>`
-                    : '';
-
-                const amount = b.liveAmount != null
-                    ? formatCurrency(b.liveAmount)
-                    : (b.quotedRateAtLock ? formatCurrency(b.quotedRateAtLock) : '—');
-
-                const adjAmount = Number(b.manualAdjustmentAmount || 0);
-                const hasAdjustment = adjAmount !== 0;
-                const adjReason = (b.manualAdjustmentReason || '').trim();
-                const adjSign = adjAmount > 0 ? '+' : '';
-
-                const adjustmentSummary = hasAdjustment
-                    ? `<span class="badge ${adjAmount > 0 ? 'text-bg-warning' : 'text-bg-secondary'}">
-                            Adjustment: ${adjSign}${formatCurrency(adjAmount)}
-                       </span>`
-                    : `<span class="text-muted">No price adjustment</span>`;
-
-                const optionsHtml = adjustmentOptions.map(v => {
-                    const selected = (v === adjAmount) ? 'selected' : '';
-                    const label = v > 0 ? `+${v}` : `${v}`;
-                    return `<option value="${v}" ${selected}>${label}</option>`;
-                }).join('');
-
-                const adjustmentForm = !isCanceled ? `
-                    <form method="POST" action="/admin/bookings/adjust/${b.id}" class="admin-adjust-form mt-3">
-                        ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
-                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
-                        <div class="d-flex align-items-end gap-3 flex-wrap mt-2">
-                            <div>
-                                <label class="form-label small mb-1">Adjust</label>
-                                <select name="amount"
-                                        class="form-select form-select-sm"
-                                        style="width:90px;">
-                                    ${optionsHtml}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="form-label small mb-1">Message</label>
-                                <input type="text"
-                                       name="reason"
-                                       maxlength="120"
-                                       class="form-control form-control-sm"
-                                       style="width:220px;"
-                                       placeholder="Late pickup fee"
-                                       value="${escapeAttr(adjReason)}">
-                            </div>
-
-                            <div>
-                                <button type="submit"
-                                        class="btn btn-outline-primary btn-sm px-3">
-                                    Save
-                                </button>
-                            </div>
-                            
-                        </div>
-                    </form>
-                ` : '';
-
-                const markPaidForm = (!b.paid && !isCanceled) ? `
-                    <form method="POST" action="/admin/bookings/mark-paid/${b.id}" class="d-inline"
-                          onsubmit="return confirm('Mark this booking as PAID?');">
-                        ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
-                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
-                        <button class="btn btn-outline-success btn-sm">Mark Paid</button>
-                    </form>
-                ` : '';
-
-                const revertPaidForm = (b.paid && !isCanceled) ? `
-                    <form method="POST" action="/admin/bookings/revert-paid/${b.id}" class="d-inline"
-                          onsubmit="return confirm('Revert this booking back to unpaid?');">
-                        ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
-                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
-                        <button class="btn btn-outline-danger btn-sm">Revert Paid</button>
-                    </form>
-                ` : '';
-
-                const cancelForm = isApproved ? `
-                    <form method="POST" action="/admin/bookings/cancel/${b.id}" class="d-inline">
-                        ${csrfToken ? `<input type="hidden" name="${csrfName}" value="${csrfToken}">` : ''}
-                        <input type="hidden" name="date" value="${isoFromLocalDate(currentBookingDate)}">
-                        <button class="btn btn-danger-custom btn-sm cancel-booking-btn">Cancel</button>
-                    </form>
-                ` : '';
-
-                return `
-                    <div class="border rounded mb-2 ${bookingBg}">
-                        <button class="btn w-100 text-start p-3"
-                                type="button"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#${detailsId}"
-                                aria-expanded="false"
-                                aria-controls="${detailsId}">
-                            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                                <div>
-                                    <div class="fw-semibold">
-                                        ${escapeHtml(b.customerName || 'Customer')}
-                                    </div>
-                                    <div class="text-muted small">
-                                        ${escapeHtml(b.dogName || 'N/A')}${dogBadge}
-                                    </div>
-                                </div>
-
-                                <div class="text-end">
-                                    <div class="fw-semibold">${escapeHtml(formatBookingTime(b.time))}</div>
-                                    <div class="mt-1 d-flex gap-1 justify-content-end flex-wrap">
-                                        <span class="badge text-bg-light text-dark border">Price: ${amount}</span>
-                                        ${statusBadge}
-                                        ${paidBadge}
-                                        ${prepayBadge}
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-
-                        <div id="${detailsId}" class="collapse">
-                            <div class="border-top p-3">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <div class="text-muted small">Customer</div>
-                                        <div class="fw-semibold">${escapeHtml(b.customerName || '—')}</div>
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <div class="text-muted small">Dog</div>
-                                        <div class="fw-semibold">${escapeHtml(b.dogName || 'N/A')}${dogBadge}</div>
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <div class="text-muted small">Price</div>
-                                        <div class="fw-semibold">${amount}</div>
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <div class="text-muted small">Adjustment</div>
-                                        <div>${adjustmentSummary}</div>
-                                        ${adjReason ? `<div class="text-muted small mt-1">${escapeHtml(adjReason)}</div>` : ''}
-                                    </div>
-                                </div>
-
-                                ${adjustmentForm}
-
-                                <div class="d-flex gap-2 flex-wrap mt-3">
-                                    ${markPaidForm}
-                                    ${revertPaidForm}
-                                    ${cancelForm}
-                                </div>
-                            </div>
-                        </div>
+                ? `
+                    <div class="text-muted p-3">
+                        No bookings for this service.
                     </div>
-                `;
-            }).join('');
+                  `
+
+                : list.map(
+                    (b, bookingIndex) =>
+                        renderBookingCard(
+                            b,
+                            bookingIndex,
+                            `service${serviceIndex}`,
+                            false
+                        )
+                ).join('');
 
         const serviceHtml = `
             <div class="card shadow-sm">
+
                 <button class="card-header ${serviceHeaderClass} btn w-100 text-start"
                         style="${serviceHeaderStyle}"
                         type="button"
@@ -391,25 +607,120 @@ function groupAndRenderAdminBookings(rows) {
                         data-bs-target="#${serviceCollapseId}"
                         aria-expanded="true"
                         aria-controls="${serviceCollapseId}">
+
                     <div class="d-flex justify-content-between align-items-center gap-3">
+
                         <div>
-                            <h5 class="mb-1">${escapeHtml(title)}</h5>
-                            
+                            <h5 class="mb-1">
+                                ${escapeHtml(title)}
+                            </h5>
                         </div>
-                        <span class="badge ${countBadgeClass}">${list.length}</span>
+
+                        <span class="badge ${countBadgeClass}">
+                            ${list.length}
+                        </span>
+
                     </div>
+
                 </button>
 
-                <div id="${serviceCollapseId}" class="collapse show">
+                <div id="${serviceCollapseId}"
+                     class="collapse show">
+
                     <div class="card-body">
                         ${bookingsHtml}
                     </div>
+
                 </div>
+
             </div>
         `;
 
-        container.insertAdjacentHTML('beforeend', serviceHtml);
+        container.insertAdjacentHTML(
+            'beforeend',
+            serviceHtml
+        );
     });
+
+
+    /*
+     * Canceled bookings always appear after all active service sections.
+     *
+     * The controller has already removed canceled bookings where the
+     * customer has another active booking for the selected date.
+     */
+    if (canceledBookings.length > 0) {
+
+        canceledBookings.sort((a, b) => {
+
+            const serviceCompare =
+                String(a.serviceType || '').localeCompare(
+                    String(b.serviceType || '')
+                );
+
+            if (serviceCompare !== 0) {
+                return serviceCompare;
+            }
+
+            return String(a.time || '').localeCompare(
+                String(b.time || '')
+            );
+        });
+
+        const canceledHtml =
+            canceledBookings.map(
+                (b, bookingIndex) =>
+                    renderBookingCard(
+                        b,
+                        bookingIndex,
+                        'canceled',
+                        true
+                    )
+            ).join('');
+
+        const canceledSectionHtml = `
+            <div class="card shadow-sm">
+
+                <button class="card-header bg-danger-subtle btn w-100 text-start"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#bookingCanceledCollapse"
+                        aria-expanded="true"
+                        aria-controls="bookingCanceledCollapse">
+
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+
+                        <div>
+                            <h5 class="mb-1">
+                                Canceled Bookings
+                            </h5>
+                        </div>
+
+                        <span class="badge text-bg-danger">
+                            ${canceledBookings.length}
+                        </span>
+
+                    </div>
+
+                </button>
+
+                <div id="bookingCanceledCollapse"
+                     class="collapse show">
+
+                    <div class="card-body">
+                        ${canceledHtml}
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+        container.insertAdjacentHTML(
+            'beforeend',
+            canceledSectionHtml
+        );
+    }
 
     attachCancelConfirm();
 }
