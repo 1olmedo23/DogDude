@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import jakarta.transaction.Transactional;
 
 @Controller
 @RequestMapping("/admin/bookings")
@@ -248,16 +249,19 @@ public class AdminBookingController {
     }
 
     @PostMapping("/cancel/{id}")
+    @Transactional
     public String cancelBooking(
             @PathVariable Long id,
             @RequestParam(value = "date", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             RedirectAttributes ra) {
         bookingRepository.findById(id).ifPresent(booking -> {
+            setForgetService.addExceptionForBookingIfNeeded(
+                    booking, "ADMIN_CANCEL"
+            );
+
             booking.setStatus("CANCELED");
             bookingRepository.save(booking);
-
-            setForgetService.addExceptionForBookingIfNeeded(booking, "ADMIN_CANCEL");
 
             emergencyAllocationRepository.deleteByBookingId(id);
             ra.addFlashAttribute("successMessage", "Booking canceled.");

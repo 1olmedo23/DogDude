@@ -162,36 +162,51 @@
                                     </div>
                                 </div>
 
-                                <form th:if="${!evaluation.approved}"
-                                      th:action="@{'/admin/approve/' + ${evaluation.id}}"
-                                      method="post"
-                                      class="border-top pt-3">
-
-                                    <input type="hidden"
-                                           th:name="${_csrf.parameterName}"
-                                           th:value="${_csrf.token}"/>
+                                <div th:if="${!evaluation.approved}"
+                                     class="border-top pt-3">
 
                                     <label class="form-label small fw-semibold">
                                         Set Customer Password
                                     </label>
 
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <input type="password"
-                                               name="password"
-                                               placeholder="New password"
-                                               required
-                                               class="form-control form-control-sm flex-grow-1"/>
+                                    <div class="d-flex gap-2 flex-wrap align-items-start">
 
-                                        <button class="btn btn-custom btn-sm"
-                                                type="submit">
-                                            Approve
-                                        </button>
+                                        <form th:action="@{'/admin/approve/' + ${evaluation.id}}"
+                                              method="post"
+                                              class="d-flex gap-2 flex-grow-1"
+                                              onsubmit="return confirm('Approve this evaluation and create the customer account?');">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+
+                                            <input type="password"
+                                                   name="password"
+                                                   placeholder="New password"
+                                                   required
+                                                   class="form-control form-control-sm flex-grow-1"/>
+
+                                            <button class="btn btn-custom btn-sm"
+                                                    type="submit">
+                                                Approve
+                                            </button>
+                                        </form>
+
+                                        <form th:action="@{'/admin/deny/' + ${evaluation.id}}"
+                                              method="post"
+                                              onsubmit="return confirm('Deny and remove this evaluation?');">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+
+                                            <button class="btn btn-outline-danger btn-sm"
+                                                    type="submit">
+                                                Deny
+                                            </button>
+                                        </form>
+
                                     </div>
-                                </form>
-
-                                <div th:if="${evaluation.approved}"
-                                     class="border-top pt-3 text-muted small">
-                                    This evaluation has already been approved.
                                 </div>
 
                             </div>
@@ -222,32 +237,64 @@
                             <table class="table table-striped align-middle mb-0">
                                 <thead>
                                 <tr>
-                                    <th>Username</th>
-                                    <th>Role</th>
+                                    <th>Dog Name</th>
+                                    <th>Client Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
                                     <th>Status</th>
                                     <th>Change Password</th>
                                     <th>Toggle</th>
                                 </tr>
                                 </thead>
+
                                 <tbody>
-                                <tr th:each="user : ${users}">
-                                    <td th:text="${user.username}"></td>
-                                    <td th:text="${user.role}"></td>
-                                    <td>
-                                <span class="badge"
-                                      th:classappend="${user.enabled ? ' text-bg-success' : ' text-bg-secondary'}"
-                                      th:text="${user.enabled ? 'Active' : 'Inactive'}">
-                                    Active
-                                </span>
+                                <tr th:each="user : ${customerUsers}"
+                                    th:with="evaluation=${evaluationByUserId.get(user.id)}">
+
+                                    <td th:text="${evaluation != null
+                and evaluation.dogName != null
+                and !#strings.isEmpty(evaluation.dogName)
+                ? evaluation.dogName
+                : '—'}">
+                                        —
+                                    </td>
+
+                                    <td th:text="${evaluation != null
+                and evaluation.clientName != null
+                and !#strings.isEmpty(evaluation.clientName)
+                ? evaluation.clientName
+                : '—'}">
+                                        —
+                                    </td>
+
+                                    <td th:text="${user.username}">
+                                        customer@email.com
+                                    </td>
+
+                                    <td th:text="${evaluation != null
+                and evaluation.phone != null
+                and !#strings.isEmpty(evaluation.phone)
+                ? evaluation.phone
+                : '—'}">
+                                        —
                                     </td>
 
                                     <td>
-                                        <form th:if="${user.role == 'CUSTOMER'}"
-                                              th:action="@{'/admin/users/' + ${user.id} + '/password'}"
+            <span class="badge"
+                  th:classappend="${user.enabled ? ' text-bg-success' : ' text-bg-secondary'}"
+                  th:text="${user.enabled ? 'Active' : 'Inactive'}">
+                Active
+            </span>
+                                    </td>
+
+                                    <td>
+                                        <form th:action="@{'/admin/users/' + ${user.id} + '/password'}"
                                               method="post"
                                               class="d-flex align-items-center gap-2 flex-wrap"
                                               onsubmit="return confirm('Change password for this customer?');">
-                                            <input type="hidden" th:name="${_csrf.parameterName}"
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
                                                    th:value="${_csrf.token}"/>
 
                                             <input type="password"
@@ -260,30 +307,39 @@
                                             <div class="form-check mt-1">
                                                 <input class="form-check-input admin-password-toggle"
                                                        type="checkbox">
+
                                                 <label class="form-check-label small">
                                                     Show
                                                 </label>
                                             </div>
 
-                                            <button
-                                                    class="btn btn-sm btn-outline-primary"
+                                            <button class="btn btn-sm btn-outline-primary"
                                                     style="width: 80px;"
                                                     type="submit">
                                                 Change
                                             </button>
                                         </form>
-
-                                        <span th:if="${user.role != 'CUSTOMER'}" class="text-muted">—</span>
                                     </td>
 
                                     <td>
-                                        <form th:action="@{'/admin/toggle/' + ${user.id}}" method="post">
-                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                        <form th:action="@{'/admin/toggle/' + ${user.id}}"
+                                              method="post">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
                                                    th:value="${_csrf.token}"/>
-                                            <button class="btn btn-warning btn-sm" type="submit"
+
+                                            <button class="btn btn-warning btn-sm"
+                                                    type="submit"
                                                     th:text="${user.enabled ? 'Disable' : 'Enable'}">
                                             </button>
                                         </form>
+                                    </td>
+                                </tr>
+
+                                <tr th:if="${#lists.isEmpty(customerUsers)}">
+                                    <td colspan="7" class="text-muted py-3">
+                                        No customer accounts found.
                                     </td>
                                 </tr>
                                 </tbody>
@@ -291,6 +347,90 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <!-- Admin / Employee Accounts -->
+            <div id="staffAccountsSection" class="mt-5" style="scroll-margin-top: 90px;">
+
+                <div class="mb-3">
+                    <h4 class="fw-semibold mb-1">Admin / Employee Accounts</h4>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="table-responsive table-wrap">
+
+                            <table class="table table-striped align-middle mb-0">
+
+                                <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Toggle</th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+
+                                <tr th:each="user : ${staffUsers}">
+
+                                    <td th:text="${user.username}">
+                                        user@example.com
+                                    </td>
+
+                                    <td>
+                            <span class="badge text-bg-primary"
+                                  th:text="${user.role}">
+                                ADMIN
+                            </span>
+                                    </td>
+
+                                    <td>
+                            <span class="badge"
+                                  th:classappend="${user.enabled
+                                        ? ' text-bg-success'
+                                        : ' text-bg-secondary'}"
+                                  th:text="${user.enabled
+                                        ? 'Active'
+                                        : 'Inactive'}">
+                                Active
+                            </span>
+                                    </td>
+
+                                    <td>
+                                        <form th:action="@{'/admin/toggle/' + ${user.id}}"
+                                              method="post">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+
+                                            <button class="btn btn-warning btn-sm"
+                                                    type="submit"
+                                                    th:text="${user.enabled
+                                                ? 'Disable'
+                                                : 'Enable'}">
+                                            </button>
+                                        </form>
+                                    </td>
+
+                                </tr>
+
+                                <tr th:if="${#lists.isEmpty(staffUsers)}">
+                                    <td colspan="4"
+                                        class="text-muted py-3">
+                                        No admin or employee accounts found.
+                                    </td>
+                                </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -510,11 +650,11 @@
                 <div class="card-body">
                     <form class="row g-2 align-items-end" method="get" th:action="@{/admin}">
                         <div class="col-12 col-md-5">
-                            <label class="form-label small mb-1">Search by Email</label>
+                            <label class="form-label small mb-1">Search</label>
                             <input type="text"
                                    class="form-control form-control-sm"
                                    name="q"
-                                   placeholder="customer@email.com"
+                                   placeholder="Dog, client, or email"
                                    th:value="${q}">
                         </div>
 
@@ -546,9 +686,10 @@
             </div>
 
             <div class="d-grid gap-3" th:if="${!#maps.isEmpty(byUser)}">
-                <div th:each="u : ${users}"
+                <div th:each="u : ${customerUsers}"
                      th:if="${byUser.containsKey(u.id)}"
-                     th:with="files=${byUser.get(u.id)}"
+                     th:with="files=${byUser.get(u.id)},
+                  evaluation=${evaluationByUserId.get(u.id)}"
                      class="card shadow-sm">
 
                     <button class="card-header bg-white btn w-100 text-start"
@@ -557,8 +698,30 @@
                             th:attr="data-bs-target='#uploadCustomerCollapse' + ${u.id}, aria-controls='uploadCustomerCollapse' + ${u.id}">
                         <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <div>
-                                <h5 class="mb-1" th:text="${u.username}">customer@email.com</h5>
-                                <div class="text-muted small">
+                                <h5 class="mb-1"
+                                    th:text="${evaluation != null
+                                        and evaluation.dogName != null
+                                        and !#strings.isEmpty(evaluation.dogName)
+                                        ? evaluation.dogName
+                                        : '—'}">
+                                    Dog Name
+                                </h5>
+
+                                <div class="small fw-semibold"
+                                     th:text="${evaluation != null
+                                         and evaluation.clientName != null
+                                         and !#strings.isEmpty(evaluation.clientName)
+                                         ? evaluation.clientName
+                                         : '—'}">
+                                    Client Name
+                                </div>
+
+                                <div class="text-muted small"
+                                     th:text="${u.username}">
+                                    customer@email.com
+                                </div>
+
+                                <div class="text-muted small mt-1">
                                     <span th:text="${#lists.size(files)}">0</span>
                                     <span> document(s)</span>
                                 </div>

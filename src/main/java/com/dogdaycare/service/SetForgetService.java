@@ -55,7 +55,9 @@ public class SetForgetService {
     }
 
     public SetForgetPlan getActivePlan(User customer) {
-        return setForgetPlanRepository.findByCustomerAndActiveTrue(customer).orElse(null);
+        return setForgetPlanRepository
+                .findActivePlanForDisplay(customer)
+                .orElse(null);
     }
 
     @Transactional
@@ -85,9 +87,23 @@ public class SetForgetService {
             plan.setCreatedAt(LocalDateTime.now(clock));
         }
 
+        boolean sameDuration = !isNew
+                && durationOption.trim().equalsIgnoreCase(plan.getDurationOption());
+
+        if (sameDuration && plan.isAutoRenew()) {
+            renewPlanIfDue(plan);
+        }
+
+        boolean keepExistingTerm =
+                sameDuration && plan.getEndDate().isAfter(today);
+
         plan.setActive(true);
-        plan.setStartDate(today);
-        plan.setEndDate(endDate);
+
+        if (!keepExistingTerm) {
+            plan.setStartDate(today);
+            plan.setEndDate(endDate);
+        }
+        plan.setAutoRenew("INDEFINITE".equalsIgnoreCase(durationOption.trim()));
         plan.setWantsAdvancePay(wantsAdvancePay);
         plan.setDogCount(dogCount);
         plan.setUpdatedAt(LocalDateTime.now(clock));
@@ -119,11 +135,34 @@ public class SetForgetService {
 
     @Transactional
     public int generateBookingsForActivePlan(User customer) {
-        SetForgetPlan plan = setForgetPlanRepository.findByCustomerAndActiveTrue(customer).orElse(null);
+        SetForgetPlan plan = setForgetPlanRepository
+                .findByCustomerAndActiveTrue(customer)
+                .orElse(null);
+
         if (plan == null || !plan.isActive()) {
             return 0;
         }
+
+        renewPlanIfDue(plan);
         return generateBookingsForPlan(plan);
+    }
+    private void renewPlanIfDue(SetForgetPlan plan) {
+        LocalDate today = LocalDate.now(clock);
+
+        if (!plan.isAutoRenew() || plan.getEndDate().isAfter(today)) {
+            return;
+        }
+
+        // Extend on the final date so tomorrow can meet the 24-hour cutoff.
+        // After downtime, advance to the current annual term.
+        LocalDate nextEnd = plan.getEndDate();
+        do {
+            nextEnd = nextEnd.plusYears(1);
+        } while (!nextEnd.isAfter(today));
+
+        plan.setEndDate(nextEnd);
+        plan.setUpdatedAt(LocalDateTime.now(clock));
+        setForgetPlanRepository.save(plan);
     }
 
     @Transactional
@@ -153,28 +192,49 @@ public class SetForgetService {
 
     @Transactional
     public void addExceptionForBookingIfNeeded(Booking booking, String reason) {
-        if (booking == null || booking.getDate() == null) {
+        if (booking == null || booking.getDate() == null
+                || booking.getCustomer() == null) {
             return;
         }
 
-        SetForgetPlan plan = booking.getSetForgetPlan();
+        // Acquire the same active-plan lock used by background generation.
+        SetForgetPlan activePlan = setForgetPlanRepository
+                .findByCustomerAndActiveTrue(booking.getCustomer())
+                .orElse(null);
 
-        if (plan == null) {
-            plan = setForgetPlanRepository.findByCustomerAndActiveTrue(booking.getCustomer()).orElse(null);
-            if (plan == null || !plan.isActive()) {
-                return;
-            }
+        SetForgetPlan bookingPlan = booking.getSetForgetPlan();
+
+        addExceptionForPlanIfNeeded(
+                bookingPlan, booking.getDate(), reason
+        );
+
+        // Also protect the current plan if the booking belongs to an older plan.
+        if (activePlan != null && (bookingPlan == null
+                || !java.util.Objects.equals(
+                activePlan.getId(), bookingPlan.getId()
+        ))) {
+            addExceptionForPlanIfNeeded(
+                    activePlan, booking.getDate(), reason
+            );
         }
+    }
 
-        boolean exists = setForgetExceptionRepository.existsByPlanAndExceptionDate(plan, booking.getDate());
-        if (exists) {
+    private void addExceptionForPlanIfNeeded(
+            SetForgetPlan plan, LocalDate date, String reason
+    ) {
+        if (plan == null || setForgetExceptionRepository
+                .existsByPlanAndExceptionDate(plan, date)) {
             return;
         }
 
         SetForgetException exception = new SetForgetException();
         exception.setPlan(plan);
-        exception.setExceptionDate(booking.getDate());
-        exception.setReason(reason == null || reason.isBlank() ? "CUSTOMER_CANCEL" : reason);
+        exception.setExceptionDate(date);
+        exception.setReason(
+                reason == null || reason.isBlank()
+                        ? "CUSTOMER_CANCEL"
+                        : reason
+        );
         exception.setCreatedAt(LocalDateTime.now(clock));
 
         setForgetExceptionRepository.save(exception);
@@ -183,14 +243,60 @@ public class SetForgetService {
     private int clearFutureGeneratedBookings(SetForgetPlan plan) {
         LocalDate today = LocalDate.now(clock);
 
-        List<Booking> existing = bookingRepository.findBySetForgetPlanAndDateGreaterThanEqual(plan, today);
-        int count = existing.size();
+        List<Booking> existing = bookingRepository
+                .findBySetForgetPlanAndDateGreaterThanEqual(plan, today);
 
-        if (count > 0) {
-            bookingRepository.deleteBySetForgetPlanAndDateGreaterThanEqual(plan, today);
+        List<Booking> toDelete = existing.stream()
+                .filter(b -> !"CANCELED".equalsIgnoreCase(b.getStatus()))
+                .filter(b -> !b.isPaid())
+                .filter(this::isAtLeast24HoursAway)
+                .filter(b -> b.getManualAdjustmentAmount() == null
+                        || b.getManualAdjustmentAmount().signum() == 0)
+                .filter(b -> !matchesCurrentPlan(b, plan))
+                .toList();
+
+        if (!toDelete.isEmpty()) {
+            bookingRepository.deleteAll(toDelete);
+
+            // Complete deletions before generating replacement reservations.
+            bookingRepository.flush();
         }
 
-        return count;
+        return toDelete.size();
+    }
+
+    private boolean matchesCurrentPlan(Booking booking, SetForgetPlan plan) {
+        LocalDate date = booking.getDate();
+
+        if (date == null
+                || date.isBefore(plan.getStartDate())
+                || date.isAfter(plan.getEndDate())) {
+            return false;
+        }
+
+        int bookingDogs =
+                booking.getDogCount() == null ? 1 : booking.getDogCount();
+
+        int planDogs =
+                plan.getDogCount() == null ? 1 : plan.getDogCount();
+
+        if (bookingDogs != planDogs) {
+            return false;
+        }
+
+        return plan.getRules().stream()
+                .filter(SetForgetRule::isActive)
+                .anyMatch(rule ->
+                        rule.getDayOfWeek() == date.getDayOfWeek().getValue()
+                                && java.util.Objects.equals(
+                                rule.getDropoffTime(),
+                                booking.getTime()
+                        )
+                                && rule.getServiceType() != null
+                                && rule.getServiceType().equalsIgnoreCase(
+                                booking.getServiceType()
+                        )
+                );
     }
 
     private int clearFutureGeneratedBookingsWith24HourProtection(SetForgetPlan plan) {
@@ -200,6 +306,7 @@ public class SetForgetService {
                 .findBySetForgetPlanAndDateGreaterThanEqualOrderByDateAsc(plan, today);
 
         List<Booking> toDelete = existing.stream()
+                .filter(b -> !b.isPaid())
                 .filter(this::isAtLeast24HoursAway)
                 .toList();
 
@@ -217,11 +324,7 @@ public class SetForgetService {
 
         User customer = plan.getCustomer();
         LocalDate today = LocalDate.now(clock);
-        LocalDate horizonEnd = today.plusDays(60);
-
-        LocalDate effectiveEnd = plan.getEndDate().isBefore(horizonEnd)
-                ? plan.getEndDate()
-                : horizonEnd;
+        LocalDate effectiveEnd = plan.getEndDate();
 
         if (effectiveEnd.isBefore(today)) {
             return 0;
@@ -237,6 +340,11 @@ public class SetForgetService {
             LocalDate firstDate = nextOccurrence(today, rule.getDayOfWeek());
 
             for (LocalDate d = firstDate; !d.isAfter(effectiveEnd); d = d.plusWeeks(1)) {
+
+                // generate bookings at least 24 hours before drop-off.
+                if (!isAdvanceEligible(d, rule.getDropoffTime())) {
+                    continue;
+                }
 
                 boolean hasException = setForgetExceptionRepository.existsByPlanAndExceptionDate(plan, d);
                 if (hasException) {
