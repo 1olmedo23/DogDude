@@ -78,32 +78,9 @@
                     <h4 class="fw-semibold mb-1">Client Evaluations</h4>
                 </div>
 
-                <!-- Section Header -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body p-0">
-                        <div class="table-responsive table-wrap">
-                            <table class="table table-striped align-middle mb-0">
-                                <thead>
-                                <tr>
-                                    <th>Client</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Dog</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                                </thead>
-
-                                <tbody th:if="${#lists.isEmpty(evaluations)}">
-                                <tr>
-                                    <td colspan="6" class="text-muted py-3">
-                                        No evaluations to review right now.
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="text-muted small mb-4"
+                     th:if="${#lists.isEmpty(evaluations)}">
+                    No evaluations to review right now.
                 </div>
 
                 <!-- Evaluation Cards -->
@@ -120,7 +97,8 @@
                                         <div class="text-muted small" th:text="${evaluation.email}">
                                             email@example.com
                                         </div>
-                                        <div class="text-muted small" th:text="${evaluation.phone}">
+                                        <div class="text-muted small admin-phone"
+                                             th:text="${evaluation.phone}">
                                             (555) 555-5555
                                         </div>
                                     </div>
@@ -271,11 +249,12 @@
                                         customer@email.com
                                     </td>
 
-                                    <td th:text="${evaluation != null
-                and evaluation.phone != null
-                and !#strings.isEmpty(evaluation.phone)
-                ? evaluation.phone
-                : '—'}">
+                                    <td class="admin-phone"
+                                        th:text="${evaluation != null
+        and evaluation.phone != null
+        and !#strings.isEmpty(evaluation.phone)
+        ? evaluation.phone
+        : '—'}">
                                         —
                                     </td>
 
@@ -1188,6 +1167,22 @@
 
         document.querySelectorAll('.admin-password-toggle').forEach(function (checkbox) {
             checkbox.checked = false;
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.admin-phone').forEach(function (el) {
+            const original = (el.textContent || '').trim();
+            const digits = original.replace(/\D/g, '');
+
+            if (digits.length === 10) {
+                el.textContent =
+                    `(${digits.substring(0, 3)}) ` +
+                    `${digits.substring(3, 6)}-` +
+                    `${digits.substring(6)}`;
+            }
         });
     });
 </script>
