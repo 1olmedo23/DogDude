@@ -221,7 +221,7 @@ public class AdminInvoiceController {
 
             if (unpaid.isEmpty()) {
                 ra.addFlashAttribute("invoiceMessage", "No new unpaid bookings to apply payment to.");
-                return "redirect:/admin#invoicing";
+                return "redirect:/admin?invoiceWeek=" + ws + "#invoicing";
             }
 
             for (Booking b : unpaid) {
@@ -242,7 +242,7 @@ public class AdminInvoiceController {
             ra.addFlashAttribute("invoiceMessage", "Additional bookings marked paid for this week.");
         }
 
-        return "redirect:/admin#invoicing";
+        return "redirect:/admin?invoiceWeek=" + ws + "#invoicing";
     }
 
     @PostMapping("/revert-paid")
@@ -279,7 +279,7 @@ public class AdminInvoiceController {
         invoiceRepository.save(invoice);
 
         ra.addFlashAttribute("invoiceMessage", "Invoice reverted to unpaid.");
-        return "redirect:/admin#invoicing";
+        return "redirect:/admin?invoiceWeek=" + ws + "#invoicing";
     }
 
     private BigDecimal finalAmountForInvoice(Booking b) {

@@ -746,10 +746,7 @@ function updateBookingDateDisplay() {
     const el = document.getElementById('bookingDateDisplay');
     if (el) el.textContent = currentBookingDate.toDateString();
 
-    currentInvoiceWeekStart = setWeekStartFromDate(currentBookingDate);
-    updateInvoiceWeekRangeDisplay();
-    fetchWeeklyInvoices();   // load invoice rows (and rebuild paidEmailsForWeek if you still use it)
-    fetchBookings();         // then render bookings
+    fetchBookings();
     fetchCapacityRibbonFor(currentBookingDate);
 }
 
@@ -884,20 +881,9 @@ document.addEventListener("DOMContentLoaded", () => {
         updateBookingDateDisplay();
     });
 
-    document.getElementById('prevWeekBtn')?.addEventListener('click', () => {
-        currentInvoiceWeekStart.setDate(currentInvoiceWeekStart.getDate() - 7);
-        updateInvoiceWeekRangeDisplay();
-        fetchWeeklyInvoices();
-    });
-    document.getElementById('nextWeekBtn')?.addEventListener('click', () => {
-        currentInvoiceWeekStart.setDate(currentInvoiceWeekStart.getDate() + 7);
-        updateInvoiceWeekRangeDisplay();
-        fetchWeeklyInvoices();
-    });
+
 
     updateBookingDateDisplay();
-    updateInvoiceWeekRangeDisplay();
-    fetchWeeklyInvoices();
 });
 
 // Reusable helper: persistent Bootstrap Collapse with button label swap

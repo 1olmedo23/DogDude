@@ -937,7 +937,11 @@
             return `${fmt(monday)} – ${fmt(s)}`;
         }
 
-        let currentMonday = mondayOf(new Date()); // default to current week
+        const invoiceWeekParam = new URLSearchParams(window.location.search).get('invoiceWeek');
+
+        let currentMonday = invoiceWeekParam
+            ? mondayOf(new Date(invoiceWeekParam + 'T00:00:00'))
+            : mondayOf(new Date());
 
         async function loadWeekly() {
             const params = new URLSearchParams({start: iso(currentMonday)});
