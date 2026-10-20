@@ -415,7 +415,20 @@
 
         <!-- Employees Tab -->
         <div class="tab-pane fade" id="employees" role="tabpanel">
+
             <h3 class="mb-3">Create Employee</h3>
+
+            <!-- Employee creation messages -->
+            <div class="alert alert-success"
+                 th:if="${successMessage}"
+                 th:text="${successMessage}">
+            </div>
+
+            <div class="alert alert-danger"
+                 th:if="${errorMessage}"
+                 th:text="${errorMessage}">
+            </div>
+
             <div class="card mb-4">
                 <div class="card-body">
                     <form method="POST" action="/admin/create-employee">
@@ -436,6 +449,134 @@
                     </form>
                 </div>
             </div>
+
+            <!-- Employee Accounts -->
+            <div class="mt-5">
+                <h4 class="fw-semibold mb-3">Employee Accounts</h4>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="table-responsive">
+
+                            <table class="table table-striped align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Change Password</th>
+                                    <th>Action</th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+                                <tr th:each="employee : ${employeeUsers}">
+                                    <!-- Full Name -->
+                                    <td>
+                                        <form th:action="@{'/admin/employees/' + ${employee.id} + '/name'}"
+                                              method="post"
+                                              class="d-flex align-items-center gap-2">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+
+                                            <input type="text"
+                                                   name="fullName"
+                                                   class="form-control form-control-sm"
+                                                   th:value="${employee.fullName}"
+                                                   maxlength="255"
+                                                   aria-label="Employee full name"
+                                                   required>
+
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-primary">
+                                                Save
+                                            </button>
+                                        </form>
+                                    </td>
+
+                                    <!-- Email -->
+                                    <td th:text="${employee.username}">
+                                        employee@example.com
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${employee.enabled ? 'text-bg-success' : 'text-bg-secondary'}"
+                                              th:text="${employee.enabled ? 'Active' : 'Inactive'}">
+                                            Active
+                                        </span>
+                                    </td>
+
+                                    <!-- Change Password -->
+                                    <td>
+                                        <form th:action="@{'/admin/employees/' + ${employee.id} + '/password'}"
+                                              method="post"
+                                              class="d-flex align-items-center gap-2 flex-wrap"
+                                              onsubmit="return confirm('Change password for this employee?');">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+
+                                            <input type="password"
+                                                   name="password"
+                                                   class="form-control form-control-sm admin-password-input"
+                                                   style="width: 180px;"
+                                                   placeholder="New password"
+                                                   autocomplete="new-password"
+                                                   required>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input admin-password-toggle"
+                                                       type="checkbox">
+
+                                                <label class="form-check-label small">
+                                                    Show
+                                                </label>
+                                            </div>
+
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-primary">
+                                                Change
+                                            </button>
+                                        </form>
+                                    </td>
+
+                                    <!-- Enable / Disable -->
+                                    <td>
+                                        <form th:action="@{'/admin/toggle/' + ${employee.id}}"
+                                              method="post"
+                                              onsubmit="return confirm('Change this employee account status?');">
+
+                                            <input type="hidden"
+                                                   th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+
+                                            <button type="submit"
+                                                    class="btn btn-sm"
+                                                    th:classappend="${employee.enabled ? 'btn-warning' : 'btn-outline-success'}"
+                                                    th:text="${employee.enabled ? 'Disable' : 'Enable'}">
+                                                Disable
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+
+                                <tr th:if="${#lists.isEmpty(employeeUsers)}">
+                                    <td colspan="5" class="text-muted py-3">
+                                        No employee accounts found.
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Bookings Tab -->

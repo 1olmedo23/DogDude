@@ -1,0 +1,2 @@
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);

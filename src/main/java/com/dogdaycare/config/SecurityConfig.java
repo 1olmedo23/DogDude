@@ -54,10 +54,13 @@ public class SecurityConfig {
                                 "/css/**", "/js/**", "/images/**").permitAll()
 
                         // Admin area
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
+
+                        // Employee area
+                        .requestMatchers("/employee", "/employee/**").hasAnyRole("EMPLOYEE", "ADMIN")
 
                         // Customer area
-                        .requestMatchers("/booking/**").hasRole("CUSTOMER")
+                        .requestMatchers("/booking", "/booking/**").hasRole("CUSTOMER")
                         .requestMatchers("/uploads/**").hasRole("CUSTOMER")
 
                         // Everything else requires auth

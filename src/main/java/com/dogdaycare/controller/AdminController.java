@@ -141,6 +141,11 @@ public class AdminController {
                 )
                 .collect(Collectors.toList());
 
+        // --- Employee accounts
+        List<User> employeeUsers = allUsersSorted.stream()
+                .filter(user -> "EMPLOYEE".equalsIgnoreCase(user.getRole()))
+                .collect(Collectors.toList());
+
         // --- Uploads tab data
         List<User> usersForUploads;
 
@@ -212,6 +217,7 @@ public class AdminController {
         model.addAttribute("customerUsers", customerUsers);
         model.addAttribute("evaluationByUserId", evaluationByUserId);
         model.addAttribute("staffUsers", staffUsers);
+        model.addAttribute("employeeUsers", employeeUsers);
 
         // Uploads tab attrs
         model.addAttribute("q", q);
@@ -340,12 +346,110 @@ public class AdminController {
         return "redirect:/admin";
     }
 
+
     // Toggle a user's enabled/disabled state
     @PostMapping("/toggle/{id}")
     public String toggleUser(@PathVariable Long id) {
         User user = userRepository.findById(id).orElseThrow();
+
         user.setEnabled(!user.isEnabled());
         userRepository.save(user);
+
+        if ("EMPLOYEE".equalsIgnoreCase(user.getRole())) {
+            return "redirect:/admin#employees";
+        }
+
         return "redirect:/admin";
     }
+
+
+    @PostMapping("/create-employee")
+    public String createEmployee(@RequestParam String fullName,
+                                 @RequestParam String email,
+                                 @RequestParam String password,
+                                 RedirectAttributes ra) {
+
+        String name = fullName == null ? "" : fullName.trim();
+        String username = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+
+        if (name.isBlank() || username.isBlank() || password == null || password.isBlank()) {
+            ra.addFlashAttribute("errorMessage", "All employee fields are required.");
+            return "redirect:/admin#employees";
+        }
+
+        if (name.length() > 255 || username.length() > 255) {
+            ra.addFlashAttribute("errorMessage", "Employee name or email is too long.");
+            return "redirect:/admin#employees";
+        }
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            ra.addFlashAttribute("errorMessage", "An account with this email already exists.");
+            return "redirect:/admin#employees";
+        }
+
+        User employee = new User();
+        employee.setFullName(name);
+        employee.setUsername(username);
+        employee.setPassword(passwordEncoder.encode(password));
+        employee.setRole("EMPLOYEE");
+        employee.setEnabled(true);
+
+        userRepository.save(employee);
+
+        ra.addFlashAttribute("successMessage", "Employee account created successfully.");
+        return "redirect:/admin#employees";
+    }
+
+
+    @PostMapping("/employees/{id}/name")
+    public String updateEmployeeName(@PathVariable Long id,
+                                     @RequestParam String fullName,
+                                     RedirectAttributes ra) {
+
+        User employee = userRepository.findById(id).orElse(null);
+
+        if (employee == null || !"EMPLOYEE".equalsIgnoreCase(employee.getRole())) {
+            ra.addFlashAttribute("errorMessage", "Employee not found.");
+            return "redirect:/admin#employees";
+        }
+
+        String name = fullName == null ? "" : fullName.trim();
+
+        if (name.isBlank() || name.length() > 255) {
+            ra.addFlashAttribute("errorMessage", "Enter a valid employee name (1–255 characters).");
+            return "redirect:/admin#employees";
+        }
+
+        employee.setFullName(name);
+        userRepository.save(employee);
+
+        ra.addFlashAttribute("successMessage", "Employee name updated successfully.");
+        return "redirect:/admin#employees";
+    }
+
+
+    @PostMapping("/employees/{id}/password")
+    public String changeEmployeePassword(@PathVariable Long id,
+                                         @RequestParam String password,
+                                         RedirectAttributes ra) {
+
+        User employee = userRepository.findById(id).orElse(null);
+
+        if (employee == null || !"EMPLOYEE".equalsIgnoreCase(employee.getRole())) {
+            ra.addFlashAttribute("errorMessage", "Employee not found.");
+            return "redirect:/admin#employees";
+        }
+
+        if (password == null || password.isBlank()) {
+            ra.addFlashAttribute("errorMessage", "Password cannot be blank.");
+            return "redirect:/admin#employees";
+        }
+
+        employee.setPassword(passwordEncoder.encode(password));
+        userRepository.save(employee);
+
+        ra.addFlashAttribute("successMessage", "Employee password updated successfully.");
+        return "redirect:/admin#employees";
+    }
+
 }
