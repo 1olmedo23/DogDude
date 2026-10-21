@@ -413,12 +413,23 @@
             </div>
         </div>
 
+
         <!-- Employees Tab -->
         <div class="tab-pane fade" id="employees" role="tabpanel">
 
-            <h3 class="mb-3">Create Employee</h3>
+            <!-- Employees Header -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <h2 class="fw-bold mb-0">Employees</h2>
 
-            <!-- Employee creation messages -->
+                <button type="button"
+                        class="btn btn-custom"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createEmployeeModal">
+                    + Create Employee
+                </button>
+            </div>
+
+            <!-- Employee creation and scheduling messages -->
             <div class="alert alert-success"
                  th:if="${successMessage}"
                  th:text="${successMessage}">
@@ -429,24 +440,455 @@
                  th:text="${errorMessage}">
             </div>
 
-            <div class="card mb-4">
-                <div class="card-body">
-                    <form method="POST" action="/admin/create-employee">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <div class="mb-3">
-                            <label for="empName" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="empName" name="fullName" required>
+            <!-- Create Employee Modal -->
+            <div class="modal fade"
+                 id="createEmployeeModal"
+                 tabindex="-1"
+                 aria-labelledby="createEmployeeModalLabel"
+                 aria-hidden="true">
+
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="createEmployeeModalLabel">
+                                Create Employee
+                            </h5>
+
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close">
+                            </button>
                         </div>
-                        <div class="mb-3">
-                            <label for="empEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="empEmail" name="email" required>
+
+                        <form method="post"
+                              th:action="@{/admin/create-employee}">
+
+                            <input type="hidden"
+                                   th:name="${_csrf.parameterName}"
+                                   th:value="${_csrf.token}"/>
+
+                            <div class="modal-body">
+
+                                <div class="mb-3">
+                                    <label for="empName" class="form-label">
+                                        Full Name
+                                    </label>
+
+                                    <input type="text"
+                                           class="form-control"
+                                           id="empName"
+                                           name="fullName"
+                                           maxlength="255"
+                                           autocomplete="name"
+                                           required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="empEmail" class="form-label">
+                                        Email
+                                    </label>
+
+                                    <input type="email"
+                                           class="form-control"
+                                           id="empEmail"
+                                           name="email"
+                                           autocomplete="off"
+                                           required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="empPassword" class="form-label">
+                                        Password
+                                    </label>
+
+                                    <input type="password"
+                                           class="form-control"
+                                           id="empPassword"
+                                           name="password"
+                                           autocomplete="new-password"
+                                           required>
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button"
+                                        class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">
+                                    Cancel
+                                </button>
+
+                                <button type="submit" class="btn btn-custom">
+                                    Create Employee
+                                </button>
+                            </div>
+
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Edit Employee Schedule Modal -->
+            <div class="modal fade"
+                 id="editEmployeeScheduleModal"
+                 tabindex="-1"
+                 aria-labelledby="editEmployeeScheduleModalLabel"
+                 aria-hidden="true">
+
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title"
+                                id="editEmployeeScheduleModalLabel">
+                                Edit Scheduled Period
+                            </h5>
+
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close">
+                            </button>
                         </div>
-                        <div class="mb-3">
-                            <label for="empPassword" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="empPassword" name="password" required>
+
+                        <form id="editEmployeeScheduleForm"
+                              method="post">
+
+                            <input type="hidden"
+                                   th:name="${_csrf.parameterName}"
+                                   th:value="${_csrf.token}"/>
+
+                            <div class="modal-body">
+
+                                <div class="mb-3">
+                                    <label for="editScheduleEmployee"
+                                           class="form-label">
+                                        Employee
+                                    </label>
+
+                                    <select id="editScheduleEmployee"
+                                            name="employeeId"
+                                            class="form-select"
+                                            required>
+
+                                        <option th:each="employee : ${employeeUsers}"
+                                                th:value="${employee.id}"
+                                                th:text="${employee.fullName != null ? employee.fullName : employee.username}">
+                                            Employee Name
+                                        </option>
+
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="editScheduleDate"
+                                           class="form-label">
+                                        Date
+                                    </label>
+
+                                    <input type="date"
+                                           id="editScheduleDate"
+                                           name="scheduleDate"
+                                           class="form-control"
+                                           required>
+                                </div>
+
+                                <div class="row g-3">
+
+                                    <div class="col-md-6">
+                                        <label for="editScheduleStartTime"
+                                               class="form-label">
+                                            Start Time
+                                        </label>
+
+
+                                        <div class="d-flex gap-2">
+                                            <select id="editScheduleStartHour"
+                                                    class="form-select"
+                                                    aria-label="Edit start hour">
+                                                <option th:each="hour : ${#numbers.sequence(1, 12)}"
+                                                        th:value="${hour}"
+                                                        th:text="${hour}"></option>
+                                            </select>
+
+                                            <select id="editScheduleStartMinute"
+                                                    class="form-select"
+                                                    aria-label="Edit start minutes">
+                                                <option value="00">00</option>
+                                                <option value="30">30</option>
+                                            </select>
+
+                                            <select id="editScheduleStartPeriod"
+                                                    class="form-select"
+                                                    aria-label="Edit start AM or PM">
+                                                <option value="AM">AM</option>
+                                                <option value="PM">PM</option>
+                                            </select>
+                                        </div>
+
+                                        <input type="hidden"
+                                               id="editScheduleStartTime"
+                                               name="startTime">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="editScheduleEndTime"
+                                               class="form-label">
+                                            End Time
+                                        </label>
+
+
+                                        <div class="d-flex gap-2">
+                                            <select id="editScheduleEndHour"
+                                                    class="form-select"
+                                                    aria-label="Edit end hour">
+                                                <option th:each="hour : ${#numbers.sequence(1, 12)}"
+                                                        th:value="${hour}"
+                                                        th:text="${hour}"></option>
+                                            </select>
+
+                                            <select id="editScheduleEndMinute"
+                                                    class="form-select"
+                                                    aria-label="Edit end minutes">
+                                                <option value="00">00</option>
+                                                <option value="30">30</option>
+                                            </select>
+
+                                            <select id="editScheduleEndPeriod"
+                                                    class="form-select"
+                                                    aria-label="Edit end AM or PM">
+                                                <option value="AM">AM</option>
+                                                <option value="PM">PM</option>
+                                            </select>
+                                        </div>
+
+                                        <input type="hidden"
+                                               id="editScheduleEndTime"
+                                               name="endTime">
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+
+                                <button type="button"
+                                        class="btn btn-outline-danger me-auto"
+                                        id="editScheduleDeleteButton">
+                                    Delete
+                                </button>
+
+                                <button type="button"
+                                        class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">
+                                    Cancel
+                                </button>
+
+                                <button type="submit"
+                                        class="btn btn-custom">
+                                    Save Changes
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Scheduling -->
+            <div>
+                <h4 class="fw-semibold mb-3">Employee Scheduling</h4>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+
+                        <!-- Calendar navigation -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    id="schedulePrevMonth">
+                                ← Previous
+                            </button>
+
+                            <h5 class="mb-0 text-center"
+                                id="scheduleMonthTitle"></h5>
+
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    id="scheduleNextMonth">
+                                Next →
+                            </button>
                         </div>
-                        <button type="submit" class="btn btn-custom">Create Employee</button>
-                    </form>
+
+                        <!-- Monthly calendar weekdays -->
+                        <div class="employee-schedule-grid text-center mb-2">
+                            <div class="col fw-semibold small">Mon</div>
+                            <div class="col fw-semibold small">Tue</div>
+                            <div class="col fw-semibold small">Wed</div>
+                            <div class="col fw-semibold small">Thu</div>
+                            <div class="col fw-semibold small">Fri</div>
+                            <div class="col fw-semibold small">Sat</div>
+                            <div class="col fw-semibold small">Sun</div>
+                        </div>
+
+                        <!-- Monthly calendar days -->
+                        <div id="employeeScheduleCalendar"
+                             class="employee-schedule-grid mb-3">
+                            <!-- Calendar days populated by JavaScript -->
+                        </div>
+
+                        <!-- Selected dates summary -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="small text-muted"
+                          id="scheduleSelectedCount">
+                        0 days selected
+                    </span>
+
+                            <button type="button"
+                                    class="btn btn-link btn-sm"
+                                    id="scheduleClearSelection">
+                                Clear Selection
+                            </button>
+                        </div>
+
+                        <!-- Scheduling form -->
+                        <form th:action="@{/admin/employees/schedule}"
+                              method="post"
+                              id="employeeScheduleForm">
+
+                            <input type="hidden"
+                                   th:name="${_csrf.parameterName}"
+                                   th:value="${_csrf.token}"/>
+
+                            <!-- Selected dates inserted by JavaScript -->
+                            <div id="scheduleSelectedDatesInputs"></div>
+
+                            <div class="row g-3">
+
+                                <!-- Employee selection -->
+                                <div class="col-md-12">
+                                    <label for="scheduleEmployee"
+                                           class="form-label">
+                                        Employee
+                                    </label>
+
+                                    <select id="scheduleEmployee"
+                                            name="employeeId"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="">
+                                            Select Employee
+                                        </option>
+
+                                        <option th:each="employee : ${employeeUsers}"
+                                                th:if="${employee.enabled}"
+                                                th:value="${employee.id}"
+                                                th:text="${employee.fullName != null ? employee.fullName : employee.username}">
+                                            Employee Name
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Start Time -->
+                                <div class="col-md-6">
+                                    <label for="scheduleStartTime"
+                                           class="form-label">
+                                        Start Time
+                                    </label>
+
+
+                                    <div class="d-flex gap-2">
+                                        <select id="scheduleStartHour"
+                                                class="form-select"
+                                                aria-label="Start hour">
+                                            <option th:each="hour : ${#numbers.sequence(1, 12)}"
+                                                    th:value="${hour}"
+                                                    th:text="${hour}"
+                                                    th:selected="${hour == 8}">
+                                            </option>
+                                        </select>
+
+                                        <select id="scheduleStartMinute"
+                                                class="form-select"
+                                                aria-label="Start minutes">
+                                            <option value="00">00</option>
+                                            <option value="30">30</option>
+                                        </select>
+
+                                        <select id="scheduleStartPeriod"
+                                                class="form-select"
+                                                aria-label="Start AM or PM">
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
+
+                                    <input type="hidden"
+                                           id="scheduleStartTime"
+                                           name="startTime"
+                                           value="08:00">
+                                </div>
+
+                                <!-- End Time -->
+                                <div class="col-md-6">
+                                    <label for="scheduleEndTime"
+                                           class="form-label">
+                                        End Time
+                                    </label>
+
+
+                                    <div class="d-flex gap-2">
+                                        <select id="scheduleEndHour"
+                                                class="form-select"
+                                                aria-label="End hour">
+                                            <option th:each="hour : ${#numbers.sequence(1, 12)}"
+                                                    th:value="${hour}"
+                                                    th:text="${hour}"
+                                                    th:selected="${hour == 5}">
+                                            </option>
+                                        </select>
+
+                                        <select id="scheduleEndMinute"
+                                                class="form-select"
+                                                aria-label="End minutes">
+                                            <option value="00">00</option>
+                                            <option value="30">30</option>
+                                        </select>
+
+                                        <select id="scheduleEndPeriod"
+                                                class="form-select"
+                                                aria-label="End AM or PM">
+                                            <option value="AM">AM</option>
+                                            <option value="PM" selected>PM</option>
+                                        </select>
+                                    </div>
+
+                                    <input type="hidden"
+                                           id="scheduleEndTime"
+                                           name="endTime"
+                                           value="17:00">
+                                </div>
+
+                            </div>
+
+                            <div class="mt-3">
+                                <button type="submit"
+                                        class="btn btn-custom">
+                                    Add to Schedule
+                                </button>
+                            </div>
+
+                        </form>
+
+                    </div>
                 </div>
             </div>
 
@@ -471,6 +913,7 @@
 
                                 <tbody>
                                 <tr th:each="employee : ${employeeUsers}">
+
                                     <!-- Full Name -->
                                     <td>
                                         <form th:action="@{'/admin/employees/' + ${employee.id} + '/name'}"
@@ -503,11 +946,11 @@
 
                                     <!-- Status -->
                                     <td>
-                                        <span class="badge"
-                                              th:classappend="${employee.enabled ? 'text-bg-success' : 'text-bg-secondary'}"
-                                              th:text="${employee.enabled ? 'Active' : 'Inactive'}">
-                                            Active
-                                        </span>
+                                <span class="badge"
+                                      th:classappend="${employee.enabled ? 'text-bg-success' : 'text-bg-secondary'}"
+                                      th:text="${employee.enabled ? 'Active' : 'Inactive'}">
+                                    Active
+                                </span>
                                     </td>
 
                                     <!-- Change Password -->
@@ -563,21 +1006,27 @@
                                             </button>
                                         </form>
                                     </td>
+
                                 </tr>
 
+                                <!-- No employees -->
                                 <tr th:if="${#lists.isEmpty(employeeUsers)}">
-                                    <td colspan="5" class="text-muted py-3">
+                                    <td colspan="5"
+                                        class="text-muted py-3">
                                         No employee accounts found.
                                     </td>
                                 </tr>
+
                                 </tbody>
                             </table>
+
                         </div>
                     </div>
                 </div>
             </div>
 
         </div>
+        <!-- End Employees Tab -->
 
         <!-- Bookings Tab -->
         <div class="tab-pane fade" id="bookings" role="tabpanel">
@@ -1325,6 +1774,415 @@
                     `${digits.substring(6)}`;
             }
         });
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const calendar = document.getElementById("employeeScheduleCalendar");
+        const monthTitle = document.getElementById("scheduleMonthTitle");
+        const selectedCount = document.getElementById("scheduleSelectedCount");
+        const selectedInputs = document.getElementById("scheduleSelectedDatesInputs");
+        const form = document.getElementById("employeeScheduleForm");
+
+        if (!calendar || !form) return;
+
+        const savedScheduleMonth = sessionStorage.getItem("dogdudeScheduleMonth");
+
+        let currentMonth = savedScheduleMonth
+            ? new Date(savedScheduleMonth + "T00:00:00")
+            : new Date();
+
+        if (Number.isNaN(currentMonth.getTime())) {
+            currentMonth = new Date();
+        }
+
+        currentMonth.setDate(1);
+
+        function saveScheduleMonth() {
+            const year = currentMonth.getFullYear();
+            const month = String(currentMonth.getMonth() + 1).padStart(2, "0");
+
+            sessionStorage.setItem(
+                "dogdudeScheduleMonth",
+                year + "-" + month + "-01"
+            );
+        }
+
+        const selectedDates = new Set();
+        let existingSchedules = [];
+
+        function updateScheduleTime(prefix) {
+            const hour = Number(
+                document.getElementById(prefix + "Hour").value
+            );
+
+            const minute = document.getElementById(prefix + "Minute").value;
+            const period = document.getElementById(prefix + "Period").value;
+
+            // Convert 12-hour time into the 24-hour format
+            // expected by Spring Boot's LocalTime parameters.
+            const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
+
+            document.getElementById(prefix + "Time").value =
+                String(hour24).padStart(2, "0") + ":" + minute;
+        }
+
+        function setEditScheduleTime(prefix, timeValue) {
+            const [hours, minutes] = timeValue.split(":").map(Number);
+
+            const hour12 = hours % 12 || 12;
+            const period = hours < 12 ? "AM" : "PM";
+
+            document.getElementById(prefix + "Hour").value =
+                String(hour12);
+
+            document.getElementById(prefix + "Minute").value =
+                String(minutes).padStart(2, "0");
+
+            document.getElementById(prefix + "Period").value =
+                period;
+
+            updateScheduleTime(prefix);
+        }
+
+        ["scheduleStart", "scheduleEnd"].forEach(prefix => {
+            ["Hour", "Minute", "Period"].forEach(part => {
+                document.getElementById(prefix + part)
+                    .addEventListener("change", function () {
+                        updateScheduleTime(prefix);
+                    });
+            });
+
+            updateScheduleTime(prefix);
+        });
+
+        ["editScheduleStart", "editScheduleEnd"].forEach(prefix => {
+            ["Hour", "Minute", "Period"].forEach(part => {
+                document.getElementById(prefix + part)
+                    .addEventListener("change", function () {
+                        updateScheduleTime(prefix);
+                    });
+            });
+        });
+
+        function formatDate(year, month, day) {
+            return year + "-" +
+                String(month + 1).padStart(2, "0") + "-" +
+                String(day).padStart(2, "0");
+        }
+
+        function formatTime(time) {
+            const [hours, minutes] = time.split(":").map(Number);
+            const hour12 = hours % 12 || 12;
+            const suffix = hours < 12 ? "AM" : "PM";
+
+            return hour12 + (minutes ? ":" + String(minutes).padStart(2, "0") : "")
+                + " " + suffix;
+        }
+
+        function updateSelection() {
+            selectedCount.textContent =
+                selectedDates.size +
+                (selectedDates.size === 1 ? " day selected" : " days selected");
+
+            selectedInputs.innerHTML = "";
+
+            [...selectedDates].sort().forEach(date => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "scheduleDates";
+                input.value = date;
+                selectedInputs.appendChild(input);
+            });
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+
+            monthTitle.textContent = currentMonth.toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric"
+            });
+
+            calendar.innerHTML = "";
+
+            const firstDay = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Monday-first calendar
+            const offset = (firstDay.getDay() + 6) % 7;
+
+            for (let i = 0; i < offset; i++) {
+                const blank = document.createElement("div");
+                blank.className = "col";
+                calendar.appendChild(blank);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateString = formatDate(year, month, day);
+
+                const daySchedules = existingSchedules.filter(
+                    schedule => schedule.scheduleDate === dateString
+                );
+
+                const col = document.createElement("div");
+                col.className = "col";
+                const dayContainer = document.createElement("div");
+                dayContainer.className =
+                    "employee-schedule-day border rounded h-100 p-1 d-flex flex-column gap-1";
+
+                dayContainer.style.minWidth = "0";
+                dayContainer.style.minHeight = "100px";
+                dayContainer.style.cursor = "pointer";
+
+                col.appendChild(dayContainer);
+
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className =
+                    "btn btn-sm w-100 text-start d-flex flex-column gap-1 p-1 border-0 shadow-none";
+
+                button.style.minHeight = "44px";
+                button.style.minWidth = "0";
+
+                button.setAttribute("aria-label", dateString);
+                button.setAttribute(
+                    "aria-pressed",
+                    selectedDates.has(dateString) ? "true" : "false"
+                );
+
+                dayContainer.classList.toggle(
+                    "bg-primary-subtle",
+                    selectedDates.has(dateString)
+                );
+
+                button.classList.add("text-body");
+
+                // Calendar day number
+                const dayNumber = document.createElement("span");
+                dayNumber.className = "fw-semibold";
+                dayNumber.textContent = day;
+
+                button.appendChild(dayNumber);
+
+
+// Show existing schedules for this date
+                daySchedules.forEach(schedule => {
+
+                    const scheduleCard = document.createElement("div");
+                    scheduleCard.className =
+                        "rounded border p-1 d-flex flex-column gap-1";
+
+                    scheduleCard.style.backgroundColor = "#e7f1ff";
+                    scheduleCard.style.minWidth = "0";
+
+                    const timeRange =
+                        formatTime(schedule.startTime) +
+                        " – " +
+                        formatTime(schedule.endTime);
+
+                    const scheduleLabel = document.createElement("button");
+                    scheduleLabel.type = "button";
+                    scheduleLabel.className = "btn btn-link text-start w-100 p-1";
+                    scheduleLabel.style.fontSize = "0.72rem";
+                    scheduleLabel.style.overflowWrap = "anywhere";
+                    scheduleLabel.style.color = "#174ea6";
+
+                    scheduleLabel.textContent =
+                        schedule.employeeName + ": " + timeRange;
+
+                    scheduleCard.appendChild(scheduleLabel);
+
+                    const editButton = document.createElement("button");
+                    editButton.type = "button";
+                    editButton.className = "btn btn-outline-primary btn-sm";
+                    editButton.textContent = "Edit";
+                    editButton.style.fontSize = "0.7rem";
+                    editButton.style.padding = "0.2rem 0.4rem";
+
+                    editButton.addEventListener("click", function () {
+                        const modalElement = document.getElementById("editEmployeeScheduleModal");
+                        const editForm = document.getElementById("editEmployeeScheduleForm");
+
+                        if (!modalElement || !editForm) return;
+
+                        // Update the existing scheduled period, not create a new one.
+                        editForm.action =
+                            "/admin/employees/schedules/" + schedule.id + "/update";
+
+                        document.getElementById("editScheduleEmployee").value =
+                            String(schedule.employeeId);
+
+                        document.getElementById("editScheduleDate").value =
+                            schedule.scheduleDate;
+
+
+                        setEditScheduleTime("editScheduleStart", schedule.startTime);
+                        setEditScheduleTime("editScheduleEnd", schedule.endTime);
+
+
+                        const modalDeleteButton =
+                            document.getElementById("editScheduleDeleteButton");
+
+                        if (modalDeleteButton) {
+                            modalDeleteButton.onclick = function () {
+
+                                const timeRange =
+                                    formatTime(schedule.startTime) +
+                                    " – " +
+                                    formatTime(schedule.endTime);
+
+                                const confirmed = confirm(
+                                    "Delete " + schedule.employeeName +
+                                    "'s scheduled period on " + schedule.scheduleDate +
+                                    " (" + timeRange + ")?"
+                                );
+
+                                if (!confirmed) return;
+
+                                // Create a separate POST form for deletion.
+                                const deleteForm = document.createElement("form");
+                                deleteForm.method = "post";
+                                deleteForm.action =
+                                    "/admin/employees/schedules/" + schedule.id + "/delete";
+
+                                // Reuse DogDude's existing CSRF token.
+                                const csrfHook = document.getElementById("csrf-hook");
+
+                                if (csrfHook) {
+                                    const csrfInput = document.createElement("input");
+                                    csrfInput.type = "hidden";
+                                    csrfInput.name = csrfHook.dataset.name;
+                                    csrfInput.value = csrfHook.dataset.token;
+                                    deleteForm.appendChild(csrfInput);
+                                }
+
+                                document.body.appendChild(deleteForm);
+                                deleteForm.submit();
+                            };
+                        }
+                        bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                    });
+
+                    scheduleLabel.addEventListener("click", function () {
+                        editButton.click();
+                    });
+
+                    dayContainer.appendChild(scheduleCard);
+                });
+
+                button.addEventListener("click", function () {
+                    if (selectedDates.has(dateString)) {
+                        selectedDates.delete(dateString);
+                    } else {
+                        selectedDates.add(dateString);
+                    }
+
+                    renderCalendar();
+                    updateSelection();
+                });
+                dayContainer.addEventListener("click", function (event) {
+                    if (event.target.closest("button")) return;
+
+                    button.click();
+                });
+
+                dayContainer.prepend(button);
+                calendar.appendChild(col);
+            }
+        }
+
+        // Retrieve saved schedules for the displayed month
+        async function loadSchedules() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+
+            const start = formatDate(year, month, 1);
+            const end = formatDate(
+                year,
+                month,
+                new Date(year, month + 1, 0).getDate()
+            );
+
+            // Prevent results from an older month request
+            // from replacing the currently displayed month.
+            const requestedMonth = start;
+
+            existingSchedules = [];
+            renderCalendar();
+
+            try {
+                const response = await fetch(
+                    "/admin/employees/schedules?start=" +
+                    encodeURIComponent(start) +
+                    "&end=" +
+                    encodeURIComponent(end)
+                );
+
+                if (!response.ok) {
+                    throw new Error("Unable to retrieve schedules.");
+                }
+
+                const schedules = await response.json();
+
+                const visibleMonth = formatDate(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth(),
+                    1
+                );
+
+                if (requestedMonth !== visibleMonth) return;
+
+                existingSchedules = schedules;
+                renderCalendar();
+
+            } catch (error) {
+                console.error("Employee scheduling:", error);
+            }
+        }
+
+        document.getElementById("schedulePrevMonth")
+            .addEventListener("click", function () {
+                currentMonth.setMonth(currentMonth.getMonth() - 1);
+                saveScheduleMonth();
+                loadSchedules();
+            });
+
+        document.getElementById("scheduleNextMonth")
+            .addEventListener("click", function () {
+                currentMonth.setMonth(currentMonth.getMonth() + 1);
+                saveScheduleMonth();
+                loadSchedules();
+            });
+
+        document.getElementById("scheduleClearSelection")
+            .addEventListener("click", function () {
+                selectedDates.clear();
+                renderCalendar();
+                updateSelection();
+            });
+
+        form.addEventListener("submit", function (event) {
+            if (selectedDates.size === 0) {
+                event.preventDefault();
+                alert("Please select at least one date.");
+                return;
+            }
+
+            const start = document.getElementById("scheduleStartTime").value;
+            const end = document.getElementById("scheduleEndTime").value;
+
+            if (start >= end) {
+                event.preventDefault();
+                alert("Start time must be before end time.");
+            }
+        });
+
+        updateSelection();
+        loadSchedules();
     });
 </script>
 </body>

@@ -39,14 +39,48 @@
         </div>
     </div>
 
+
     <!-- Schedule -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <h4 class="mb-3">My Schedule</h4>
 
-            <p class="text-muted mb-0">
-                Your scheduled shifts will appear here.
-            </p>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">My Schedule</h4>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            id="employeePrevMonth"
+                            aria-label="Previous month">
+                        &laquo;
+                    </button>
+
+                    <span id="employeeMonthTitle"
+                          class="fw-semibold text-nowrap"></span>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            id="employeeNextMonth"
+                            aria-label="Next month">
+                        &raquo;
+                    </button>
+                </div>
+            </div>
+
+            <div class="employee-schedule-grid mb-2 text-center fw-semibold small">
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+                <div>Sun</div>
+            </div>
+
+            <div id="employeeMyScheduleCalendar"
+                 class="employee-schedule-grid">
+            </div>
+
         </div>
     </div>
 
@@ -65,6 +99,109 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script th:src="@{/js/custom.js?v=20260915}"></script>
+
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const calendar = document.getElementById("employeeMyScheduleCalendar");
+        const monthTitle = document.getElementById("employeeMonthTitle");
+
+        if (!calendar || !monthTitle) return;
+
+        // Schedule data belongs to the logged-in employee only.
+        const schedules = [
+            /*[# th:each="shift : ${employeeSchedules}"]*/
+            {
+                date: /*[[${shift.scheduleDate.toString()}]]*/ "",
+                start: /*[[${shift.startTime.toString()}]]*/ "",
+                end: /*[[${shift.endTime.toString()}]]*/ ""
+            },
+            /*[/]*/
+        ];
+
+        let currentMonth = new Date();
+        currentMonth.setDate(1);
+
+        function formatDate(year, month, day) {
+            return year + "-" +
+                String(month + 1).padStart(2, "0") + "-" +
+                String(day).padStart(2, "0");
+        }
+
+        function formatTime(time) {
+            const [hours, minutes] = time.split(":").map(Number);
+            const hour12 = hours % 12 || 12;
+            const suffix = hours < 12 ? "AM" : "PM";
+
+            return hour12 +
+                (minutes ? ":" + String(minutes).padStart(2, "0") : "") +
+                " " + suffix;
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+
+            monthTitle.textContent =
+                currentMonth.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric"
+                });
+
+            calendar.innerHTML = "";
+
+            const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < offset; i++) {
+                calendar.appendChild(document.createElement("div"));
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateString = formatDate(year, month, day);
+
+                const dayContainer = document.createElement("div");
+                dayContainer.className =
+                    "employee-schedule-day border rounded p-2 d-flex flex-column gap-1";
+
+                const dayNumber = document.createElement("span");
+                dayNumber.className = "fw-semibold small";
+                dayNumber.textContent = day;
+                dayContainer.appendChild(dayNumber);
+
+                schedules
+                    .filter(shift => shift.date === dateString)
+                    .forEach(shift => {
+                        const label = document.createElement("div");
+                        label.className = "employee-shift-label";
+                        label.textContent =
+                            formatTime(shift.start) +
+                            " – " +
+                            formatTime(shift.end);
+
+                        dayContainer.appendChild(label);
+                    });
+
+                calendar.appendChild(dayContainer);
+            }
+        }
+
+        document.getElementById("employeePrevMonth")
+            .addEventListener("click", function () {
+                currentMonth.setMonth(currentMonth.getMonth() - 1);
+                renderCalendar();
+            });
+
+        document.getElementById("employeeNextMonth")
+            .addEventListener("click", function () {
+                currentMonth.setMonth(currentMonth.getMonth() + 1);
+                renderCalendar();
+            });
+
+        renderCalendar();
+    });
+</script>
 
 </body>
 </html>

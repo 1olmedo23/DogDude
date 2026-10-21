@@ -1720,3 +1720,57 @@ body.page-map .map-img-modern{
         font-size: .98rem;
     }
 }
+/* ===============================
+   Admin Employees — Monthly Calendar
+   =============================== */
+
+body.page-admin #employees .employee-schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+body.page-admin #employees .employee-schedule-grid > .col {
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    padding: 0;
+}
+
+/* Employee schedule calendar day hover */
+.page-admin #employees .employee-schedule-day {
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.page-admin #employees .employee-schedule-day:hover {
+    background-color: #e9f2ff;
+    border-color: #86b7fe !important;
+}
+
+/* Keep selected dates highlighted, including on hover */
+.page-admin #employees .employee-schedule-day.bg-primary-subtle,
+.page-admin #employees .employee-schedule-day.bg-primary-subtle:hover {
+    background-color: #cfe2ff !important;
+    border-color: #86b7fe !important;
+}
+
+/* Employee-facing monthly schedule calendar */
+.page-employee .employee-schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.page-employee .employee-schedule-day {
+    min-height: 100px;
+    min-width: 0;
+}
+
+.page-employee .employee-shift-label {
+    background-color: #e7f1ff;
+    color: #174ea6;
+    border-radius: 0.3rem;
+    padding: 0.3rem;
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+}

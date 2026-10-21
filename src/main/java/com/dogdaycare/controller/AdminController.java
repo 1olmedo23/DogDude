@@ -15,9 +15,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.dogdaycare.service.UploadService;
 import java.io.File;
 import java.nio.file.Path;
+import com.dogdaycare.service.EmployeeScheduleService;
+import org.springframework.format.annotation.DateTimeFormat;
+import com.dogdaycare.model.EmployeeSchedule;
+import com.dogdaycare.repository.EmployeeScheduleRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,19 +36,25 @@ public class AdminController {
     private final EmailService emailService;
     private final FileRepository fileRepository;
     private final UploadService uploadService;
+    private final EmployeeScheduleService employeeScheduleService;
+    private final EmployeeScheduleRepository employeeScheduleRepository;
 
     public AdminController(EvaluationRepository evaluationRepository,
                            UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            EmailService emailService,
                            FileRepository fileRepository,
-                           UploadService uploadService) {
+                           UploadService uploadService,
+                           EmployeeScheduleService employeeScheduleService,
+                           EmployeeScheduleRepository employeeScheduleRepository) {
         this.evaluationRepository = evaluationRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.fileRepository = fileRepository;
         this.uploadService = uploadService;
+        this.employeeScheduleService = employeeScheduleService;
+        this.employeeScheduleRepository = employeeScheduleRepository;
     }
 
     // Admin dashboard (now also hydrates the Uploads tab model)
@@ -450,6 +461,137 @@ public class AdminController {
 
         ra.addFlashAttribute("successMessage", "Employee password updated successfully.");
         return "redirect:/admin#employees";
+    }
+
+
+
+    @PostMapping("/employees/schedule")
+    public String createEmployeeSchedule(
+            @RequestParam Long employeeId,
+            @RequestParam("scheduleDates")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            List<LocalDate> scheduleDates,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+            LocalTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+            LocalTime endTime,
+            RedirectAttributes ra) {
+
+        try {
+            List<com.dogdaycare.model.EmployeeSchedule> schedules =
+                    employeeScheduleService.createSchedules(
+                            employeeId,
+                            scheduleDates,
+                            startTime,
+                            endTime
+                    );
+
+            ra.addFlashAttribute(
+                    "successMessage",
+                    schedules.size() + " scheduled period(s) created successfully."
+            );
+
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin#employees";
+    }
+
+
+    @PostMapping("/employees/schedules/{id}/delete")
+    public String deleteEmployeeSchedule(
+            @PathVariable Long id,
+            RedirectAttributes ra) {
+
+        try {
+            employeeScheduleService.deleteSchedule(id);
+
+            ra.addFlashAttribute(
+                    "successMessage",
+                    "Scheduled period deleted successfully."
+            );
+
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin#employees";
+    }
+
+
+    @PostMapping("/employees/schedules/{id}/update")
+    public String updateEmployeeSchedule(
+            @PathVariable Long id,
+            @RequestParam Long employeeId,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate scheduleDate,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+            LocalTime startTime,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+            LocalTime endTime,
+            RedirectAttributes ra) {
+
+        try {
+            employeeScheduleService.updateSchedule(
+                    id,
+                    employeeId,
+                    scheduleDate,
+                    startTime,
+                    endTime
+            );
+
+            ra.addFlashAttribute(
+                    "successMessage",
+                    "Scheduled period updated successfully."
+            );
+
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin#employees";
+    }
+
+    @GetMapping("/employees/schedules")
+    @ResponseBody
+    public List<Map<String, Object>> getEmployeeSchedules(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate end) {
+
+        if (start.isAfter(end)) {
+            throw new IllegalArgumentException("Start date must be before or equal to end date.");
+        }
+
+        List<EmployeeSchedule> schedules =
+                employeeScheduleRepository
+                        .findByScheduleDateBetweenOrderByScheduleDateAscStartTimeAsc(
+                                start, end
+                        );
+
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        for (EmployeeSchedule schedule : schedules) {
+            Map<String, Object> row = new LinkedHashMap<>();
+
+            row.put("id", schedule.getId());
+            row.put("employeeId", schedule.getEmployee().getId());
+            row.put("employeeName", schedule.getEmployee().getFullName() != null
+                    ? schedule.getEmployee().getFullName()
+                    : schedule.getEmployee().getUsername());
+            row.put("scheduleDate", schedule.getScheduleDate().toString());
+            row.put("startTime", schedule.getStartTime().toString());
+            row.put("endTime", schedule.getEndTime().toString());
+
+            results.add(row);
+        }
+
+        return results;
     }
 
 }
