@@ -87,13 +87,141 @@
     <!-- Time Tracking -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
+
             <h4 class="mb-3">Time Tracking</h4>
 
-            <p class="text-muted mb-0">
-                Clock-in and clock-out functionality will appear here.
-            </p>
+            <!-- Feedback messages -->
+            <div th:if="${success}"
+                 class="alert alert-success"
+                 role="alert"
+                 th:text="${success}">
+            </div>
+
+            <div th:if="${error}"
+                 class="alert alert-danger"
+                 role="alert"
+                 th:text="${error}">
+            </div>
+
+            <!-- Currently clocked out -->
+            <div th:unless="${clockedIn}">
+
+                <p class="text-muted mb-3">
+                    You are currently clocked out.
+                </p>
+
+                <form th:action="@{/employee/clock-in}" method="post">
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}"/>
+
+                    <button type="submit" class="btn btn-custom">
+                        Clock In
+                    </button>
+                </form>
+
+            </div>
+
+            <!-- Currently clocked in -->
+            <div th:if="${clockedIn}">
+
+                <p class="mb-2">
+                    <strong>Status:</strong> Clocked In
+                </p>
+
+                <p class="text-muted mb-3">
+                    <strong>Clocked in at:</strong>
+                    <span th:text="${#temporals.format(activeTimeEntry.clockIn, 'MMM d, yyyy h:mm a')}">
+                    Time
+                </span>
+                </p>
+
+                <form th:action="@{/employee/clock-out}" method="post">
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}"/>
+
+                    <button type="submit" class="btn btn-outline-danger">
+                        Clock Out
+                    </button>
+                </form>
+
+            </div>
+
         </div>
     </div>
+
+
+    <!-- Employee Time History -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <h4 class="mb-3">My Time Logs</h4>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+
+                    <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Clock In</th>
+                        <th>Clock Out</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <tr th:each="entry : ${employeeTimeEntries}">
+
+                        <td th:text="${#temporals.format(entry.clockIn, 'MMM d, yyyy')}">
+                            Oct 22, 2026
+                        </td>
+
+                        <td th:text="${#temporals.format(entry.clockIn, 'h:mm a')}">
+                            8:00 AM
+                        </td>
+
+                        <td>
+                        <span th:if="${entry.clockOut != null}"
+                              th:text="${#temporals.format(entry.clockOut, 'h:mm a')}">
+                            5:00 PM
+                        </span>
+
+                            <span th:if="${entry.clockOut == null}"
+                                  class="text-muted">
+                            —
+                        </span>
+                        </td>
+
+                        <td>
+                        <span th:if="${entry.clockOut == null}"
+                              class="badge text-bg-success">
+                            Clocked In
+                        </span>
+
+                            <span th:if="${entry.clockOut != null}"
+                                  class="badge text-bg-secondary">
+                            Completed
+                        </span>
+                        </td>
+
+                    </tr>
+
+                    <tr th:if="${#lists.isEmpty(employeeTimeEntries)}">
+                        <td colspan="4" class="text-muted py-3">
+                            No time records found.
+                        </td>
+                    </tr>
+
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+    <!-- End Employee Time History -->
 
 </div>
 

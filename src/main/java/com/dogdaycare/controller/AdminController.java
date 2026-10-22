@@ -20,6 +20,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import com.dogdaycare.model.EmployeeSchedule;
 import com.dogdaycare.repository.EmployeeScheduleRepository;
 
+import com.dogdaycare.model.EmployeeTimeEntry;
+import com.dogdaycare.repository.EmployeeTimeEntryRepository;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,6 +41,7 @@ public class AdminController {
     private final UploadService uploadService;
     private final EmployeeScheduleService employeeScheduleService;
     private final EmployeeScheduleRepository employeeScheduleRepository;
+    private final EmployeeTimeEntryRepository employeeTimeEntryRepository;
 
     public AdminController(EvaluationRepository evaluationRepository,
                            UserRepository userRepository,
@@ -46,7 +50,9 @@ public class AdminController {
                            FileRepository fileRepository,
                            UploadService uploadService,
                            EmployeeScheduleService employeeScheduleService,
-                           EmployeeScheduleRepository employeeScheduleRepository) {
+                           EmployeeScheduleRepository employeeScheduleRepository,
+                           EmployeeTimeEntryRepository employeeTimeEntryRepository
+                           ) {
         this.evaluationRepository = evaluationRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -55,6 +61,7 @@ public class AdminController {
         this.uploadService = uploadService;
         this.employeeScheduleService = employeeScheduleService;
         this.employeeScheduleRepository = employeeScheduleRepository;
+        this.employeeTimeEntryRepository = employeeTimeEntryRepository;
     }
 
     // Admin dashboard (now also hydrates the Uploads tab model)
@@ -229,6 +236,11 @@ public class AdminController {
         model.addAttribute("evaluationByUserId", evaluationByUserId);
         model.addAttribute("staffUsers", staffUsers);
         model.addAttribute("employeeUsers", employeeUsers);
+        // --- Employee time tracking
+        List<EmployeeTimeEntry> employeeTimeEntries =
+                employeeTimeEntryRepository.findAllByOrderByClockInDesc();
+
+        model.addAttribute("employeeTimeEntries", employeeTimeEntries);
 
         // Uploads tab attrs
         model.addAttribute("q", q);

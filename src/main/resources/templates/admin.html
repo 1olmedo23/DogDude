@@ -892,6 +892,86 @@
                 </div>
             </div>
 
+
+            <!-- Employee Time Tracking -->
+            <div class="mt-5">
+
+                <h4 class="fw-semibold mb-3">Employee Time Tracking</h4>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle mb-0">
+
+                                <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Clock In</th>
+                                    <th>Clock Out</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+
+                                <tr th:each="entry : ${employeeTimeEntries}">
+
+                                    <td th:text="${entry.employee.fullName != null
+                                ? entry.employee.fullName
+                                : entry.employee.username}">
+                                        Employee Name
+                                    </td>
+
+                                    <td th:text="${#temporals.format(
+                                entry.clockIn, 'MMM d, yyyy h:mm a')}">
+                                        Clock In Time
+                                    </td>
+
+                                    <td>
+                            <span th:if="${entry.clockOut != null}"
+                                  th:text="${#temporals.format(
+                                          entry.clockOut, 'MMM d, yyyy h:mm a')}">
+                                Clock Out Time
+                            </span>
+
+                                        <span th:if="${entry.clockOut == null}"
+                                              class="text-muted">
+                                —
+                            </span>
+                                    </td>
+
+                                    <td>
+                            <span th:if="${entry.clockOut == null}"
+                                  class="badge text-bg-success">
+                                Clocked In
+                            </span>
+
+                                        <span th:if="${entry.clockOut != null}"
+                                              class="badge text-bg-secondary">
+                                Completed
+                            </span>
+                                    </td>
+
+                                </tr>
+
+                                <tr th:if="${#lists.isEmpty(employeeTimeEntries)}">
+                                    <td colspan="4" class="text-muted py-3">
+                                        No employee time records found.
+                                    </td>
+                                </tr>
+
+                                </tbody>
+
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+            <!-- End Employee Time Tracking -->
+
             <!-- Employee Accounts -->
             <div class="mt-5">
                 <h4 class="fw-semibold mb-3">Employee Accounts</h4>
