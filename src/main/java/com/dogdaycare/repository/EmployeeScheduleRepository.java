@@ -1,4 +1,3 @@
-
 package com.dogdaycare.repository;
 
 import com.dogdaycare.model.EmployeeSchedule;
@@ -6,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedule, Long> {
 
@@ -19,6 +19,8 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
     );
 
     // Retrieve all employee schedules for a date range
+// Include employee details for the admin calendar
+    @EntityGraph(attributePaths = "employee")
     List<EmployeeSchedule> findByScheduleDateBetweenOrderByScheduleDateAscStartTimeAsc(
             LocalDate startDate,
             LocalDate endDate

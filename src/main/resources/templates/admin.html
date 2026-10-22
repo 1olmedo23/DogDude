@@ -2199,7 +2199,12 @@
                     "/admin/employees/schedules?start=" +
                     encodeURIComponent(start) +
                     "&end=" +
-                    encodeURIComponent(end)
+                    encodeURIComponent(end),
+                    {
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
                 );
 
                 if (!response.ok) {

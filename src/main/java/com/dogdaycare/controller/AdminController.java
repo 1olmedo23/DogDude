@@ -19,6 +19,7 @@ import com.dogdaycare.service.EmployeeScheduleService;
 import org.springframework.format.annotation.DateTimeFormat;
 import com.dogdaycare.model.EmployeeSchedule;
 import com.dogdaycare.repository.EmployeeScheduleRepository;
+import org.springframework.http.MediaType;
 
 import com.dogdaycare.model.EmployeeTimeEntry;
 import com.dogdaycare.repository.EmployeeTimeEntryRepository;
@@ -568,7 +569,7 @@ public class AdminController {
         return "redirect:/admin#employees";
     }
 
-    @GetMapping("/employees/schedules")
+    @GetMapping(value = "/employees/schedules", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<Map<String, Object>> getEmployeeSchedules(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
