@@ -178,20 +178,44 @@
                             Oct 22, 2026
                         </td>
 
-                        <td th:text="${#temporals.format(entry.clockIn, 'h:mm a')}">
-                            8:00 AM
+                        <td>
+                            <div>
+                                <span th:text="${#temporals.format(entry.clockIn, 'h:mm a')}">
+                                    8:00 AM
+                                </span>
+                            </div>
+
+                            <div th:if="${entry.adjustedClockIn != null}"
+                                 class="mt-1">
+                                <span class="text-muted small">Adjusted:</span>
+                                <span class="fw-semibold text-primary"
+                                      th:text="${#temporals.format(entry.adjustedClockIn, 'h:mm a')}">
+                                    8:05 AM
+                                </span>
+                            </div>
                         </td>
 
                         <td>
-                        <span th:if="${entry.clockOut != null}"
-                              th:text="${#temporals.format(entry.clockOut, 'h:mm a')}">
-                            5:00 PM
-                        </span>
+                            <div>
+                                <span th:if="${entry.clockOut != null}"
+                                      th:text="${#temporals.format(entry.clockOut, 'h:mm a')}">
+                                    5:00 PM
+                                </span>
 
-                            <span th:if="${entry.clockOut == null}"
-                                  class="text-muted">
-                            —
-                        </span>
+                                <span th:if="${entry.clockOut == null}"
+                                      class="text-muted">
+                                    —
+                                </span>
+                            </div>
+
+                            <div th:if="${entry.adjustedClockOut != null}"
+                                 class="mt-1">
+                                <span class="text-muted small">Adjusted:</span>
+                                <span class="fw-semibold text-primary"
+                                      th:text="${#temporals.format(entry.adjustedClockOut, 'h:mm a')}">
+                                    5:15 PM
+                                </span>
+                            </div>
                         </td>
 
                         <td>

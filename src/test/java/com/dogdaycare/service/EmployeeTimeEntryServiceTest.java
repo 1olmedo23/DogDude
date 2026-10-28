@@ -179,8 +179,15 @@ class EmployeeTimeEntryServiceTest {
         );
 
         assertEquals(1L, result.getId());
-        assertEquals(correctedClockIn, result.getClockIn());
-        assertEquals(correctedClockOut, result.getClockOut());
+
+        // Original timestamps must remain unchanged.
+        assertEquals(originalClockIn, result.getClockIn());
+        assertEquals(originalClockOut, result.getClockOut());
+
+        // Admin adjustments are stored separately.
+        assertEquals(correctedClockIn, result.getAdjustedClockIn());
+        assertEquals(correctedClockOut, result.getAdjustedClockOut());
+
         assertEquals(employee, result.getEmployee());
 
         verify(timeEntryRepository).save(entry);
@@ -218,7 +225,7 @@ class EmployeeTimeEntryServiceTest {
         );
 
         assertEquals(
-                "Clock-out time cannot be before clock-in time.",
+                "Adjusted clock-out cannot be before adjusted clock-in.",
                 exception.getMessage()
         );
 
@@ -252,6 +259,132 @@ class EmployeeTimeEntryServiceTest {
                 "Time entry not found.",
                 exception.getMessage()
         );
+
+        verify(timeEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void repeatedAdjustmentsPreserveOriginalTimes() {
+
+        EmployeeTimeEntry entry = new EmployeeTimeEntry();
+        entry.setId(1L);
+        entry.setEmployee(employee);
+
+        LocalDateTime originalClockIn =
+                LocalDateTime.of(2026, 10, 22, 8, 12);
+
+        LocalDateTime originalClockOut =
+                LocalDateTime.of(2026, 10, 22, 16, 45);
+
+        entry.setClockIn(originalClockIn);
+        entry.setClockOut(originalClockOut);
+
+        when(timeEntryRepository.findById(1L))
+                .thenReturn(Optional.of(entry));
+
+        when(timeEntryRepository.save(entry))
+                .thenReturn(entry);
+
+        // First adjustment
+        service.updateTimeEntry(
+                1L,
+                LocalDateTime.of(2026, 10, 22, 8, 0),
+                LocalDateTime.of(2026, 10, 22, 17, 0)
+        );
+
+        // Second adjustment
+        service.updateTimeEntry(
+                1L,
+                LocalDateTime.of(2026, 10, 22, 8, 5),
+                LocalDateTime.of(2026, 10, 22, 17, 15)
+        );
+
+        // Original timestamps remain unchanged.
+        assertEquals(originalClockIn, entry.getClockIn());
+        assertEquals(originalClockOut, entry.getClockOut());
+
+        // Latest adjustments are stored separately.
+        assertEquals(
+                LocalDateTime.of(2026, 10, 22, 8, 5),
+                entry.getAdjustedClockIn()
+        );
+
+        assertEquals(
+                LocalDateTime.of(2026, 10, 22, 17, 15),
+                entry.getAdjustedClockOut()
+        );
+
+        verify(timeEntryRepository, times(2)).save(entry);
+    }
+
+    @Test
+    void adminClockOutRecordsMissingOriginalClockOut() {
+
+        EmployeeTimeEntry entry = new EmployeeTimeEntry();
+        entry.setId(1L);
+        entry.setEmployee(employee);
+
+        LocalDateTime originalClockIn =
+                LocalDateTime.of(2026, 10, 22, 8, 0);
+
+        LocalDateTime adminClockOut =
+                LocalDateTime.of(2026, 10, 22, 17, 0);
+
+        entry.setClockIn(originalClockIn);
+
+        when(timeEntryRepository.findById(1L))
+                .thenReturn(Optional.of(entry));
+
+        when(timeEntryRepository.save(entry))
+                .thenReturn(entry);
+
+        EmployeeTimeEntry result =
+                service.adminClockOut(1L, adminClockOut);
+
+        assertEquals(originalClockIn, result.getClockIn());
+        assertEquals(adminClockOut, result.getClockOut());
+
+        assertNull(result.getAdjustedClockIn());
+        assertNull(result.getAdjustedClockOut());
+
+        verify(timeEntryRepository).save(entry);
+    }
+
+    @Test
+    void adminClockOutCannotOverwriteOriginalClockOut() {
+
+        EmployeeTimeEntry entry = new EmployeeTimeEntry();
+        entry.setId(1L);
+        entry.setEmployee(employee);
+
+        LocalDateTime originalClockIn =
+                LocalDateTime.of(2026, 10, 22, 8, 0);
+
+        LocalDateTime originalClockOut =
+                LocalDateTime.of(2026, 10, 22, 17, 0);
+
+        entry.setClockIn(originalClockIn);
+        entry.setClockOut(originalClockOut);
+
+        when(timeEntryRepository.findById(1L))
+                .thenReturn(Optional.of(entry));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.adminClockOut(
+                        1L,
+                        LocalDateTime.of(2026, 10, 22, 18, 0)
+                )
+        );
+
+        assertEquals(
+                "This employee already has a recorded clock-out.",
+                exception.getMessage()
+        );
+
+        // The original timestamps must remain unchanged.
+        assertEquals(originalClockIn, entry.getClockIn());
+        assertEquals(originalClockOut, entry.getClockOut());
 
         verify(timeEntryRepository, never()).save(any());
     }

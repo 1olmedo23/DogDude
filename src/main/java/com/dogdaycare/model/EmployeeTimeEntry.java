@@ -26,4 +26,13 @@ public class EmployeeTimeEntry {
 
     @Column(name = "clock_out")
     private LocalDateTime clockOut;
+
+    // Admin-adjusted timestamps.
+    // Original clock-in and clock-out values remain preserved.
+
+    @Column(name = "adjusted_clock_in")
+    private LocalDateTime adjustedClockIn;
+
+    @Column(name = "adjusted_clock_out")
+    private LocalDateTime adjustedClockOut;
 }

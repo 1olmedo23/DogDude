@@ -103,12 +103,11 @@ public class EmployeeTimeEntryService {
         return timeEntryRepository.save(entry);
     }
 
-
     @Transactional
     public EmployeeTimeEntry updateTimeEntry(
             Long entryId,
-            LocalDateTime clockIn,
-            LocalDateTime clockOut) {
+            LocalDateTime adjustedClockIn,
+            LocalDateTime adjustedClockOut) {
 
         if (entryId == null) {
             throw new IllegalArgumentException("Time entry ID is required.");
@@ -118,16 +117,22 @@ public class EmployeeTimeEntryService {
                 .orElseThrow(() ->
                         new IllegalArgumentException("Time entry not found."));
 
-        if (clockIn == null) {
+        // The original clock-out must be recorded before adjustments.
+        if (entry.getClockOut() == null) {
             throw new IllegalArgumentException(
-                    "Clock-in date and time are required.");
+                    "Record the employee's original clock-out before making adjustments.");
         }
 
-        if (clockOut != null && clockOut.isBefore(clockIn)) {
+        // Adjusted timestamps must always have values once saved.
+        if (adjustedClockIn == null || adjustedClockOut == null) {
             throw new IllegalArgumentException(
-                    "Clock-out time cannot be before clock-in time.");
+                    "Adjusted clock-in and clock-out times are required.");
         }
 
+        if (adjustedClockOut.isBefore(adjustedClockIn)) {
+            throw new IllegalArgumentException(
+                    "Adjusted clock-out cannot be before adjusted clock-in.");
+        }
 
         Long employeeId = entry.getEmployee().getId();
 
@@ -136,29 +141,105 @@ public class EmployeeTimeEntryService {
 
         for (EmployeeTimeEntry other : otherEntries) {
 
-            // Do not compare this record against itself.
             if (other.getId().equals(entryId)) {
                 continue;
             }
 
-            LocalDateTime otherClockIn = other.getClockIn();
-            LocalDateTime otherClockOut = other.getClockOut();
+            // Use adjusted values where available.
+            LocalDateTime otherClockIn =
+                    other.getAdjustedClockIn() != null
+                            ? other.getAdjustedClockIn()
+                            : other.getClockIn();
 
-            // Treat a missing clock-out as an ongoing work period.
+            LocalDateTime otherClockOut =
+                    other.getAdjustedClockOut() != null
+                            ? other.getAdjustedClockOut()
+                            : other.getClockOut();
+
             boolean overlaps =
-                    (clockOut == null || otherClockIn.isBefore(clockOut))
-                            && (otherClockOut == null || clockIn.isBefore(otherClockOut));
+                    (otherClockIn.isBefore(adjustedClockOut))
+                            && (otherClockOut == null
+                            || adjustedClockIn.isBefore(otherClockOut));
 
             if (overlaps) {
                 throw new IllegalArgumentException(
-                        "The corrected times overlap another time entry for this employee.");
+                        "The adjusted times overlap another time entry for this employee.");
             }
         }
 
-        entry.setClockIn(clockIn);
-        entry.setClockOut(clockOut);
+        // Preserve the original clock-in and clock-out.
+        // Only update the separate adjusted timestamps.
+        entry.setAdjustedClockIn(adjustedClockIn);
+        entry.setAdjustedClockOut(adjustedClockOut);
 
         return timeEntryRepository.save(entry);
     }
 
+    // Admin: record a missing original clock-out time.
+    @Transactional
+    public EmployeeTimeEntry adminClockOut(
+            Long entryId,
+            LocalDateTime clockOut) {
+
+        if (entryId == null) {
+            throw new IllegalArgumentException("Time entry ID is required.");
+        }
+
+        if (clockOut == null) {
+            throw new IllegalArgumentException("Clock-out date and time are required.");
+        }
+
+        EmployeeTimeEntry entry = timeEntryRepository.findById(entryId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Time entry not found."));
+
+        // Never overwrite an existing original clock-out.
+        if (entry.getClockOut() != null) {
+            throw new IllegalArgumentException(
+                    "This employee already has a recorded clock-out.");
+        }
+
+        if (clockOut.isBefore(entry.getClockIn())) {
+            throw new IllegalArgumentException(
+                    "Clock-out time cannot be before clock-in time.");
+        }
+
+        // Check against other time entries for this employee.
+        List<EmployeeTimeEntry> otherEntries =
+                timeEntryRepository.findByEmployeeIdOrderByClockInDesc(
+                        entry.getEmployee().getId());
+
+        for (EmployeeTimeEntry other : otherEntries) {
+
+            if (other.getId().equals(entryId)) {
+                continue;
+            }
+
+            LocalDateTime otherClockIn =
+                    other.getAdjustedClockIn() != null
+                            ? other.getAdjustedClockIn()
+                            : other.getClockIn();
+
+            LocalDateTime otherClockOut =
+                    other.getAdjustedClockOut() != null
+                            ? other.getAdjustedClockOut()
+                            : other.getClockOut();
+
+            boolean overlaps =
+                    otherClockIn.isBefore(clockOut)
+                            && (otherClockOut == null
+                            || entry.getClockIn().isBefore(otherClockOut));
+
+            if (overlaps) {
+                throw new IllegalArgumentException(
+                        "The clock-out time overlaps another time entry for this employee.");
+            }
+        }
+
+        // Save the original clock-out once.
+        // Future admin adjustments use adjustedClockOut instead.
+        entry.setClockOut(clockOut);
+
+        return timeEntryRepository.save(entry);
+    }
 }

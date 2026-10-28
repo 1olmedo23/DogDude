@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 
 import com.dogdaycare.model.EmployeeTimeEntry;
 import com.dogdaycare.repository.EmployeeTimeEntryRepository;
+import com.dogdaycare.service.EmployeeTimeEntryService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,6 +44,7 @@ public class AdminController {
     private final EmployeeScheduleService employeeScheduleService;
     private final EmployeeScheduleRepository employeeScheduleRepository;
     private final EmployeeTimeEntryRepository employeeTimeEntryRepository;
+    private final EmployeeTimeEntryService employeeTimeEntryService;
 
     public AdminController(EvaluationRepository evaluationRepository,
                            UserRepository userRepository,
@@ -52,7 +54,8 @@ public class AdminController {
                            UploadService uploadService,
                            EmployeeScheduleService employeeScheduleService,
                            EmployeeScheduleRepository employeeScheduleRepository,
-                           EmployeeTimeEntryRepository employeeTimeEntryRepository
+                           EmployeeTimeEntryRepository employeeTimeEntryRepository,
+                           EmployeeTimeEntryService employeeTimeEntryService
                            ) {
         this.evaluationRepository = evaluationRepository;
         this.userRepository = userRepository;
@@ -63,6 +66,7 @@ public class AdminController {
         this.employeeScheduleService = employeeScheduleService;
         this.employeeScheduleRepository = employeeScheduleRepository;
         this.employeeTimeEntryRepository = employeeTimeEntryRepository;
+        this.employeeTimeEntryService = employeeTimeEntryService;
     }
 
     // Admin dashboard (now also hydrates the Uploads tab model)
@@ -241,7 +245,20 @@ public class AdminController {
         List<EmployeeTimeEntry> employeeTimeEntries =
                 employeeTimeEntryRepository.findAllByOrderByClockInDesc();
 
+        // Group time entries by employee ID.
+        // The repository already returns entries newest first.
+        Map<Long, List<EmployeeTimeEntry>> employeeTimeEntriesByEmployee = new LinkedHashMap<>();
+
+        for (EmployeeTimeEntry entry : employeeTimeEntries) {
+            Long employeeId = entry.getEmployee().getId();
+
+            employeeTimeEntriesByEmployee
+                    .computeIfAbsent(employeeId, id -> new ArrayList<>())
+                    .add(entry);
+        }
+
         model.addAttribute("employeeTimeEntries", employeeTimeEntries);
+        model.addAttribute("employeeTimeEntriesByEmployee", employeeTimeEntriesByEmployee);
 
         // Uploads tab attrs
         model.addAttribute("q", q);
@@ -605,6 +622,61 @@ public class AdminController {
         }
 
         return results;
+    }
+
+    // Admin: correct employee clock-in and clock-out times
+    @PostMapping("/employees/time-entries/{id}/update")
+    public String updateEmployeeTimeEntry(
+            @PathVariable Long id,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime clockIn,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime clockOut,
+            RedirectAttributes ra) {
+
+        try {
+            employeeTimeEntryService.updateTimeEntry(
+                    id,
+                    clockIn,
+                    clockOut
+            );
+
+            ra.addFlashAttribute(
+                    "successMessage",
+                    "Employee time entry updated successfully."
+            );
+
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin#employees";
+    }
+
+    // Admin: record a missing original employee clock-out.
+    @PostMapping("/employees/time-entries/{id}/clock-out")
+    public String adminClockOutEmployee(
+            @PathVariable Long id,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime clockOut,
+            RedirectAttributes ra) {
+
+        try {
+            employeeTimeEntryService.adminClockOut(id, clockOut);
+
+            ra.addFlashAttribute(
+                    "successMessage",
+                    "Employee clock-out recorded successfully."
+            );
+
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/admin#employees";
     }
 
 }

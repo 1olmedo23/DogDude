@@ -892,83 +892,355 @@
                 </div>
             </div>
 
-
             <!-- Employee Time Tracking -->
             <div class="mt-5">
 
                 <h4 class="fw-semibold mb-3">Employee Time Tracking</h4>
 
-                <div class="card shadow-sm">
-                    <div class="card-body">
+                <div class="d-grid gap-3">
 
-                        <div class="table-responsive">
-                            <table class="table table-striped align-middle mb-0">
+                    <!-- Individual Employee Cards -->
+                    <div class="card shadow-sm"
+                         th:each="employee : ${employeeUsers}"
+                         th:with="entries=${employeeTimeEntriesByEmployee.get(employee.id)}">
 
-                                <thead>
-                                <tr>
-                                    <th>Employee</th>
-                                    <th>Clock In</th>
-                                    <th>Clock Out</th>
-                                    <th>Status</th>
-                                </tr>
-                                </thead>
+                        <!-- Expandable Employee Header -->
+                        <button type="button"
+                                class="card-header bg-white btn w-100 text-start"
+                                data-bs-toggle="collapse"
+                                th:attr="data-bs-target='#employeeTimeCollapse' + ${employee.id},
+                             aria-controls='employeeTimeCollapse' + ${employee.id}"
+                                aria-expanded="false">
 
-                                <tbody>
+                            <div class="d-flex justify-content-between align-items-center gap-3">
 
-                                <tr th:each="entry : ${employeeTimeEntries}">
-
-                                    <td th:text="${entry.employee.fullName != null
-                                ? entry.employee.fullName
-                                : entry.employee.username}">
+                                <div>
+                                    <h5 class="mb-1"
+                                        th:text="${employee.fullName != null ? employee.fullName : employee.username}">
                                         Employee Name
-                                    </td>
+                                    </h5>
 
-                                    <td th:text="${#temporals.format(
-                                entry.clockIn, 'MMM d, yyyy h:mm a')}">
-                                        Clock In Time
-                                    </td>
-
-                                    <td>
-                            <span th:if="${entry.clockOut != null}"
-                                  th:text="${#temporals.format(
-                                          entry.clockOut, 'MMM d, yyyy h:mm a')}">
-                                Clock Out Time
+                                    <div class="text-muted small">
+                            <span th:text="${entries != null ? #lists.size(entries) : 0}">
+                                0
                             </span>
+                                        time record(s)
+                                    </div>
+                                </div>
 
-                                        <span th:if="${entry.clockOut == null}"
-                                              class="text-muted">
-                                —
-                            </span>
-                                    </td>
+                                <span class="text-muted">▼</span>
 
-                                    <td>
-                            <span th:if="${entry.clockOut == null}"
-                                  class="badge text-bg-success">
-                                Clocked In
-                            </span>
+                            </div>
+                        </button>
 
-                                        <span th:if="${entry.clockOut != null}"
-                                              class="badge text-bg-secondary">
-                                Completed
-                            </span>
-                                    </td>
+                        <!-- Expandable Time Records -->
+                        <div class="collapse"
+                             th:id="'employeeTimeCollapse' + ${employee.id}">
 
-                                </tr>
+                            <div class="card-body">
 
-                                <tr th:if="${#lists.isEmpty(employeeTimeEntries)}">
-                                    <td colspan="4" class="text-muted py-3">
-                                        No employee time records found.
-                                    </td>
-                                </tr>
+                                <div class="table-responsive"
+                                     th:if="${entries != null and !#lists.isEmpty(entries)}">
 
-                                </tbody>
+                                    <table class="table table-striped align-middle mb-0">
 
-                            </table>
+                                        <thead>
+                                        <tr>
+                                            <th>Clock In</th>
+                                            <th>Clock Out</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                        </thead>
+
+                                        <tbody>
+
+                                        <tr th:each="entry : ${entries}">
+
+                                            <td>
+                                                <div>
+                                                    <span class="text-muted small">Original:</span>
+                                                    <span th:text="${#temporals.format(entry.clockIn, 'MMM d, yyyy h:mm a')}">
+                                                        Original Clock In
+                                                    </span>
+                                                </div>
+
+                                                <div th:if="${entry.adjustedClockIn != null}"
+                                                     class="mt-1">
+                                                    <span class="text-muted small">Adjusted:</span>
+                                                    <span class="fw-semibold text-primary"
+                                                          th:text="${#temporals.format(entry.adjustedClockIn, 'MMM d, yyyy h:mm a')}">
+                                                        Adjusted Clock In
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <div>
+                                                    <span class="text-muted small">Original:</span>
+
+                                                    <span th:if="${entry.clockOut != null}"
+                                                          th:text="${#temporals.format(entry.clockOut, 'MMM d, yyyy h:mm a')}">
+                                                        Original Clock Out
+                                                    </span>
+
+                                                    <span th:if="${entry.clockOut == null}"
+                                                          class="text-muted">
+                                                        —
+                                                    </span>
+                                                </div>
+
+                                                <div th:if="${entry.adjustedClockOut != null}"
+                                                     class="mt-1">
+                                                    <span class="text-muted small">Adjusted:</span>
+
+                                                    <span class="fw-semibold text-primary"
+                                                          th:text="${#temporals.format(entry.adjustedClockOut, 'MMM d, yyyy h:mm a')}">
+                                                        Adjusted Clock Out
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                    <span th:if="${entry.clockOut == null}"
+                                          class="badge text-bg-success">
+                                        Clocked In
+                                    </span>
+
+                                                <span th:if="${entry.clockOut != null}"
+                                                      class="badge text-bg-secondary">
+                                        Completed
+                                    </span>
+                                            </td>
+
+                                            <td>
+                                                <div class="d-flex gap-2 flex-wrap">
+
+                                                    <!-- Employee is still clocked in -->
+                                                    <button type="button"
+                                                            th:if="${entry.clockOut == null}"
+                                                            class="btn btn-sm btn-outline-success admin-clock-out-btn"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#adminClockOutModal"
+                                                            th:attr="data-entry-id=${entry.id},
+                                                            data-employee-name=${entry.employee.fullName != null ? entry.employee.fullName : entry.employee.username},
+                                                            data-clock-in=${#temporals.format(entry.clockIn, 'yyyy-MM-dd''T''HH:mm')}">
+                                                        Clock Out
+                                                    </button>
+
+                                                    <!-- Employee has a recorded original clock-out -->
+                                                    <button type="button"
+                                                            th:if="${entry.clockOut != null}"
+                                                            class="btn btn-sm btn-outline-primary edit-time-entry-btn"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editEmployeeTimeEntryModal"
+                                                            th:attr="data-entry-id=${entry.id},
+                                                            data-employee-name=${entry.employee.fullName != null ? entry.employee.fullName : entry.employee.username},
+                                                            data-clock-in=${#temporals.format(entry.adjustedClockIn != null ? entry.adjustedClockIn : entry.clockIn, 'yyyy-MM-dd''T''HH:mm')},
+                                                            data-clock-out=${#temporals.format(entry.adjustedClockOut != null ? entry.adjustedClockOut : entry.clockOut, 'yyyy-MM-dd''T''HH:mm')}">
+                                                        Adjust
+                                                    </button>
+
+                                                </div>
+                                            </td>
+
+                                        </tr>
+
+                                        </tbody>
+                                    </table>
+
+                                </div>
+
+                                <!-- Employee With No Time Records -->
+                                <div class="text-muted small"
+                                     th:if="${entries == null or #lists.isEmpty(entries)}">
+                                    No time records found for this employee.
+                                </div>
+
+                            </div>
                         </div>
 
                     </div>
+
+                    <!-- No Employee Accounts -->
+                    <div class="text-muted"
+                         th:if="${#lists.isEmpty(employeeUsers)}">
+                        No employee accounts found.
+                    </div>
+
                 </div>
 
+            </div>
+            <!-- Admin Clock-Out Modal -->
+            <div class="modal fade"
+                 id="adminClockOutModal"
+                 tabindex="-1"
+                 aria-labelledby="adminClockOutModalLabel"
+                 aria-hidden="true">
+
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title"
+                                id="adminClockOutModalLabel">
+                                Clock Out Employee
+                            </h5>
+
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close">
+                            </button>
+                        </div>
+
+                        <form id="adminClockOutForm" method="post">
+
+                            <input type="hidden"
+                                   th:name="${_csrf.parameterName}"
+                                   th:value="${_csrf.token}"/>
+
+                            <div class="modal-body">
+
+                                <div class="mb-3">
+                                    <label class="form-label">Employee</label>
+                                    <div id="adminClockOutEmployeeName"
+                                         class="fw-semibold"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Original Clock In</label>
+                                    <div id="adminClockOutOriginalClockIn"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="adminClockOutTime"
+                                           class="form-label">
+                                        Clock Out
+                                    </label>
+
+                                    <input type="datetime-local"
+                                           class="form-control"
+                                           id="adminClockOutTime"
+                                           name="clockOut"
+                                           required>
+
+                                    <div class="form-text">
+                                        This time will be saved as the employee's
+                                        original clock-out. Once recorded, future
+                                        corrections must use the Adjust action.
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+
+                                <button type="button"
+                                        class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">
+                                    Cancel
+                                </button>
+
+                                <button type="submit"
+                                        class="btn btn-custom">
+                                    Record Clock Out
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+            <!-- Edit Employee Time Entry Modal -->
+            <div class="modal fade"
+                 id="editEmployeeTimeEntryModal"
+                 tabindex="-1"
+                 aria-labelledby="editEmployeeTimeEntryModalLabel"
+                 aria-hidden="true">
+
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title"
+                                id="editEmployeeTimeEntryModalLabel">
+                                Adjust Employee Time Entry
+                            </h5>
+
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close">
+                            </button>
+                        </div>
+
+                        <form id="editEmployeeTimeEntryForm" method="post">
+
+                            <input type="hidden"
+                                   th:name="${_csrf.parameterName}"
+                                   th:value="${_csrf.token}"/>
+
+                            <div class="modal-body">
+
+                                <div class="mb-3">
+                                    <label class="form-label">Employee</label>
+                                    <div id="timeEntryEmployeeName"
+                                         class="fw-semibold"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="timeEntryClockIn"
+                                           class="form-label">
+                                        Clock In
+                                    </label>
+
+                                    <input type="datetime-local"
+                                           class="form-control"
+                                           id="timeEntryClockIn"
+                                           name="clockIn"
+                                           required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="timeEntryClockOut"
+                                           class="form-label">
+                                        Clock Out
+                                    </label>
+
+                                    <input type="datetime-local"
+                                           class="form-control"
+                                           id="timeEntryClockOut"
+                                           name="clockOut"
+                                           required>
+
+                                    <div class="form-text">
+                                        Adjusted times are saved separately from the original
+                                        recorded times.
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button"
+                                        class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">
+                                    Cancel
+                                </button>
+
+                                <button type="submit"
+                                        class="btn btn-custom">
+                                    Save Changes
+                                </button>
+                            </div>
+
+                        </form>
+
+                    </div>
+                </div>
             </div>
             <!-- End Employee Time Tracking -->
 
@@ -2268,6 +2540,104 @@
 
         updateSelection();
         loadSchedules();
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const editModal = document.getElementById("editEmployeeTimeEntryModal");
+        const editForm = document.getElementById("editEmployeeTimeEntryForm");
+        const employeeName = document.getElementById("timeEntryEmployeeName");
+        const clockInInput = document.getElementById("timeEntryClockIn");
+        const clockOutInput = document.getElementById("timeEntryClockOut");
+
+        if (!editModal || !editForm) return;
+
+        editModal.addEventListener("show.bs.modal", function (event) {
+
+            const button = event.relatedTarget;
+
+            if (!button) return;
+
+            const entryId = button.dataset.entryId;
+
+            editForm.action =
+                "/admin/employees/time-entries/" + entryId + "/update";
+
+            employeeName.textContent = button.dataset.employeeName || "";
+
+            clockInInput.value = button.dataset.clockIn || "";
+            clockOutInput.value = button.dataset.clockOut || "";
+
+        });
+
+        editForm.addEventListener("submit", function (event) {
+
+            if (!clockInInput.value || !clockOutInput.value) {
+                event.preventDefault();
+                alert("Clock-in and clock-out times are required.");
+                return;
+            }
+
+            if (clockOutInput.value < clockInInput.value) {
+                event.preventDefault();
+                alert("Clock-out time cannot be before clock-in time.");
+            }
+
+        });
+
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const clockOutModal = document.getElementById("adminClockOutModal");
+        const clockOutForm = document.getElementById("adminClockOutForm");
+        const employeeName = document.getElementById("adminClockOutEmployeeName");
+        const originalClockIn = document.getElementById("adminClockOutOriginalClockIn");
+        const clockOutInput = document.getElementById("adminClockOutTime");
+
+        if (!clockOutModal || !clockOutForm) return;
+
+        let selectedClockIn = "";
+
+        clockOutModal.addEventListener("show.bs.modal", function (event) {
+
+            const button = event.relatedTarget;
+            if (!button) return;
+
+            const entryId = button.dataset.entryId;
+            selectedClockIn = button.dataset.clockIn || "";
+
+            clockOutForm.action =
+                "/admin/employees/time-entries/" + entryId + "/clock-out";
+
+            employeeName.textContent = button.dataset.employeeName || "";
+
+            // Display the original clock-in timestamp.
+            originalClockIn.textContent =
+                selectedClockIn ? selectedClockIn.replace("T", " ") : "—";
+
+            // Require the admin to enter the missing clock-out.
+            clockOutInput.value = "";
+            clockOutInput.min = selectedClockIn;
+        });
+
+        clockOutForm.addEventListener("submit", function (event) {
+
+            if (!clockOutInput.value) {
+                event.preventDefault();
+                alert("Please enter a clock-out date and time.");
+                return;
+            }
+
+            if (clockOutInput.value < selectedClockIn) {
+                event.preventDefault();
+                alert("Clock-out time cannot be before the original clock-in time.");
+            }
+
+        });
+
     });
 </script>
 </body>
