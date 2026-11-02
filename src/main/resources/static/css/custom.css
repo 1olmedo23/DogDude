@@ -169,7 +169,7 @@ body.page-home .home-hero-subtitle{
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 0;
-    color: #475569;
+    color: #010d57;
 }
 
 body.page-home .home-intro-heading-dark{
@@ -308,6 +308,133 @@ body.page-home .home-feature-title{
 body.page-home .home-feature-text{
     color: #64748b;
     line-height: 1.65;
+}
+
+
+/* ===============================
+   Home Video and Instagram
+   =============================== */
+
+body.page-home .home-video-section {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    text-align: center;
+}
+
+body.page-home .home-video-card {
+    max-width: 900px;
+    background: #fff;
+    padding: .75rem;
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.35rem;
+    box-shadow: 0 16px 36px rgba(15,23,42,.06);
+}
+
+body.page-home .home-video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    background-color: #000;
+    border-radius: 1rem;
+}
+
+
+/* ===============================
+   Homepage Instagram Links
+   =============================== */
+
+/* Shared Instagram colors */
+
+body.page-home .home-instagram-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .65rem;
+    text-decoration: none;
+    font-weight: 600;
+    color: #334155;
+    transition: color .2s ease, transform .2s ease;
+}
+
+body.page-home .home-instagram-link:hover {
+    color: #d62976;
+    transform: translateY(-2px);
+}
+
+body.page-home .home-instagram-link:focus-visible {
+    outline: 3px solid #962fbf;
+    outline-offset: 3px;
+}
+
+/* Both Instagram sections */
+
+body.page-home .home-instagram-section {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+body.page-home .home-quick-links-center {
+    margin-top: 2rem;
+}
+
+/* Instagram link beneath the hero buttons */
+
+body.page-home .home-instagram-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: linear-gradient(
+            45deg,
+            #feda75,
+            #fa7e1e,
+            #d62976,
+            #962fbf,
+            #4f5bd5
+    );
+    color: #fff;
+}
+
+/* Instagram link beneath the video */
+
+body.page-home .home-video-section .home-instagram-link {
+    padding: .7rem 1.25rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(214, 41, 118, .25);
+}
+
+body.page-home .home-video-section .home-instagram-link svg {
+    color: #d62976;
+}
+
+body.page-home .home-video-section .home-instagram-link:hover {
+    /* background: #fff5fa; */
+    border-color: #d62976;
+}
+
+/* Mobile */
+
+@media (max-width: 767.98px) {
+    body.page-home .home-video-section {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+
+    body.page-home .home-video-card {
+        padding: .4rem;
+        border-radius: 1rem;
+    }
+
+    body.page-home .home-video {
+        border-radius: .7rem;
+    }
 }
 
 /* Gallery */
@@ -763,6 +890,25 @@ body.page-eval .eval-intro-text{
 body.page-eval .eval-intro-text:last-child{
     margin-bottom: 0;
 }
+
+/* Evaluation process list */
+
+body.page-eval .eval-process-list {
+    text-align: left;
+    color: #475569;
+    line-height: 1.7;
+    padding-left: 1.5rem;
+    margin-bottom: 0;
+}
+
+body.page-eval .eval-process-list li {
+    margin-bottom: .85rem;
+}
+
+body.page-eval .eval-process-list li:last-child {
+    margin-bottom: 0;
+}
+
 
 body.page-eval .eval-form-card{
     border: 1px solid rgba(15,23,42,.06);
@@ -1773,4 +1919,309 @@ body.page-admin #employees .employee-schedule-grid > .col {
     padding: 0.3rem;
     font-size: 0.75rem;
     overflow-wrap: anywhere;
+}
+
+
+/* ===============================
+   Grooming Page
+   =============================== */
+
+body.page-grooming {
+    background:
+            radial-gradient(circle at top right, rgba(13,110,253,.08), transparent 35%),
+            radial-gradient(circle at bottom left, rgba(255,131,39,.08), transparent 35%),
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+body.page-grooming .grooming-page {
+    padding: clamp(2rem, 4vw, 3rem) 0 3rem;
+}
+
+body.page-grooming .grooming-page > .container {
+    max-width: 1100px;
+}
+
+/* Introduction */
+
+body.page-grooming .grooming-hero {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.75rem;
+    background: rgba(255,255,255,.95);
+    box-shadow: 0 20px 48px rgba(15,23,42,.06);
+}
+
+body.page-grooming .grooming-title {
+    font-size: clamp(2.1rem, 4vw, 3.2rem);
+    line-height: 1.08;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1.25rem;
+}
+
+body.page-grooming .grooming-intro-card {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 1.4rem;
+    background: #f8fafc;
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.15rem;
+    text-align: left;
+}
+
+body.page-grooming .grooming-intro-card p {
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+/* Content cards */
+
+body.page-grooming .grooming-content-card {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.5rem;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(15,23,42,.06);
+}
+
+body.page-grooming .grooming-section-title {
+    font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1.25rem;
+}
+
+body.page-grooming .grooming-list {
+    color: #475569;
+    line-height: 1.9;
+    padding-left: 1.4rem;
+    margin-bottom: 0;
+}
+
+/* Add-on price list */
+
+body.page-grooming .grooming-price-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding: .85rem 0;
+    border-bottom: 1px solid rgba(15,23,42,.08);
+    color: #475569;
+}
+
+body.page-grooming .grooming-price-item:last-child {
+    border-bottom: none;
+}
+
+body.page-grooming .grooming-price-item strong {
+    color: #0f172a;
+    white-space: nowrap;
+    text-align: right;
+}
+
+/* FAQ */
+
+body.page-grooming .grooming-faq-section {
+    margin-top: 1.5rem;
+}
+
+body.page-grooming .grooming-faq-item {
+    padding: 1.15rem 0;
+    border-bottom: 1px solid rgba(15,23,42,.08);
+}
+
+body.page-grooming .grooming-faq-item:last-child {
+    border-bottom: none;
+}
+
+body.page-grooming .grooming-faq-item h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: .5rem;
+}
+
+body.page-grooming .grooming-faq-item p {
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 0;
+}
+
+/* Mobile */
+
+@media (max-width: 767.98px) {
+    body.page-grooming .grooming-page {
+        padding-top: 1rem;
+    }
+
+    body.page-grooming .grooming-hero,
+    body.page-grooming .grooming-content-card {
+        padding: 1.1rem;
+        border-radius: 1.2rem;
+    }
+
+    body.page-grooming .grooming-intro-card {
+        padding: 1rem;
+    }
+
+    body.page-grooming .grooming-price-item {
+        flex-wrap: wrap;
+        gap: .3rem;
+    }
+
+    body.page-grooming .grooming-price-item strong {
+        white-space: normal;
+    }
+}
+
+
+/* ===============================
+   Business Practices Page
+   =============================== */
+
+body.page-business-practices {
+    background:
+            radial-gradient(circle at top right, rgba(13,110,253,.08), transparent 35%),
+            radial-gradient(circle at bottom left, rgba(255,131,39,.08), transparent 35%),
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+body.page-business-practices .business-practices-page {
+    padding: clamp(2rem, 4vw, 3rem) 0 3rem;
+}
+
+body.page-business-practices .business-practices-page > .container {
+    max-width: 1100px;
+}
+
+/* Introduction */
+
+body.page-business-practices .business-practices-hero {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.75rem;
+    background: rgba(255,255,255,.95);
+    box-shadow: 0 20px 48px rgba(15,23,42,.06);
+}
+
+body.page-business-practices .business-practices-title {
+    font-size: clamp(2.1rem, 4vw, 3.2rem);
+    line-height: 1.08;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1.25rem;
+}
+
+body.page-business-practices .business-practices-intro-card {
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 1.4rem;
+    background: #f8fafc;
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.15rem;
+}
+
+body.page-business-practices .business-practices-intro-card p {
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 1.2rem;
+}
+
+body.page-business-practices .business-practices-intro-card p:last-child {
+    margin-bottom: 0;
+}
+
+/* Resource cards */
+
+body.page-business-practices .business-practices-content-card {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid rgba(15,23,42,.06);
+    border-radius: 1.5rem;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(15,23,42,.06);
+}
+
+body.page-business-practices .business-practices-section-title {
+    font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1.25rem;
+}
+
+/* Resource lists */
+
+body.page-business-practices .business-practices-resource-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+body.page-business-practices .business-practices-resource-list li {
+    padding: .9rem 1rem;
+    margin-bottom: .65rem;
+    border: 1px solid rgba(15,23,42,.07);
+    border-radius: .8rem;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+body.page-business-practices .business-practices-resource-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* Mobile */
+
+@media (max-width: 767.98px) {
+    body.page-business-practices .business-practices-page {
+        padding-top: 1rem;
+    }
+
+    body.page-business-practices .business-practices-hero,
+    body.page-business-practices .business-practices-content-card {
+        padding: 1.1rem;
+        border-radius: 1.2rem;
+    }
+
+    body.page-business-practices .business-practices-intro-card {
+        padding: 1rem;
+    }
+
+    body.page-business-practices .business-practices-resource-list li {
+        padding: .8rem .9rem;
+    }
+}
+
+
+/* ==========================================
+   Public Pages - Green Primary Buttons
+   ========================================== */
+
+body.page-home .btn-custom,
+body.page-services .btn-custom,
+body.page-eval .btn-custom,
+body.page-grooming .btn-custom,
+body.page-business-practices .btn-custom,
+body.page-about .btn-custom,
+body.page-map .btn-custom {
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    border-color: #15803d;
+    color: #fff;
+}
+
+body.page-home .btn-custom:hover,
+body.page-services .btn-custom:hover,
+body.page-eval .btn-custom:hover,
+body.page-grooming .btn-custom:hover,
+body.page-business-practices .btn-custom:hover,
+body.page-about .btn-custom:hover,
+body.page-map .btn-custom:hover {
+    background: linear-gradient(135deg, #16a34a, #166534);
+    border-color: #166534;
+    color: #0f172a;
 }

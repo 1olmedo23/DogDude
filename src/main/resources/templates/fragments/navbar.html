@@ -28,6 +28,23 @@
                     <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
                         <a class="nav-link" th:href="@{/services}" th:classappend="${activePage == 'services'} ? 'active'">Services</a>
                     </li>
+                    <!-- Grooming -->
+                    <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/grooming}"
+                           th:classappend="${activePage == 'grooming'} ? 'active'">
+                            Grooming
+                        </a>
+                    </li>
+
+                    <!-- Business Practices -->
+                    <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
+                        <a class="nav-link"
+                           th:href="@{/business-practices}"
+                           th:classappend="${activePage == 'business-practices'} ? 'active'">
+                            Business Practices
+                        </a>
+                    </li>
                     <li class="nav-item" sec:authorize="isAnonymous() or hasRole('ADMIN')">
                         <a class="nav-link" th:href="@{/evaluation}" th:classappend="${activePage == 'evaluation'} ? 'active'">Evaluation</a>
                     </li>

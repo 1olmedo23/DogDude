@@ -50,8 +50,9 @@ public class SecurityConfig {
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
                         // Public pages & static assets
-                        .requestMatchers("/", "/login", "/evaluation", "/evaluation/**", "/services", "/about", "/map",
-                                "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/", "/login", "/evaluation", "/evaluation/**",
+                                "/services", "/about", "/map", "/grooming", "/business-practices",
+                                "/css/**", "/js/**", "/images/**", "/videos/**").permitAll()
 
                         // Admin area
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")

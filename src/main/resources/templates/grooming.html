@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Grooming - Fremont Dog Plaza</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/custom.css?v=20251103}">
+</head>
+
+<body class="bg-light page-grooming">
+<div th:replace="~{fragments/navbar :: navbar('grooming')}"></div>
+
+<main class="grooming-page">
+    <div class="container">
+
+        <!-- Grooming Introduction -->
+        <section class="grooming-hero text-center">
+            <h1 class="grooming-title">Grooming</h1>
+
+            <div class="grooming-intro-card">
+                <p class="fw-bold">
+                    Unlock free grooming credits when your companion stays with Fremont Dog Plaza!
+                </p>
+
+                <p>
+                    You do not have to sign up for daycare or boarding to have your dog groomed at Fremont Dog Plaza, but you must have a current pet license and most recent vaccine record.
+                </p>
+
+                <p>
+                    Companions who stay at least four days per month in daycare or overnight-board for 5 days or more, will be treated to a complimentary bath &amp; blowout grooming credit, valued at $120-$160!
+                </p>
+
+                <p class="mb-0">
+                    Hourly cost of Bath &amp; Blowout grooming is $120-$160 per hour and is dependent on the style of a dog coat.
+                </p>
+            </div>
+        </section>
+
+        <!-- Grooming Services and Add-ons -->
+        <section class="row g-4 mb-4">
+
+            <div class="col-lg-6">
+                <div class="grooming-content-card h-100">
+                    <h2 class="grooming-section-title">
+                        What does Bath &amp; Blowout include?
+                    </h2>
+
+                    <ul class="grooming-list">
+                        <li>Bath</li>
+                        <li>High Velocity Blowout</li>
+                        <li>Brush</li>
+                        <li>Toenail trim (if pet permits)</li>
+                        <li>Pad trim</li>
+                        <li>Ear Cleaning</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="grooming-content-card h-100">
+                    <h2 class="grooming-section-title">
+                        Add-ons available:
+                    </h2>
+
+                    <div class="grooming-price-list">
+                        <div class="grooming-price-item">
+                            <span>Nail grind</span>
+                            <strong>$10</strong>
+                        </div>
+
+                        <div class="grooming-price-item">
+                            <span>Anal glad expression</span>
+                            <strong>$40</strong>
+                        </div>
+
+                        <div class="grooming-price-item">
+                            <span>Under coat removal/ De-shedding</span>
+                            <strong>$25 per 15 minutes</strong>
+                        </div>
+
+                        <div class="grooming-price-item">
+                            <span>De-matting (if approved by groomer?)</span>
+                            <strong>$25 per 15 minutes</strong>
+                        </div>
+
+                        <div class="grooming-price-item">
+                            <span>Sanitary Area Trim</span>
+                            <strong>$10</strong>
+                        </div>
+
+                        <div class="grooming-price-item">
+                            <span>Haircut, dependent on breed</span>
+                            <strong>$40-$80</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Frequently Asked Questions -->
+        <section class="grooming-content-card grooming-faq-section">
+            <h2 class="grooming-section-title text-center mb-4">
+                Frequently Asked Questions:
+            </h2>
+
+            <div class="grooming-faq-item">
+                <h3>When can the credit be used?</h3>
+                <p>During the stay or up to 1 month after.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>How long is the credit good for?</h3>
+                <p>1 month after credit received, credits do not rollover, after 30 days they are no longer available.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>What will my dog’s hourly grooming cost be?</h3>
+                <p>The cost is dependent on the style of coat; flat coated dogs cost less than thick coated dogs. Ranging between $120-$160 per hour.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>What if my dog grooming does not take the entire hour?</h3>
+                <p>The cost is prorated! For example, if the cost of your dog’s coat is $120 per hour and we only take 40 minutes to groom your dog, the cost is $80.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>How long does it take to groom a dog?</h3>
+                <p>On average, a dog with a well-maintained coat takes about 30-40 minutes to groom. Larger dogs like Greater Pyrenees take as long as 2-3 hours to groom. Coats in worse condition take longer to groom!</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>What if I use a portion of my grooming credit, and still have money left, do I get another grooming that month?</h3>
+                <p>Owners who use their credit for grooming can only use their credit for one bath and blowout per month. All unused credits can be redeemed for grooming add-ons throughout the month until they are used or expired.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>What if my dog is too hard to groom, and therefore you cannot provide grooming?</h3>
+                <p>Dogs that are too difficult to groom and cause physical detriment to the groomer and/or themselves will be referred to a vet specialist for grooming. We will always attempt every possible method to groom dogs before vet specialist referrals, to protect them from the real side effects of sedation for grooming at vets. Because side effects as harmful as death from sedation are very real possibilities.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>When my dog is recommended to be a vet specialist for grooming, do I still get to use my grooming credits on other services like daycare and boarding?</h3>
+                <p>Unfortunately, we cannot roll grooming credits into greater discounts for daycare and boarding.</p>
+            </div>
+
+            <div class="grooming-faq-item">
+                <h3>Why would I get anal gland appression done for my dog?</h3>
+                <p>Appression of anal glands is a helpful way to help dogs prevent butt scooting on the carpet/ground. It helps remove residual poop that dogs are trying to get out by scooting their butt. It can also help lower the smelliness of dogs that have a strange smell.</p>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<script th:src="@{/js/custom.js?v=20251103}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -37,4 +37,16 @@ public class HomeController {
         model.addAttribute("activePage", "about");
         return "about";
     }
+
+    @GetMapping("/grooming")
+    public String grooming(Model model) {
+        model.addAttribute("activePage", "grooming");
+        return "grooming";
+    }
+
+    @GetMapping("/business-practices")
+    public String businessPractices(Model model) {
+        model.addAttribute("activePage", "business-practices");
+        return "business-practices";
+    }
 }

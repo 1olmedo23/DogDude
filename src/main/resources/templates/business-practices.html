@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Business Practices - Fremont Dog Plaza</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/custom.css?v=20251103}">
+</head>
+
+<body class="bg-light page-business-practices">
+<div th:replace="~{fragments/navbar :: navbar('business-practices')}"></div>
+
+<main class="business-practices-page">
+    <div class="container">
+
+        <!-- Introduction -->
+        <section class="business-practices-hero">
+            <h1 class="business-practices-title text-center">
+                Business Practices
+            </h1>
+
+            <div class="business-practices-intro-card">
+                <p>
+                    Here at Fremont Dog Plaza, we take transparency seriously. Having a business that does not hide basic information and attempts to share every facet of the day with clients is a top priority for us. That is why many of our employees and client resources are listed here in this tab.
+                </p>
+
+                <p>
+                    We test every employee who works at Fremont Dog Plaza before their first day of work. All Employees at FDP must complete an 85-question quiz that covers our Accident Prevention Program as well as our Employee Handbook. We do not list the quiz here online, but we do show the quiz to all clients that wish to see it in person. Our quiz is the only protected info that we do not list online to preserve our competitive advantage over our competition. Quizzing our employees is the best way to make sure the knowledge and methodology of Fremont Dog Plaza is preserved within our employee culture.
+                </p>
+
+                <p class="mb-0">
+                    All employees with Fremont Dog Plaza must also pass a basic background check. All employees must agree to have a background check, or they do not work at FDP.
+                </p>
+            </div>
+        </section>
+
+        <!-- Client and Employee Resources -->
+        <section class="row g-4">
+
+            <!-- Client Info -->
+            <div class="col-lg-6">
+                <div class="business-practices-content-card h-100">
+                    <h2 class="business-practices-section-title">
+                        Client Info:
+                    </h2>
+
+                    <ul class="business-practices-resource-list">
+                        <li>Basic Tips</li>
+                        <li>Old and Feeble Dog Basic Tips</li>
+                        <li>Client Survey (used during evaluations)</li>
+                        <li>Client Agreement (acknowledgment of Washington no-fault state policy)</li>
+                        <li>Boarding Discounts (how it works)</li>
+                        <li>Monthly Pay in Advance</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Employee Info -->
+            <div class="col-lg-6">
+                <div class="business-practices-content-card h-100">
+                    <h2 class="business-practices-section-title">
+                        Employee Info:
+                    </h2>
+
+                    <ul class="business-practices-resource-list">
+                        <li>Employee Interpersonal Workplace Expectations</li>
+                        <li>Accident Prevention Program</li>
+                        <li>Employee Handbook</li>
+                        <li>Employee Acknowledgement of Handbook</li>
+                        <li>Employee Acknowledgement of Harassment Policy</li>
+                    </ul>
+                </div>
+            </div>
+
+        </section>
+
+    </div>
+</main>
+
+<script th:src="@{/js/custom.js?v=20251103}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
