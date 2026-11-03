@@ -186,10 +186,13 @@
     </div>
 </section>
 
+
 <!-- Gallery -->
 <section class="home-section home-section-soft pt-0">
     <div class="container text-center">
-        <h2 class="home-section-title mb-2">Fremont Dog Plaza is the place to be</h2>
+        <h2 class="home-section-title mb-2">
+            Fremont Dog Plaza is the place to be
+        </h2>
 
         <p class="home-section-text measure mx-auto mb-4">
             We make every moment safe and fun.
@@ -202,29 +205,61 @@
             </a>
         </div>
 
+        <!-- First row: 3 pictures -->
         <div class="row g-4">
 
             <div class="col-md-4">
                 <div class="home-gallery-card">
-                    <img class="home-gallery-img gallery-img-bed"
-                         th:src="@{/images/small-dog-big-bed.webp}"
-                         alt="Small dog relaxing comfortably on a big bed">
+                    <img class="home-gallery-img gallery-img-walk"
+                         th:src="@{/images/gallery-autumn-dog-walk.webp}"
+                         alt="Dog walker with dogs among colorful autumn trees"
+                         width="1350" height="1800"
+                         loading="lazy">
                 </div>
             </div>
 
             <div class="col-md-4">
                 <div class="home-gallery-card">
-                    <img class="home-gallery-img gallery-img-chilling"
-                         th:src="@{/images/happy.webp}"
-                         alt="Dog relaxing and enjoying daycare">
+                    <img class="home-gallery-img gallery-img-puppy"
+                         th:src="@{/images/gallery-puppy-chair.webp}"
+                         alt="Golden puppy relaxing in a wicker chair"
+                         width="1800" height="1440"
+                         loading="lazy">
                 </div>
             </div>
 
             <div class="col-md-4">
                 <div class="home-gallery-card">
-                    <img class="home-gallery-img gallery-img-scout"
-                         th:src="@{/images/heartGlasses.png}"
-                         alt="Happy dog at Fremont Dog Plaza">
+                    <img class="home-gallery-img gallery-img-golden"
+                         th:src="@{/images/gallery-golden-daycare.webp}"
+                         alt="Golden dog relaxing outdoors at daycare"
+                         width="1440" height="1800"
+                         loading="lazy">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Second row: 2 pictures -->
+        <div class="row g-4 mt-4">
+
+            <div class="col-md-6">
+                <div class="home-gallery-card">
+                    <img class="home-gallery-img gallery-img-lab"
+                         th:src="@{/images/gallery-playful-black-lab.webp}"
+                         alt="Playful black Labrador licking its nose"
+                         width="1440" height="1800"
+                         loading="lazy">
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="home-gallery-card">
+                    <img class="home-gallery-img gallery-img-facility"
+                         th:src="@{/images/gallery-daycare-facility.webp}"
+                         alt="Dogs enjoying the Fremont Dog Plaza daycare facility"
+                         width="1200" height="1800"
+                         loading="lazy">
                 </div>
             </div>
 

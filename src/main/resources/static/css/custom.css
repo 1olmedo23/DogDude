@@ -447,7 +447,8 @@ body.page-home .home-gallery-card{
     height: 100%;
 }
 
-body.page-home .home-gallery-img{
+
+body.page-home .home-gallery-img {
     display: block;
     width: 100%;
     height: 380px;
@@ -455,12 +456,25 @@ body.page-home .home-gallery-img{
     object-fit: cover;
 }
 
-body.page-home .gallery-img-chilling{
+/* Adjust framing for individual photographs */
+body.page-home .gallery-img-walk {
+    object-position: center 65%;
+}
+
+body.page-home .gallery-img-puppy {
     object-position: center;
 }
 
-body.page-home .gallery-img-scout{
-    object-position: center;
+body.page-home .gallery-img-golden {
+    object-position: center 55%;
+}
+
+body.page-home .gallery-img-lab {
+    object-position: center 55%;
+}
+
+body.page-home .gallery-img-facility {
+    object-position: center 45%;
 }
 
 
@@ -481,9 +495,7 @@ body.page-home .gallery-img-scout{
         max-width: 760px;
     }
 
-    body.page-home .gallery-img-bed,
-    body.page-home .gallery-img-chilling,
-    body.page-home .gallery-img-scout{
+    body.page-home .home-gallery-img {
         height: 320px;
     }
 }
@@ -526,10 +538,8 @@ body.page-home .gallery-img-scout{
         padding: 1.25rem 1rem;
     }
 
-    body.page-home .gallery-img-bed,
-    body.page-home .gallery-img-chilling,
-    body.page-home .gallery-img-scout{
-        height: 240px;
+    body.page-home .home-gallery-img {
+        height: 280px;
     }
 }
 
@@ -1152,6 +1162,60 @@ body.page-services .services-grid .card{
     display: flex;
     flex-direction: column;
     background: rgba(255,255,255,.96);
+}
+body.page-services .services-grid .services-evaluation-img {
+    height: 260px;
+    object-fit: cover;
+    object-position: center;
+}
+
+
+/* ==========================================
+   Services - Horizontal Cards
+   ========================================== */
+
+/* Desktop: photo left, service details right */
+@media (min-width: 768px) {
+    body.page-services .services-grid .services-horizontal-card {
+        display: grid;
+        grid-template-columns: minmax(0, 45%) minmax(0, 55%);
+        align-items: stretch;
+    }
+}
+
+/* Keep entire photographs visible */
+body.page-services .services-grid .services-horizontal-card .card-img-top {
+    width: 100%;
+    height: 340px;
+    object-fit: contain;
+    object-position: center;
+    background-color: #f8fafc;
+    border-radius: 0;
+}
+
+/* Center service information vertically */
+body.page-services .services-grid .services-horizontal-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+}
+
+/* Mobile: image above service information */
+@media (max-width: 767.98px) {
+    body.page-services .services-grid .services-horizontal-card {
+        display: flex;
+        flex-direction: column;
+    }
+
+    body.page-services .services-grid .services-horizontal-card .card-img-top {
+        height: 300px;
+    }
+
+    body.page-services .services-grid .services-horizontal-card .card-body {
+        padding: 1.25rem;
+    }
 }
 
 @media (hover: hover){
