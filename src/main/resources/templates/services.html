@@ -7,7 +7,7 @@
     <!-- Shared styles -->
     <link rel="stylesheet" th:href="@{/css/custom.css(v=20261103)}">
     <!-- Services page styles -->
-    <link rel="stylesheet" th:href="@{/css/pages/services.css(v=20261103)}">
+    <link rel="stylesheet" th:href="@{/css/pages/services.css(v=20261104)}">
 </head>
 
 <body class="bg-light page-services">
@@ -48,8 +48,8 @@
     <div class="row g-4 services-grid services-hero-shell">
 
         <!-- Daycare: 6AM - 3PM -->
-        <div class="col-12">
-            <div class="card services-horizontal-card shadow-sm h-100 text-center">
+        <div class="col-12 col-lg-6">
+            <div class="card services-card shadow-sm h-100 text-center">
                 <img th:src="@{/images/service-daycare-morning.webp}"
                      class="card-img-top"
                      alt="Dogs enjoying outdoor daycare at Fremont Dog Plaza"
@@ -68,11 +68,11 @@
         </div>
 
         <!-- Daycare + Evenings -->
-        <div class="col-12">
-            <div class="card services-horizontal-card shadow-sm h-100 text-center">
+        <div class="col-12 col-lg-6">
+            <div class="card services-card shadow-sm h-100 text-center">
 
-                <img th:src="@{/images/service-daycare-evening-wide.webp}"
-                     class="card-img-top"
+                <img th:src="@{/images/service-daycare-evening.webp}"
+                     class="card-img-top service-img-evening"
                      alt="Dog walker with a group of dogs outdoors"
                      loading="lazy">
 
@@ -89,8 +89,8 @@
         </div>
 
         <!-- Daycare + After Hours -->
-        <div class="col-12">
-            <div class="card services-horizontal-card shadow-sm h-100 text-center">
+        <div class="col-12 col-lg-6">
+            <div class="card services-card shadow-sm h-100 text-center">
 
                 <img th:src="@{/images/service-daycare-after-hours-wide.webp}"
                      class="card-img-top"
@@ -110,8 +110,8 @@
         </div>
 
         <!-- Overnight Boarding -->
-        <div class="col-12">
-            <div class="card services-horizontal-card shadow-sm h-100 text-center">
+        <div class="col-12 col-lg-6">
+            <div class="card services-card shadow-sm h-100 text-center">
                 <img th:src="@{/images/service-boarding.webp}"
                      class="card-img-top"
                      alt="Dogs resting inside the Fremont Dog Plaza boarding facility"
@@ -129,9 +129,31 @@
             </div>
         </div>
 
+        <!-- Grooming -->
+        <div class="col-12 col-lg-6">
+            <div class="card services-card shadow-sm h-100 text-center">
+
+                <img th:src="@{/images/gallery-golden-daycare.webp}"
+                     class="card-img-top"
+                     alt="Dog grooming services at Fremont Dog Plaza"
+                     loading="lazy">
+
+                <div class="card-body">
+                    <h5 class="card-title">Grooming</h5>
+                    <p class="card-text">Professional grooming services for your dog.</p>
+
+                    <div class="mt-3">
+                        <a class="btn btn-custom2" th:href="@{/grooming}">
+                            View Grooming Services
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Evaluation -->
-        <div class="col-12">
-            <div class="card services-horizontal-card shadow-sm h-100 text-center">
+        <div class="col-12 col-lg-6">
+            <div class="card services-card shadow-sm h-100 text-center">
                 <img th:src="@{/images/evaluation.jpg}"
                      class="card-img-top"
                      alt="Evaluation"
