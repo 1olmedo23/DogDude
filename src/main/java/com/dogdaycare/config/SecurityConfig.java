@@ -52,9 +52,10 @@ public class SecurityConfig {
                         // Public pages & static assets
                         .requestMatchers("/", "/login", "/evaluation", "/evaluation/**",
                                 "/services", "/about", "/map", "/grooming", "/business-practices",
-                                "/css/**", "/js/**", "/images/**", "/videos/**").permitAll()
+                                "/css/**", "/js/**", "/images/**", "/videos/**",
+                                "/documents/**").permitAll()
 
-                        // Admin area
+                                // Admin area
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
 
                         // Employee area
