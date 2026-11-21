@@ -11,6 +11,7 @@ import com.dogdaycare.repository.SetForgetPlanRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import com.dogdaycare.model.SetForgetRule;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -117,6 +118,18 @@ class SetForgetServiceTest {
         assertEquals(tomorrow, saved.get(0).getDate());
         assertEquals(LocalTime.of(10, 0), saved.get(0).getTime());
         assertSame(plan, saved.get(0).getSetForgetPlan());
+        // Automatic prepaid pricing applies even when
+        // the Set & Forget plan's prepay flag is false.
+        assertTrue(saved.get(0).isAdvanceEligible());
+        assertTrue(saved.get(0).isWantsAdvancePay());
+        assertFalse(saved.get(0).isPaid());
+
+        // One dog, Daycare 6-8, 1-3 dog-day tier.
+        assertEquals(
+                0,
+                new BigDecimal("50.00")
+                        .compareTo(saved.get(0).getQuotedRateAtLock())
+        );
     }
 
     @Test
@@ -448,6 +461,21 @@ class SetForgetServiceTest {
 
         bundleService =
                 mock(BundleService.class);
+        // Set & Forget automatically applies prepaid daycare rates.
+        // Return the correct per-dog rate for each weekly tier.
+        when(pricingService.quoteDaycareAtTier(
+                any(Booking.class),
+                anyBoolean()
+        )).thenAnswer(invocation -> {
+            Booking booking = invocation.getArgument(0);
+            boolean atLeast4 = invocation.getArgument(1);
+
+            return PricingRules.daycareRatePerDog(
+                    booking.getServiceType(),
+                    true,
+                    atLeast4 ? 4 : 1
+            );
+        });
 
         setForgetService = new SetForgetService(
                 setForgetPlanRepository,
@@ -645,6 +673,11 @@ class SetForgetServiceTest {
                                 first.getQuotedRateAtLock()
                         )
         );
+        // Set & Forget automatically requests prepay,
+        // regardless of the original plan preference.
+        assertTrue(first.isAdvanceEligible());
+        assertTrue(first.isWantsAdvancePay());
+        assertFalse(first.isPaid());
     }
 
     @Test
@@ -871,6 +904,274 @@ class SetForgetServiceTest {
         rule.setDropoffTime(dropoffTime);
 
         return rule;
+    }
+
+    @Test
+    void generateBookings_twoDogsTwoDays_usesFourPlusTier() {
+        SetForgetPlan plan = activeTuesdayPlan();
+        plan.setDogCount(2);
+        plan.setWantsAdvancePay(false);
+        plan.setEndDate(LocalDate.of(2026, 9, 24));
+
+        // Add Thursday to the existing Tuesday rule.
+        SetForgetRule thursday = new SetForgetRule();
+        thursday.setPlan(plan);
+        thursday.setDayOfWeek((short) 4);
+        thursday.setServiceType("Daycare (6 AM - 8 PM)");
+        thursday.setDropoffTime(LocalTime.of(6, 30));
+        thursday.setActive(true);
+        plan.getRules().add(thursday);
+
+        when(setForgetPlanRepository
+                .findByCustomerAndActiveTrue(customer))
+                .thenReturn(Optional.of(plan));
+
+        when(bookingRepository
+                .findByCustomerAndDateAndStatusNotIgnoreCase(
+                        eq(customer),
+                        any(LocalDate.class),
+                        eq("CANCELED")
+                )).thenReturn(List.of());
+
+        when(bookingLimitService.canCustomerBook(
+                any(LocalDate.class),
+                eq("Daycare (6 AM - 8 PM)")
+        )).thenReturn(true);
+
+        when(pricingService.weekStartMonday(any(LocalDate.class)))
+                .thenAnswer(inv -> {
+                    LocalDate d = inv.getArgument(0);
+                    return d.minusDays(
+                            d.getDayOfWeek().getValue() - 1
+                    );
+                });
+
+        when(pricingService.weekEndSunday(any(LocalDate.class)))
+                .thenAnswer(inv -> {
+                    LocalDate monday = inv.getArgument(0);
+                    return monday.plusDays(6);
+                });
+
+        when(bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        eq(customer),
+                        eq("daycare"),
+                        any(LocalDate.class),
+                        any(LocalDate.class),
+                        eq("CANCELED")
+                )).thenReturn(List.of());
+
+        setForgetService.generateBookingsForActivePlan(customer);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Booking>> captor =
+                ArgumentCaptor.forClass(List.class);
+
+        verify(bookingRepository).saveAll(captor.capture());
+
+        // Check the Tuesday and Thursday of the same week.
+        LocalDate tuesday = LocalDate.of(2026, 9, 22);
+        LocalDate thursdayDate = LocalDate.of(2026, 9, 24);
+
+        List<Booking> targetWeek = captor.getValue().stream()
+                .filter(b -> b.getDate().equals(tuesday)
+                        || b.getDate().equals(thursdayDate))
+                .toList();
+
+        assertEquals(2, targetWeek.size());
+
+        for (Booking b : targetWeek) {
+            assertEquals(2, b.getDogCount());
+            assertTrue(b.isAdvanceEligible());
+            assertTrue(b.isWantsAdvancePay());
+            assertFalse(b.isPaid());
+
+            // Two dogs x $45 per dog = $90 per booking.
+            assertEquals(
+                    0,
+                    new BigDecimal("90.00")
+                            .compareTo(b.getQuotedRateAtLock())
+            );
+        }
+    }
+
+    @Test
+    void generateBookings_afterHours_usesFlatRateWithoutPrepay() {
+        SetForgetPlan plan = activeTuesdayPlan();
+
+        plan.setDogCount(2);
+        plan.setWantsAdvancePay(true);
+        plan.setEndDate(LocalDate.of(2026, 9, 22));
+
+        SetForgetRule rule = plan.getRules().get(0);
+        rule.setServiceType(
+                "Daycare After Hours (6 AM - 11 PM)"
+        );
+
+        when(setForgetPlanRepository
+                .findByCustomerAndActiveTrue(customer))
+                .thenReturn(Optional.of(plan));
+
+        when(bookingRepository
+                .findByCustomerAndDateAndStatusNotIgnoreCase(
+                        eq(customer),
+                        any(LocalDate.class),
+                        eq("CANCELED")
+                )).thenReturn(List.of());
+
+        when(bookingLimitService.canCustomerBook(
+                any(LocalDate.class),
+                eq("Daycare After Hours (6 AM - 11 PM)")
+        )).thenReturn(true);
+
+        when(pricingService.weekStartMonday(any(LocalDate.class)))
+                .thenAnswer(inv -> {
+                    LocalDate d = inv.getArgument(0);
+                    return d.minusDays(
+                            d.getDayOfWeek().getValue() - 1
+                    );
+                });
+
+        when(pricingService.weekEndSunday(any(LocalDate.class)))
+                .thenAnswer(inv -> {
+                    LocalDate monday = inv.getArgument(0);
+                    return monday.plusDays(6);
+                });
+
+        when(bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        eq(customer),
+                        eq("daycare"),
+                        any(LocalDate.class),
+                        any(LocalDate.class),
+                        eq("CANCELED")
+                )).thenReturn(List.of());
+
+        int generatedCount =
+                setForgetService.generateBookingsForActivePlan(customer);
+
+        assertEquals(1, generatedCount);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Booking>> captor =
+                ArgumentCaptor.forClass(List.class);
+
+        verify(bookingRepository).saveAll(captor.capture());
+
+        Booking saved = captor.getValue().get(0);
+
+        assertEquals(LocalDate.of(2026, 9, 22), saved.getDate());
+        assertEquals(2, saved.getDogCount());
+
+        // After Hours never qualifies for weekly daycare prepay.
+        assertFalse(saved.isAdvanceEligible());
+        assertFalse(saved.isWantsAdvancePay());
+        assertFalse(saved.isPaid());
+
+        // $75 per dog x 2 dogs.
+        assertEquals(
+                0,
+                new BigDecimal("150.00")
+                        .compareTo(saved.getQuotedRateAtLock())
+        );
+
+        verify(pricingService, never())
+                .quoteDaycareAtTier(any(Booking.class), anyBoolean());
+    }
+
+    @Test
+    void generateBookings_paidWeek_usesRegularRate() {
+        SetForgetPlan plan = activeTuesdayPlan();
+
+        plan.setDogCount(2);
+        plan.setWantsAdvancePay(true);
+        plan.setEndDate(LocalDate.of(2026, 9, 22));
+
+        LocalDate bookingDate = LocalDate.of(2026, 9, 22);
+        LocalDate monday = LocalDate.of(2026, 9, 21);
+        LocalDate sunday = LocalDate.of(2026, 9, 27);
+
+        when(setForgetPlanRepository
+                .findByCustomerAndActiveTrue(customer))
+                .thenReturn(Optional.of(plan));
+
+        when(setForgetExceptionRepository
+                .existsByPlanAndExceptionDate(
+                        plan, bookingDate
+                )).thenReturn(false);
+
+        when(bookingRepository
+                .findByCustomerAndDateAndStatusNotIgnoreCase(
+                        customer, bookingDate, "CANCELED"
+                )).thenReturn(List.of());
+
+        when(bookingLimitService.canCustomerBook(
+                bookingDate, "Daycare (6 AM - 8 PM)"
+        )).thenReturn(true);
+
+        when(pricingService.weekStartMonday(bookingDate))
+                .thenReturn(monday);
+
+        when(pricingService.weekEndSunday(monday))
+                .thenReturn(sunday);
+
+        // This customer has already paid for the week.
+        when(bundleService.hasWeekPaid(customer, monday))
+                .thenReturn(true);
+
+        when(bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        customer,
+                        "daycare",
+                        monday,
+                        sunday,
+                        "CANCELED"
+                )).thenReturn(List.of());
+
+        // Regular Daycare 6-8 price: $60 per dog.
+        when(pricingService.previewDaycarePrice(
+                customer,
+                bookingDate,
+                "Daycare (6 AM - 8 PM)",
+                true,
+                false
+        )).thenReturn(new BigDecimal("60.00"));
+
+        int generated =
+                setForgetService.generateBookingsForActivePlan(customer);
+
+        assertEquals(1, generated);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Booking>> captor =
+                ArgumentCaptor.forClass(List.class);
+
+        verify(bookingRepository).saveAll(captor.capture());
+
+        Booking saved = captor.getValue().get(0);
+
+        assertEquals(bookingDate, saved.getDate());
+        assertEquals(2, saved.getDogCount());
+
+        // The date qualifies for prepay by time,
+        // but the week has already been paid.
+        assertTrue(saved.isAdvanceEligible());
+        assertFalse(saved.isWantsAdvancePay());
+        assertFalse(saved.isPaid());
+
+        // Regular price: $60 x 2 dogs = $120.
+        assertEquals(
+                0,
+                new BigDecimal("120.00")
+                        .compareTo(saved.getQuotedRateAtLock())
+        );
+
+        // No prepaid tier calculation should be used.
+        verify(pricingService, never())
+                .quoteDaycareAtTier(
+                        any(Booking.class),
+                        anyBoolean()
+                );
     }
 
     private SetForgetPlan activeTuesdayPlan() {

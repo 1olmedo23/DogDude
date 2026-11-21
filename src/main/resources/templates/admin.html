@@ -1556,7 +1556,8 @@
             </div>
 
             <div class="alert alert-info">
-                Only non-canceled bookings are included. Weeks are Monday–Sunday. Paid rows are locked.
+                Only non-canceled bookings are included. Reverting a weekly invoice
+                marks all non-canceled bookings for that customer and week as unpaid.
             </div>
         </div>
 
@@ -2042,7 +2043,16 @@
                     form.appendChild(btn);
 
                     form.addEventListener('submit', (e) => {
-                        if (!window.confirm('Revert this paid invoice back to unpaid?')) {
+                        const customer = r.customerName || r.customerEmail || 'this customer';
+
+                        const message =
+                            `Revert all weekly payments for ${customer}?\n\n` +
+                            `This will mark ALL non-canceled bookings for this customer ` +
+                            `and week as unpaid, including bookings paid individually.\n\n` +
+                            `Existing booking prices and manual adjustments will be preserved.\n\n` +
+                            `Do you want to continue?`;
+
+                        if (!window.confirm(message)) {
                             e.preventDefault();
                             return;
                         }

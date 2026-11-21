@@ -53,22 +53,35 @@ public class BoardingSundayPricingTest {
         sundayBoarding.setDogCount(1);
         sundayBoarding = bookingRepository.save(sundayBoarding);
 
-        // A) No Monday daycare -> add 0.5x ($90 -> $135)
-        BigDecimal priceWithoutDaycare = pricingService.priceFor(sundayBoarding);
-        Assertions.assertEquals(new BigDecimal("135.00"), priceWithoutDaycare, "Expected $135.00 without Monday daycare");
+        // A) No Monday daycare:
+        // $75 boarding + $37.50 pickup
+        BigDecimal priceWithoutDaycare =
+                pricingService.priceFor(sundayBoarding);
 
-        // Add Monday daycare (regular daycare, not After Hours)
+        Assertions.assertEquals(
+                new BigDecimal("112.50"),
+                priceWithoutDaycare
+        );
+
+        // Add Monday daycare (6 AM - 3 PM)
         LocalDate monday = sunday.plusDays(1);
+
         Booking mondayDaycare = new Booking();
         mondayDaycare.setCustomer(customer);
         mondayDaycare.setDate(monday);
         mondayDaycare.setServiceType("Daycare (6 AM - 3 PM)");
         mondayDaycare.setStatus("APPROVED");
         mondayDaycare.setDogCount(1);
-        bookingRepository.save(mondayDaycare);
 
-        // B) With Monday daycare -> no pickup (stay at $90)
-        BigDecimal priceWithDaycare = pricingService.priceFor(sundayBoarding);
-        Assertions.assertEquals(new BigDecimal("90.00"), priceWithDaycare, "Expected $90.00 with Monday daycare");
+        bookingRepository.saveAndFlush(mondayDaycare);
+
+        // B) Monday daycare exists: pickup fee waived
+        BigDecimal priceWithDaycare =
+                pricingService.priceFor(sundayBoarding);
+
+        Assertions.assertEquals(
+                new BigDecimal("75.00"),
+                priceWithDaycare
+        );
     }
 }

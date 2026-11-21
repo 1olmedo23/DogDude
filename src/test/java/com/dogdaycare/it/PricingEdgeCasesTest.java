@@ -74,7 +74,8 @@ class PricingEdgeCasesTest {
 
         BigDecimal after = pricingService.priceFor(sundayBoarding);
         assertThat(after).isEqualByComparingTo(before); // waiver should NOT apply
-        assertThat(after).isEqualByComparingTo(new BigDecimal("135.00"));
+        assertThat(after)
+                .isEqualByComparingTo(new BigDecimal("112.50"));
     }
 
     @Test
@@ -89,7 +90,8 @@ class PricingEdgeCasesTest {
 
         BigDecimal after = pricingService.priceFor(sundayBoarding);
         assertThat(after).isEqualByComparingTo(before); // still 135.00
-        assertThat(after).isEqualByComparingTo(new BigDecimal("135.00"));
+        assertThat(after)
+                .isEqualByComparingTo(new BigDecimal("112.50"));
     }
 
     @Test
@@ -103,6 +105,6 @@ class PricingEdgeCasesTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].serviceType").value(org.hamcrest.Matchers.containsStringIgnoringCase("boarding")))
                 .andExpect(jsonPath("$[0].dogCount").value(2))
-                .andExpect(jsonPath("$[0].liveAmount").value(270.0));
+                .andExpect(jsonPath("$[0].liveAmount").value(225.0));
     }
 }

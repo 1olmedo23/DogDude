@@ -358,6 +358,22 @@ public class SetForgetService {
                 if (alreadyBooked) {
                     continue;
                 }
+                // After Hours is prohibited on, boarding pickup days.
+                // Both standard daycare services remain allowed.
+                if (PricingRules.isAfterHours(rule.getServiceType())) {
+                    boolean boardingYesterday = !bookingRepository
+                            .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                                    customer,
+                                    "boarding",
+                                    d.minusDays(1),
+                                    "CANCELED"
+                            )
+                            .isEmpty();
+
+                    if (boardingYesterday) {
+                        continue;
+                    }
+                }
 
                 boolean canBook = bookingLimitService.canCustomerBook(d, rule.getServiceType());
                 if (!canBook) {
@@ -388,19 +404,27 @@ public class SetForgetService {
 
             boolean weekAlreadyPaid = bundleService.hasWeekPaid(customer, weekStart);
 
-            long existingEligible = bookingRepository
+            List<Booking> existingWeekBookings = bookingRepository
                     .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
-                            customer, "daycare", weekStart, weekEnd, "CANCELED"
-                    ).stream()
-                    .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
-                    .count();
+                            customer,
+                            "daycare",
+                            weekStart,
+                            weekEnd,
+                            "CANCELED"
+                    );
 
-            long selectedEligibleInWeek = weekCandidates.stream()
-                    .filter(this::isDaycare)
-                    .filter(b -> !isAfterHours(b))
-                    .filter(b -> isAdvanceEligible(b.getDate(), b.getTime()))
-                    .filter(b -> plan.isWantsAdvancePay() && !weekAlreadyPaid)
-                    .count();
+            int existingEligible =
+                    PricingRules.weeklyPrepayDogDays(existingWeekBookings);
+
+            int selectedEligibleInWeek = weekAlreadyPaid
+                    ? 0
+                    : weekCandidates.stream()
+                    .filter(b -> PricingRules.isStandardDaycare(
+                            b.getServiceType()))
+                    .filter(b -> PricingRules.isAdvanceEligible(
+                            b.getDate(), clock))
+                    .mapToInt(PricingRules::dogCount)
+                    .sum();
 
             boolean atLeast4ForWeek = (existingEligible + selectedEligibleInWeek) >= 4;
 
@@ -411,9 +435,18 @@ public class SetForgetService {
                 boolean advanceEligible = false;
                 boolean wantsAdvancePayFinal = false;
 
-                if (isDaycare && !isAfterHours) {
-                    advanceEligible = isAdvanceEligible(booking.getDate(), booking.getTime());
-                    wantsAdvancePayFinal = advanceEligible && plan.isWantsAdvancePay() && !weekAlreadyPaid;
+                if (PricingRules.isStandardDaycare(
+                        booking.getServiceType())) {
+
+                    advanceEligible = PricingRules.isAdvanceEligible(
+                            booking.getDate(),
+                            clock
+                    );
+
+                    // Set & Forget automatically requests prepay
+                    // when eligible and the week is not already paid.
+                    wantsAdvancePayFinal =
+                            advanceEligible && !weekAlreadyPaid;
                 }
 
                 booking.setAdvanceEligible(advanceEligible);
@@ -426,13 +459,8 @@ public class SetForgetService {
                 BigDecimal perDogBase;
 
                 if (isAfterHours) {
-                    perDogBase = pricingService.previewDaycarePrice(
-                            customer,
-                            booking.getDate(),
-                            booking.getServiceType(),
-                            false,
-                            false
-                    );
+                    // Flat rate, regardless of weekly prepay tier.
+                    perDogBase = PricingRules.AFTER_HOURS;
                 } else if (isDaycare) {
                     if (wantsAdvancePayFinal) {
                         perDogBase = pricingService.quoteDaycareAtTier(booking, atLeast4ForWeek);

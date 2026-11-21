@@ -20,29 +20,34 @@ public class PricingService {
         this.bookingRepository = bookingRepository;
     }
 
-    // --- Base immediate rates ---
-    private static final BigDecimal DC_HALF_IMM = bd(50);
-    private static final BigDecimal DC_FULL_IMM = bd(60);
-    private static final BigDecimal DC_EXT_IMM  = bd(80);
+    // Standard daycare prices
+    private static final BigDecimal DC_HALF_IMM =
+            PricingRules.DAYCARE_SHORT;
+    private static final BigDecimal DC_FULL_IMM =
+            PricingRules.DAYCARE_LONG;
 
-    // --- Daycare discounts (weekly prepay) ---
-    // 1–3 days prepay
-    private static final BigDecimal DC_HALF_PREPAY_1_3 = bd(45);
-    private static final BigDecimal DC_FULL_PREPAY_1_3 = bd(50);
-    private static final BigDecimal DC_EXT_PREPAY_1_3  = bd(70);
-    // ≥4 days prepay
-    private static final BigDecimal DC_HALF_PREPAY_4P = bd(40);
-    private static final BigDecimal DC_FULL_PREPAY_4P = bd(45);
-    private static final BigDecimal DC_EXT_PREPAY_4P  = bd(60);
+    // Legacy fallback for an unsupported extended SKU.
+    // Preserve until service classification is fully migrated.
+    private static final BigDecimal DC_EXT_IMM = bd(80);
 
-    // --- Boarding immediate + tiered (per-night) ---
-    private static final BigDecimal BRD_PERNIGHT_IMM = bd(90);
-    private static final BigDecimal BRD_PERNIGHT_T4  = bd(80); // ≥4 prior-month nights
-    private static final BigDecimal BRD_PERNIGHT_T10 = bd(75); // ≥10 prior-month nights
-    private static final BigDecimal BRD_PERNIGHT_T16 = bd(65); // ≥16 prior-month nights
+    // Weekly prepay prices
+    private static final BigDecimal DC_HALF_PREPAY_1_3 =
+            PricingRules.SHORT_PREPAY_1_TO_3;
+    private static final BigDecimal DC_FULL_PREPAY_1_3 =
+            PricingRules.LONG_PREPAY_1_TO_3;
 
-    // --- NEW: Daycare After Hours flat rate ---
-    private static final BigDecimal DC_AFTER_HOURS = bd(90);
+    private static final BigDecimal DC_HALF_PREPAY_4P =
+            PricingRules.SHORT_PREPAY_4_PLUS;
+    private static final BigDecimal DC_FULL_PREPAY_4P =
+            PricingRules.LONG_PREPAY_4_PLUS;
+
+    // Legacy extended SKU fallback
+    private static final BigDecimal DC_EXT_PREPAY_1_3 = bd(70);
+    private static final BigDecimal DC_EXT_PREPAY_4P = bd(60);
+
+    // After Hours remains separate from the prepay bundle
+    private static final BigDecimal DC_AFTER_HOURS =
+            PricingRules.AFTER_HOURS;
 
     private static BigDecimal bd(double v) { return BigDecimal.valueOf(v); }
 
@@ -151,11 +156,11 @@ public class PricingService {
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
                         u, "daycare", ws, we, "CANCELED");
 
-        long prepayCount = weekDaycare.stream()
-                .filter(x -> x.isWantsAdvancePay() && x.isAdvanceEligible())
-                .count();
 
-        boolean atLeast4 = prepayCount >= 4;
+        int qualifyingDogDays =
+                PricingRules.weeklyPrepayDogDays(weekDaycare);
+
+        boolean atLeast4 = qualifyingDogDays >= 4;
 
         if (atLeast4) {
             if (isHalfDay(b)) return DC_HALF_PREPAY_4P;
@@ -169,32 +174,45 @@ public class PricingService {
     }
 
     private BigDecimal priceBoarding(Booking b) {
-        // Prior-month boarding nights determine current per-night price
-        User u = b.getCustomer();
-        LocalDate pms = priorMonthStart(b.getDate());
-        LocalDate pme = priorMonthEnd(b.getDate());
+        User customer = b.getCustomer();
 
-        List<Booking> prevMonthBoarding = bookingRepository
-                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
-                        u, "boarding", pms, pme, "CANCELED");
+        LocalDate previousMonthStart =
+                priorMonthStart(b.getDate());
 
-        long nights = prevMonthBoarding.size();
+        LocalDate previousMonthEnd =
+                priorMonthEnd(b.getDate());
 
-        BigDecimal nightly;
-        if (nights >= 16) nightly = BRD_PERNIGHT_T16;
-        else if (nights >= 10) nightly = BRD_PERNIGHT_T10;
-        else if (nights >= 4) nightly = BRD_PERNIGHT_T4;
-        else nightly = BRD_PERNIGHT_IMM;
+        // All qualifying services from the preceding calendar month
+        List<Booking> previousMonthBookings =
+                bookingRepository.findByCustomerAndDateBetween(
+                        customer,
+                        previousMonthStart,
+                        previousMonthEnd
+                );
 
-        // Last-of-block if there is NO boarding the next day
-        boolean isLastOfBlock = !hasBoardingOnNextDay(u, b.getDate());
+        int qualifyingDogDays =
+                PricingRules.boardingQualifyingDogDays(
+                        previousMonthBookings
+                );
 
-        // If pickup day (date+1) has daycare, do NOT add the half-day
-        boolean pickupDayHasDaycare = hasDaycareOnDate(u, b.getDate().plusDays(1));
+        BigDecimal nightlyRate =
+                PricingRules.boardingRatePerDog(qualifyingDogDays);
 
-        BigDecimal price = nightly; // default
-        if (isLastOfBlock && !pickupDayHasDaycare) {
-            price = nightly.multiply(BigDecimal.valueOf(1.5));
+        boolean lastBoardingNight =
+                !hasBoardingOnNextDay(customer, b.getDate());
+
+        boolean pickupDayHasEligibleService =
+                hasDaycareOnDate(
+                        customer,
+                        b.getDate().plusDays(1)
+                );
+
+        BigDecimal price = nightlyRate;
+
+        if (lastBoardingNight && !pickupDayHasEligibleService) {
+            price = price.add(
+                    PricingRules.pickupFeePerDog(qualifyingDogDays)
+            );
         }
 
         return price.setScale(2, RoundingMode.HALF_UP);
@@ -224,12 +242,20 @@ public class PricingService {
                 .isEmpty();
     }
 
-    private boolean hasDaycareOnDate(User u, LocalDate date) {
+    private boolean hasDaycareOnDate(User customer, LocalDate date) {
         return bookingRepository
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
-                        u, "daycare", date, "CANCELED")
+                        customer,
+                        "daycare",
+                        date,
+                        "CANCELED"
+                )
                 .stream()
-                .anyMatch(bk -> !isAfterHours(bk)); // ← true if there’s a regular daycare (not After Hours)
+                .anyMatch(b ->
+                        PricingRules.waivesPickupFee(
+                                b.getServiceType()
+                        )
+                );
     }
 
     public BigDecimal previewDaycarePrice(User u,
@@ -264,9 +290,8 @@ public class PricingService {
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
                         u, "daycare", ws, we, "CANCELED");
 
-        long existingEligible = weekDaycare.stream()
-                .filter(x -> x.isWantsAdvancePay() && x.isAdvanceEligible())
-                .count();
+        int existingEligible =
+                PricingRules.weeklyPrepayDogDays(weekDaycare);
 
         boolean atLeast4 = (existingEligible + 1) >= 4; // include THIS booking
         return quoteDaycareAtTier(temp, atLeast4);
@@ -278,21 +303,22 @@ public class PricingService {
         if (nights < 1) nights = 1;
         nights = Math.max(1, Math.min(30, nights));
 
-        // Determine nightly tier based on prior-month boarding nights (same logic as priceBoarding)
+        // Determine the tier from previous-month qualifying activity
         LocalDate pms = priorMonthStart(startDate);
         LocalDate pme = priorMonthEnd(startDate);
 
-        List<Booking> prevMonthBoarding = bookingRepository
-                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
-                        u, "boarding", pms, pme, "CANCELED");
+        List<Booking> previousMonthBookings =
+                bookingRepository.findByCustomerAndDateBetween(
+                        u, pms, pme
+                );
 
-        long priorNights = prevMonthBoarding.size();
+        int qualifyingDogDays =
+                PricingRules.boardingQualifyingDogDays(
+                        previousMonthBookings
+                );
 
-        BigDecimal nightly;
-        if (priorNights >= 16) nightly = BRD_PERNIGHT_T16;
-        else if (priorNights >= 10) nightly = BRD_PERNIGHT_T10;
-        else if (priorNights >= 4) nightly = BRD_PERNIGHT_T4;
-        else nightly = BRD_PERNIGHT_IMM;
+        BigDecimal nightly =
+                PricingRules.boardingRatePerDog(qualifyingDogDays);
 
         // The "last night" is the final booking date in the stay
         LocalDate lastNightDate = startDate.plusDays(nights - 1);
@@ -308,5 +334,69 @@ public class PricingService {
         }
 
         return total.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Returns the booking's base TOTAL for all dogs.
+     *
+     * Unpaid bookings use current pricing rules.
+     * Paid bookings use their saved finalized total.
+     *
+     * Manual admin adjustments are excluded here.
+     */
+    public BigDecimal baseTotalFor(Booking booking) {
+        if (booking == null || booking.getCustomer() == null) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+
+        // Preserve finalized paid amounts.
+        if (booking.isPaid()
+                && booking.getQuotedRateAtLock() != null) {
+            return booking.getQuotedRateAtLock()
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        int dogs = booking.getDogCount() == null
+                ? 1
+                : Math.max(1, booking.getDogCount());
+
+        BigDecimal perDog;
+
+        if (isAfterHours(booking)) {
+            perDog = PricingRules.AFTER_HOURS;
+
+        } else if (isBoarding(booking)) {
+            perDog = priceBoarding(booking);
+
+        } else if (isDaycare(booking)) {
+            perDog = priceDaycare(booking);
+
+        } else {
+            perDog = BigDecimal.ZERO;
+        }
+
+        return perDog
+                .multiply(BigDecimal.valueOf(dogs))
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Returns the total amount including the admin
+     * adjustment, applied once per booking.
+     */
+    public BigDecimal finalTotalFor(Booking booking) {
+        BigDecimal base = baseTotalFor(booking);
+
+        if (booking == null) {
+            return base;
+        }
+
+        BigDecimal adjustment =
+                booking.getManualAdjustmentAmount() == null
+                        ? BigDecimal.ZERO
+                        : booking.getManualAdjustmentAmount();
+
+        return base.add(adjustment)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }

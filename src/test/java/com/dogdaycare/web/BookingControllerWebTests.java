@@ -11,7 +11,8 @@ import com.dogdaycare.service.BundleService;
 import com.dogdaycare.service.PricingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
+//import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -90,6 +91,11 @@ class BookingControllerWebTests {
                 });
         when(pricingService.previewDaycarePrice(any(User.class), any(LocalDate.class), anyString(), anyBoolean(), anyBoolean()))
                 .thenReturn(new BigDecimal("50.00"));
+        // Mock the tiered daycare price used by prepaid quotes.
+        when(pricingService.quoteDaycareAtTier(
+                any(Booking.class),
+                anyBoolean()
+        )).thenReturn(new BigDecimal("45.00"));
         when(pricingService.priceFor(any(Booking.class))).thenReturn(new BigDecimal("65.00"));
         when(bookingLimitService.canCustomerBook(any(LocalDate.class), anyString())).thenReturn(true);
 
@@ -117,24 +123,42 @@ class BookingControllerWebTests {
     }
 
     @Test
-    void quote_prepayEligibility_respects24hRule() throws Exception {
-        // 12:30 same-day -> NOT eligible (hours < 24)
+    void quote_prepayEligibility_respects2AmCutoff() throws Exception {
+
+        ZoneId zone = ZoneId.of("America/Los_Angeles");
+
+        // October 31, 2025 at 1:59 AM Pacific:
+        // Prepay should still be available.
+        Mockito.when(clock.getZone()).thenReturn(zone);
+        Mockito.when(clock.instant()).thenReturn(
+                Instant.parse("2025-10-31T08:59:00Z")
+        );
+
         mvc.perform(get("/booking/quote")
                         .param("serviceType", "Daycare (6 AM - 3 PM)")
                         .param("date", "2025-10-31")
                         .param("time", "12:30")
+                        .param("wantsAdvancePay", "true")
                         .with(user("customer@test.local").roles("CUSTOMER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.advanceEligible").value(false));
+                .andExpect(jsonPath("$.advanceEligible").value(true))
+                .andExpect(jsonPath("$.wantsAdvancePayApplied").value(true));
 
-        // Two days out -> eligible
+        // October 31, 2025 at exactly 2:00 AM Pacific:
+        // Prepay is no longer available for that date.
+        Mockito.when(clock.instant()).thenReturn(
+                Instant.parse("2025-10-31T09:00:00Z")
+        );
+
         mvc.perform(get("/booking/quote")
                         .param("serviceType", "Daycare (6 AM - 3 PM)")
-                        .param("date", "2025-11-02")
-                        .param("time", "08:00")
+                        .param("date", "2025-10-31")
+                        .param("time", "12:30")
+                        .param("wantsAdvancePay", "true")
                         .with(user("customer@test.local").roles("CUSTOMER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.advanceEligible").value(true));
+                .andExpect(jsonPath("$.advanceEligible").value(false))
+                .andExpect(jsonPath("$.wantsAdvancePayApplied").value(false));
     }
 
     @Test

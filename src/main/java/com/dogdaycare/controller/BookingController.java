@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.dogdaycare.service.SetForgetService;
 import com.dogdaycare.dto.SetForgetRuleRequest;
+import com.dogdaycare.service.PricingRules;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import static org.springframework.format.annotation.DateTimeFormat.ISO;
@@ -66,6 +67,26 @@ public class BookingController {
     }
 
     private static String safe(String s) { return s == null ? "" : s.trim(); }
+
+    /**
+     * Existing qualifying prepaid dog-days for one
+     * Monday-Sunday week.
+     *
+     * After Hours and non-prepaid bookings are excluded.
+     */
+    private int existingPrepayDogDays(
+            User customer, LocalDate date) {
+
+        LocalDate ws = pricingService.weekStartMonday(date);
+        LocalDate we = pricingService.weekEndSunday(date);
+
+        List<Booking> bookings = bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        customer, "daycare", ws, we, "CANCELED"
+                );
+
+        return PricingRules.weeklyPrepayDogDays(bookings);
+    }
 
     private void prepareBookingPage(User customer,
                                     Model model,
@@ -186,12 +207,18 @@ public class BookingController {
 
             // Eligible daycare for the week (opted-in + advance-eligible)
             var eligible = weekBookings.stream()
-                    .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
+                    .filter(b -> PricingRules.isStandardDaycare(
+                            b.getServiceType()))
+                    .filter(Booking::isWantsAdvancePay)
+                    .filter(Booking::isAdvanceEligible)
                     .toList();
 
             if (eligible.isEmpty()) continue;
 
-            boolean atLeast4 = eligible.size() >= 4;
+            int qualifyingDogDays =
+                    PricingRules.weeklyPrepayDogDays(eligible);
+
+            boolean atLeast4 = qualifyingDogDays >= 4;
 
             // Quote every eligible daycare in that week (paid or not)
             for (var b : eligible) {
@@ -344,6 +371,28 @@ public class BookingController {
 
         return hadBoardingYesterday && !hasBoardingToday;
     }
+    /**
+     * Determines whether a daycare service is prohibited
+     * on the customer's boarding pickup date.
+     *
+     * Allowed services are defined in PricingRules.
+     */
+    private boolean isPickupDayServiceBlocked(
+            User customer,
+            LocalDate date,
+            String serviceType) {
+
+        boolean daycareService =
+                PricingRules.isStandardDaycare(serviceType)
+                        || PricingRules.isAfterHours(serviceType);
+
+        if (!daycareService) {
+            return false;
+        }
+
+        return isPickupDayOfBoarding(customer, date)
+                && !PricingRules.canBookOnPickupDay(serviceType);
+    }
 
     @GetMapping("/quote")
     @ResponseBody
@@ -377,18 +426,26 @@ public class BookingController {
         boolean isDaycare = serviceType != null && serviceType.toLowerCase().contains("daycare");
         boolean isBoarding = serviceType != null && serviceType.toLowerCase().contains("boarding");
         boolean isAfterHours = serviceType != null && serviceType.toLowerCase().contains("after hours");
+        // Prevent quoting prohibited pickup-day services.
+        if (isPickupDayServiceBlocked(
+                customer, date, serviceType)) {
 
-        boolean advanceEligible = false;
-        if (isDaycare && localTime != null) {
-            var now = ZonedDateTime.now(clock);
-            var zone = clock.getZone();
-            var zdt = ZonedDateTime.of(date, localTime, zone);
-            long hours = Duration.between(now, zdt).toHours();
-            advanceEligible = hours >= 24;
+            return Map.of(
+                    "amount", "0.00",
+                    "currency", "USD",
+                    "advanceEligible", false,
+                    "wantsAdvancePayApplied", false,
+                    "weekAlreadyPaid", false,
+                    "note", "After Hours cannot be booked on a boarding pickup day."
+            );
         }
 
+        boolean advanceEligible =
+                PricingRules.isStandardDaycare(serviceType)
+                        && PricingRules.isAdvanceEligible(date, clock);
+
         if (isAfterHours) {
-            var base = new BigDecimal("90.00").setScale(2, RoundingMode.HALF_UP);
+            var base = PricingRules.AFTER_HOURS;
             var total = base.multiply(BigDecimal.valueOf(dogCount));
             return Map.of(
                     "amount", total.toString(),
@@ -458,16 +515,30 @@ public class BookingController {
                 Map<LocalDate, Boolean> weekAlreadyPaidByWeekStart = new HashMap<>();
 
                 for (LocalDate d : dates) {
-                    var nowZdt = ZonedDateTime.now(clock);
-                    var zone = clock.getZone();
-                    var bookingZdt = ZonedDateTime.of(d, quoteTime, zone);
-                    long hours = Duration.between(nowZdt, bookingZdt).toHours();
-                    boolean advEligible = hours >= 24;
+                    if (isPickupDayServiceBlocked(
+                            customer, d, serviceType)) {
+
+                        return Map.of(
+                                "amount", "0.00",
+                                "currency", "USD",
+                                "advanceEligible", false,
+                                "wantsAdvancePayApplied", false,
+                                "weekAlreadyPaid", false,
+                                "note", "Selected service unavailable on pickup day: " + d
+                        );
+                    }
+
+                    boolean advEligible =
+                            PricingRules.isAdvanceEligible(d, clock);
 
                     advEligibleByDate.put(d, advEligible);
 
                     LocalDate ws = pricingService.weekStartMonday(d);
-                    weekAlreadyPaidByWeekStart.putIfAbsent(ws, bundleService.hasWeekPaid(customer, ws));
+
+                    weekAlreadyPaidByWeekStart.putIfAbsent(
+                            ws,
+                            bundleService.hasWeekPaid(customer, ws)
+                    );
                 }
 
                 // Group selected dates by week start
@@ -484,12 +555,8 @@ public class BookingController {
                     LocalDate ws = e.getKey();
                     LocalDate we = pricingService.weekEndSunday(ws);
 
-                    long existingEligible = bookingRepository
-                            .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
-                                    customer, "daycare", ws, we, "CANCELED"
-                            ).stream()
-                            .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
-                            .count();
+                    long existingEligible =
+                            existingPrepayDogDays(customer, ws);
 
                     existingEligibleCountByWeek.put(ws, existingEligible);
                 }
@@ -500,10 +567,12 @@ public class BookingController {
                     LocalDate ws = e.getKey();
                     boolean weekPaid = weekAlreadyPaidByWeekStart.getOrDefault(ws, false);
 
-                    long selectedEligibleInWeek = e.getValue().stream()
-                            .filter(d -> advEligibleByDate.getOrDefault(d, false))
-                            .filter(d -> wantsAdvancePay && !weekPaid)
-                            .count();
+                    long selectedEligibleInWeek =
+                            e.getValue().stream()
+                                    .filter(d -> advEligibleByDate
+                                            .getOrDefault(d, false))
+                                    .filter(d -> wantsAdvancePay && !weekPaid)
+                                    .count() * dogCount;
 
                     long existingEligible = existingEligibleCountByWeek.getOrDefault(ws, 0L);
 
@@ -540,9 +609,26 @@ public class BookingController {
                         "note", "Multi-day daycare quote (" + dates.size() + " day(s))"
                 );
             }
-            amount = pricingService.previewDaycarePrice(
-                    customer, date, serviceType, advanceEligible, wantsAdvancePayFinal
-            );
+            if (wantsAdvancePayFinal) {
+                int projectedDogDays =
+                        existingPrepayDogDays(customer, date)
+                                + dogCount;
+
+                Booking temp = new Booking();
+                temp.setServiceType(serviceType);
+
+                amount = pricingService.quoteDaycareAtTier(
+                        temp, projectedDogDays >= 4
+                );
+            } else {
+                amount = pricingService.previewDaycarePrice(
+                        customer,
+                        date,
+                        serviceType,
+                        advanceEligible,
+                        false
+                );
+            }
             note = wantsAdvancePayFinal
                     ? "Daycare prepay preview"
                     : (advanceEligible ? "Daycare immediate preview" : "Daycare (not prepay-eligible)");
@@ -631,15 +717,18 @@ public class BookingController {
             return "redirect:/booking";
         }
 
-        if ("Daycare (6 AM - 3 PM)".equalsIgnoreCase(safe(serviceType))) {
-            if (isPickupDayOfBoarding(customer, requestedDate)) {
-                redirectAttributes.addFlashAttribute(
-                        "errorMessage",
-                        "Half-day daycare (6 AM - 3 PM) is unavailable. " +
-                                "You can book Daycare + Evening, Daycare + After Hours, or another Boarding stay."
-                );
-                return "redirect:/booking";
-            }
+        // Apply the shared boarding pickup-day policy.
+        if (isPickupDayServiceBlocked(
+                customer, requestedDate, serviceType)) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "After Hours cannot be booked on a boarding " +
+                            "pickup day. Please choose Daycare (6 AM - 3 PM) " +
+                            "or Daycare (6 AM - 8 PM)."
+            );
+
+            return "redirect:/booking";
         }
 
         // Prevent double-booking on the same calendar day (any service)
@@ -670,15 +759,13 @@ public class BookingController {
         boolean isAfterHours   = serviceType != null && serviceType.toLowerCase().contains("after hours");
         boolean isBoardingFlag = serviceType != null && serviceType.toLowerCase().contains("boarding");
 
-        // 24h rule for daycare only
-        boolean advanceEligible = false;
-        if (isDaycareFlag) {
-            var now  = ZonedDateTime.now(clock);
-            var zone = clock.getZone();
-            var bookingZdt = ZonedDateTime.of(requestedDate, localTime, zone);
-            long hours = Duration.between(now, bookingZdt).toHours();
-            advanceEligible = hours >= 24;
-        }
+        // Standard daycare prepay cutoff: before 2 AM
+        // on the service date.
+        boolean advanceEligible =
+                PricingRules.isStandardDaycare(serviceType)
+                        && PricingRules.isAdvanceEligible(
+                        requestedDate, clock
+                );
 
         // Block prepay if customer week already paid
         LocalDate weekStart = pricingService.weekStartMonday(requestedDate);
@@ -796,16 +883,17 @@ public class BookingController {
                     return "redirect:/booking";
                 }
 
-                // Half-day daycare pickup-day restriction (same rule as single-day)
-                if ("Daycare (6 AM - 3 PM)".equalsIgnoreCase(safe(serviceType))) {
-                    if (isPickupDayOfBoarding(customer, d)) {
-                        redirectAttributes.addFlashAttribute(
-                                "errorMessage",
-                                "Half-day daycare (6 AM - 3 PM) is unavailable on pickup day: " + d + ". " +
-                                        "Remove that date or choose Daycare + Evening / After Hours."
-                        );
-                        return "redirect:/booking";
-                    }
+                // Apply pickup-day policy to every selected date.
+                if (isPickupDayServiceBlocked(
+                        customer, d, serviceType)) {
+
+                    redirectAttributes.addFlashAttribute(
+                            "errorMessage",
+                            "The selected service cannot be booked " +
+                                    "on boarding pickup day: " + d + "."
+                    );
+
+                    return "redirect:/booking";
                 }
 
                 // Prevent double-booking on that calendar day (any service)
@@ -836,15 +924,18 @@ public class BookingController {
             Map<LocalDate, Boolean> weekAlreadyPaidByWeekStart = new HashMap<>();
 
             for (LocalDate d : dates) {
-                var nowZdt = ZonedDateTime.now(clock);
-                var zone = clock.getZone();
-                var bookingZdt = ZonedDateTime.of(d, localTime, zone);
-                long hours = Duration.between(nowZdt, bookingZdt).toHours();
-                boolean advEligible = hours >= 24;
+                boolean advEligible =
+                        PricingRules.isAdvanceEligible(d, clock);
+
                 advEligibleByDate.put(d, advEligible);
 
-                LocalDate ws = pricingService.weekStartMonday(d);
-                weekAlreadyPaidByWeekStart.putIfAbsent(ws, bundleService.hasWeekPaid(customer, ws));
+                LocalDate ws =
+                        pricingService.weekStartMonday(d);
+
+                weekAlreadyPaidByWeekStart.putIfAbsent(
+                        ws,
+                        bundleService.hasWeekPaid(customer, ws)
+                );
             }
 
             // Group selected dates by week start
@@ -861,12 +952,8 @@ public class BookingController {
                 LocalDate ws = e.getKey();
                 LocalDate we = pricingService.weekEndSunday(ws);
 
-                long existingEligible = bookingRepository
-                        .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
-                                customer, "daycare", ws, we, "CANCELED"
-                        ).stream()
-                        .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
-                        .count();
+                long existingEligible =
+                        existingPrepayDogDays(customer, ws);
 
                 existingEligibleCountByWeek.put(ws, existingEligible);
             }
@@ -879,10 +966,12 @@ public class BookingController {
                 boolean weekPaid = weekAlreadyPaidByWeekStart.getOrDefault(ws, false);
 
                 // Among SELECTED dates in this week, how many are eligible AND requested wantsAdvancePay?
-                long selectedEligibleInWeek = e.getValue().stream()
-                        .filter(d -> advEligibleByDate.getOrDefault(d, false))
-                        .filter(d -> wantsAdvancePay && !weekPaid) // prepay can’t apply if week already paid
-                        .count();
+                long selectedEligibleInWeek =
+                        e.getValue().stream()
+                                .filter(d -> advEligibleByDate
+                                        .getOrDefault(d, false))
+                                .filter(d -> wantsAdvancePay && !weekPaid)
+                                .count() * dogCount;
 
                 long existingEligible = existingEligibleCountByWeek.getOrDefault(ws, 0L);
 
@@ -959,11 +1048,29 @@ public class BookingController {
 // Price lock
         BigDecimal base;
         if (isAfterHours) {
-            base = new BigDecimal("90.00"); // flat per dog
+            base = PricingRules.AFTER_HOURS;
         } else if (isDaycareFlag) {
-            base = pricingService.previewDaycarePrice(
-                    customer, requestedDate, serviceType, advanceEligible, wantsAdvancePayFinal
-            );
+            if (wantsAdvancePayFinal) {
+                int projectedDogDays =
+                        existingPrepayDogDays(
+                                customer, requestedDate
+                        ) + dogCount;
+
+                Booking temp = new Booking();
+                temp.setServiceType(serviceType);
+
+                base = pricingService.quoteDaycareAtTier(
+                        temp, projectedDogDays >= 4
+                );
+            } else {
+                base = pricingService.previewDaycarePrice(
+                        customer,
+                        requestedDate,
+                        serviceType,
+                        advanceEligible,
+                        false
+                );
+            }
         } else {
             base = BigDecimal.ZERO;
         }

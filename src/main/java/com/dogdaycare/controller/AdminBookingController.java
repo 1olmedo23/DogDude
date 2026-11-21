@@ -17,6 +17,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.dogdaycare.service.SetForgetService;
+import com.dogdaycare.model.User;
+import com.dogdaycare.service.PricingRules;
+import java.time.OffsetDateTime;
 
 import java.math.BigDecimal;
 import java.time.*;
@@ -233,17 +236,47 @@ public class AdminBookingController {
         }
 
         bookingRepository.findById(id).ifPresentOrElse(booking -> {
-            booking.setManualAdjustmentAmount(BigDecimal.valueOf(amount).setScale(2));
-            booking.setManualAdjustmentReason(cleanReason.isBlank() ? null : cleanReason);
-            booking.setManualAdjustmentUpdatedAt(LocalDateTime.now());
+
+            // Prevent changes to finalized financial records.
+            if (booking.isPaid()) {
+                ra.addFlashAttribute(
+                        "errorMessage",
+                        "Cannot adjust a paid booking. " +
+                                "Revert the payment before making adjustments."
+                );
+                return;
+            }
+
+            booking.setManualAdjustmentAmount(
+                    BigDecimal.valueOf(amount).setScale(2)
+            );
+
+            booking.setManualAdjustmentReason(
+                    cleanReason.isBlank() ? null : cleanReason
+            );
+
+            booking.setManualAdjustmentUpdatedAt(
+                    LocalDateTime.now()
+            );
+
             bookingRepository.save(booking);
 
             if (amount == 0) {
-                ra.addFlashAttribute("successMessage", "Booking adjustment cleared.");
+                ra.addFlashAttribute(
+                        "successMessage",
+                        "Booking adjustment cleared."
+                );
             } else {
-                ra.addFlashAttribute("successMessage", "Booking adjustment updated.");
+                ra.addFlashAttribute(
+                        "successMessage",
+                        "Booking adjustment updated."
+                );
             }
-        }, () -> ra.addFlashAttribute("errorMessage", "Booking not found."));
+
+        }, () -> ra.addFlashAttribute(
+                "errorMessage",
+                "Booking not found."
+        ));
 
         return bookingsRedirect(date);
     }
@@ -269,75 +302,22 @@ public class AdminBookingController {
         return bookingsRedirect(date);
     }
 
-    // Mark a single booking (day) as PAID (unchanged logic)
+    /**
+     * Finalizes an individual booking's current price
+     * before marking it paid.
+     *
+     * Keeps the weekly invoice total synchronized
+     * without changing previously paid booking prices.
+     */
     @PostMapping("/mark-paid/{id}")
+    @Transactional
     public String markDayPaid(
             @PathVariable Long id,
             @RequestParam(value = "date", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate date,
             RedirectAttributes ra) {
-        bookingRepository.findById(id).ifPresent(b -> {
-            // 1) mark this single booking paid
-            if (!"CANCELED".equalsIgnoreCase(b.getStatus()) && !b.isPaid()) {
-                b.setPaid(true);
-                b.setPaidAt(java.time.LocalDateTime.now());
-                bookingRepository.save(b);
-            }
 
-            // 2) if all non-canceled bookings for this customer/week are paid, flip invoice to paid
-            var customer = b.getCustomer();
-            if (customer != null && customer.getUsername() != null) {
-                LocalDate ws = b.getDate().with(DayOfWeek.MONDAY);
-                LocalDate we = ws.plusDays(6);
-
-                var weekBookings = bookingRepository.findByDateBetween(ws, we).stream()
-                        .filter(x -> x.getCustomer() != null && customer.getId().equals(x.getCustomer().getId()))
-                        .filter(x -> !"CANCELED".equalsIgnoreCase(x.getStatus()))
-                        .toList();
-
-                boolean allPaid = !weekBookings.isEmpty() && weekBookings.stream().allMatch(Booking::isPaid);
-
-                var invOpt = invoiceRepository.findByCustomerEmailAndWeekStart(customer.getUsername(), ws);
-
-                Invoice inv = invOpt.orElseGet(() -> {
-                    // snapshot current week amount for this customer (using priceFor×dogCount)
-                    var amount = weekBookings.stream()
-                            .map(bk -> {
-                                BigDecimal perDog = pricingService.priceFor(bk);
-                                int n = (bk.getDogCount() != null ? bk.getDogCount() : 1);
-                                return perDog.multiply(BigDecimal.valueOf(n));
-                            })
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                    Invoice i = new Invoice();
-                    i.setCustomerEmail(customer.getUsername());
-                    i.setCustomerName(customer.getUsername()); // keep simple (or look up Evaluation)
-                    i.setDogName("N/A");
-                    i.setWeekStart(ws);
-                    i.setWeekEnd(we);
-                    i.setAmount(amount);
-                    return i;
-                });
-
-                if (allPaid && !inv.isPaid()) {
-                    inv.setPaid(true);
-                    inv.setPaidAt(java.time.LocalDateTime.now());
-                }
-
-                invoiceRepository.save(inv);
-            }
-        });
-
-        ra.addFlashAttribute("successMessage", "Booking marked paid.");
-        return bookingsRedirect(date);
-    }
-
-    @PostMapping("/revert-paid/{id}")
-    public String revertBookingPaid(
-            @PathVariable Long id,
-            @RequestParam(value = "date", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            RedirectAttributes ra) {
         Booking booking = bookingRepository.findById(id).orElse(null);
 
         if (booking == null) {
@@ -345,70 +325,196 @@ public class AdminBookingController {
             return bookingsRedirect(date);
         }
 
-        booking.setPaid(false);
-        booking.setPaidAt(null);
-        bookingRepository.save(booking);
+        if ("CANCELED".equalsIgnoreCase(booking.getStatus())) {
+            ra.addFlashAttribute(
+                    "errorMessage",
+                    "Canceled bookings cannot be marked paid."
+            );
+            return bookingsRedirect(date);
+        }
 
-        ra.addFlashAttribute("successMessage", "Booking payment reverted.");
+        User customer = booking.getCustomer();
+
+        if (customer == null || customer.getUsername() == null) {
+            ra.addFlashAttribute(
+                    "errorMessage",
+                    "Booking has no valid customer."
+            );
+            return bookingsRedirect(date);
+        }
+
+        if (!booking.isPaid()) {
+
+            // Calculate the current TOTAL while still unpaid.
+            BigDecimal baseTotal =
+                    pricingService.baseTotalFor(booking);
+
+            // Store the full booking total, excluding
+            // the separately stored manual adjustment.
+            booking.setQuotedRateAtLock(baseTotal);
+
+            boolean prepaidDaycare =
+                    PricingRules.isStandardDaycare(
+                            booking.getServiceType())
+                            && booking.isAdvanceEligible()
+                            && booking.isWantsAdvancePay();
+
+            booking.setInPrepayBundle(prepaidDaycare);
+
+            if (prepaidDaycare) {
+                booking.setBundleLockedAt(
+                        OffsetDateTime.now()
+                );
+            }
+
+            // Only mark paid after finalizing pricing.
+            booking.setPaid(true);
+            booking.setPaidAt(LocalDateTime.now());
+
+            bookingRepository.save(booking);
+        }
+
+        LocalDate ws =
+                pricingService.weekStartMonday(booking.getDate());
+
+        LocalDate we =
+                pricingService.weekEndSunday(booking.getDate());
+
+        List<Booking> weekBookings = bookingRepository
+                .findByCustomerAndDateBetweenAndStatusNotIgnoreCase(
+                        customer,
+                        ws,
+                        we,
+                        "CANCELED"
+                );
+
+        boolean allPaid = !weekBookings.isEmpty()
+                && weekBookings.stream().allMatch(Booking::isPaid);
+
+        // Calculate each booking's full total exactly once.
+        // Paid bookings retain their locked base amounts.
+        BigDecimal weeklyTotal = weekBookings.stream()
+                .map(pricingService::finalTotalFor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Invoice invoice = invoiceRepository
+                .findByCustomerEmailAndWeekStart(
+                        customer.getUsername(),
+                        ws
+                )
+                .orElseGet(() -> {
+                    Invoice created = new Invoice();
+                    created.setCustomerEmail(customer.getUsername());
+                    created.setCustomerName(customer.getUsername());
+                    created.setDogName("N/A");
+                    created.setWeekStart(ws);
+                    created.setWeekEnd(we);
+                    return created;
+                });
+
+        invoice.setAmount(weeklyTotal);
+
+        if (allPaid && !invoice.isPaid()) {
+            invoice.setPaid(true);
+            invoice.setPaidAt(LocalDateTime.now());
+        }
+
+        invoiceRepository.save(invoice);
+
+        ra.addFlashAttribute(
+                "successMessage",
+                "Booking marked paid."
+        );
+
         return bookingsRedirect(date);
     }
 
-    private BigDecimal finalAmountFor(Booking b) {
-        BigDecimal base = baseAmountFor(b);
-        BigDecimal adjustment = normalizedAdjustment(b.getManualAdjustmentAmount());
-        return base.add(adjustment);
+    /**
+     * Reverts an individual booking payment and
+     * synchronizes the weekly invoice status.
+     *
+     * Preserves the finalized booking amount
+     * and any manual adjustments.
+     */
+    @PostMapping("/revert-paid/{id}")
+    @Transactional
+    public String revertBookingPaid(
+            @PathVariable Long id,
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate date,
+            RedirectAttributes ra) {
+
+        Booking booking = bookingRepository
+                .findById(id)
+                .orElse(null);
+
+        if (booking == null) {
+            ra.addFlashAttribute(
+                    "errorMessage",
+                    "Booking not found."
+            );
+            return bookingsRedirect(date);
+        }
+
+        if (!booking.isPaid()) {
+            ra.addFlashAttribute(
+                    "errorMessage",
+                    "Booking is already unpaid."
+            );
+            return bookingsRedirect(date);
+        }
+
+        // Revert payment status only.
+        // Preserve the previously finalized price.
+        booking.setPaid(false);
+        booking.setPaidAt(null);
+
+        bookingRepository.save(booking);
+
+        User customer = booking.getCustomer();
+
+        if (customer != null
+                && customer.getUsername() != null) {
+
+            LocalDate ws =
+                    pricingService.weekStartMonday(
+                            booking.getDate()
+                    );
+
+            invoiceRepository
+                    .findByCustomerEmailAndWeekStart(
+                            customer.getUsername(),
+                            ws
+                    )
+                    .ifPresent(invoice -> {
+
+                        // The week is no longer fully paid.
+                        invoice.setPaid(false);
+                        invoice.setPaidAt(null);
+
+                        // Preserve the existing invoice amount
+                        // and finalized booking prices.
+                        invoiceRepository.save(invoice);
+                    });
+        }
+
+        ra.addFlashAttribute(
+                "successMessage",
+                "Booking payment reverted."
+        );
+
+        return bookingsRedirect(date);
     }
 
-    private BigDecimal normalizedAdjustment(BigDecimal adjustment) {
-        return adjustment == null ? BigDecimal.ZERO : adjustment;
-    }
-
-    // ---------------- baseAmountFor ----------------
-    private BigDecimal baseAmountFor(Booking b) {
-
-        // If we have a locked price, ALWAYS use it for display.
-        // NOTE: quoted_rate_at_lock in your DB is already the TOTAL for the booking
-        // (it already reflects dog_count), so DO NOT multiply by dogs again.
-        if (b.getQuotedRateAtLock() != null) {
-            return b.getQuotedRateAtLock();
-        }
-
-        // Fallback only if older rows exist with no locked price.
-        int dogs = (b.getDogCount() != null ? b.getDogCount() : 1);
-
-        String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
-        boolean isDaycare = svc.contains("daycare");
-        boolean isAfterHours = svc.contains("after hours");
-        boolean isBoarding = svc.contains("boarding");
-
-        if (isAfterHours) {
-            return new BigDecimal("90.00").multiply(BigDecimal.valueOf(dogs));
-        }
-
-        if (isBoarding) {
-            BigDecimal base = pricingService.priceFor(b); // your boarding logic
-            return base.multiply(BigDecimal.valueOf(dogs));
-        }
-
-        if (isDaycare) {
-            var customer = b.getCustomer();
-            if (customer == null) return BigDecimal.ZERO;
-
-            LocalDate ws = pricingService.weekStartMonday(b.getDate());
-            LocalDate we = ws.plusDays(6);
-
-            var weekBookings = bookingRepository.findByCustomerAndDateBetween(customer, ws, we).stream()
-                    .filter(x -> x.getServiceType() != null && x.getServiceType().toLowerCase().contains("daycare"))
-                    .filter(x -> !"CANCELED".equalsIgnoreCase(x.getStatus()))
-                    .toList();
-
-            boolean atLeast4 = weekBookings.size() >= 4;
-
-            BigDecimal perDog = pricingService.quoteDaycareAtTier(b, atLeast4);
-            return perDog.multiply(BigDecimal.valueOf(dogs));
-        }
-
-        BigDecimal base = pricingService.priceFor(b);
-        return base.multiply(BigDecimal.valueOf(dogs));
+    /**
+     * Returns the booking's total amount including
+     * any admin adjustment.
+     *
+     * Unpaid bookings use current pricing rules.
+     * Paid bookings use their saved finalized base total.
+     */
+    private BigDecimal finalAmountFor(Booking booking) {
+        return pricingService.finalTotalFor(booking);
     }
 }

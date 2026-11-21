@@ -10,19 +10,18 @@ import com.dogdaycare.repository.InvoiceRepository;
 import com.dogdaycare.repository.UserRepository;
 import com.dogdaycare.repository.WeeklyBillingStatusRepository;
 import com.dogdaycare.service.BundleService;
+import com.dogdaycare.service.PricingRules;
 import com.dogdaycare.service.PricingService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Clock;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -143,7 +142,40 @@ public class AdminInvoiceController {
         return rows;
     }
 
+    /**
+     * Freeze the current base TOTAL before payment.
+     *
+     * Does not modify bookings already marked paid.
+     * Manual adjustments remain stored separately.
+     */
+    private void finalizeUnpaidBooking(Booking booking) {
+        if (booking == null || booking.isPaid()) {
+            return;
+        }
+
+        BigDecimal finalBase =
+                pricingService.baseTotalFor(booking);
+
+        // Store the full booking total, not a per-dog rate.
+        booking.setQuotedRateAtLock(finalBase);
+
+        boolean prepaidDaycare =
+                PricingRules.isStandardDaycare(
+                        booking.getServiceType())
+                        && booking.isAdvanceEligible()
+                        && booking.isWantsAdvancePay();
+
+        booking.setInPrepayBundle(prepaidDaycare);
+
+        if (prepaidDaycare) {
+            booking.setBundleLockedAt(
+                    OffsetDateTime.now(clock)
+            );
+        }
+    }
+
     @PostMapping("/mark-paid")
+    @Transactional
     public String markPaid(
             @RequestParam(value = "invoiceId", required = false) Long invoiceId,
             @RequestParam(value = "email", required = false) String customerEmail,
@@ -197,6 +229,10 @@ public class AdminInvoiceController {
         if (!invoice.isPaid()) {
             for (Booking b : weekCustomerBookings) {
                 if (!b.isPaid()) {
+
+                    // Freeze live pricing before paid=true.
+                    finalizeUnpaidBooking(b);
+
                     b.setPaid(true);
                     b.setPaidAt(LocalDateTime.now(clock));
                 }
@@ -225,6 +261,11 @@ public class AdminInvoiceController {
             }
 
             for (Booking b : unpaid) {
+
+                // Recalculate only newly unpaid bookings.
+                // Previously paid amounts remain untouched.
+                finalizeUnpaidBooking(b);
+
                 b.setPaid(true);
                 b.setPaidAt(LocalDateTime.now(clock));
             }
@@ -246,6 +287,7 @@ public class AdminInvoiceController {
     }
 
     @PostMapping("/revert-paid")
+    @Transactional
     public String revertPaid(
             @RequestParam("invoiceId") Long invoiceId,
             RedirectAttributes ra
@@ -282,45 +324,24 @@ public class AdminInvoiceController {
         return "redirect:/admin?invoiceWeek=" + ws + "#invoicing";
     }
 
-    private BigDecimal finalAmountForInvoice(Booking b) {
-        BigDecimal base = baseAmountForInvoice(b);
-        BigDecimal adjustment = normalizedAdjustment(b.getManualAdjustmentAmount());
-        return base.add(adjustment);
+    /**
+     * Returns the current invoice total for one booking,
+     * including the manual adjustment exactly once.
+     *
+     * Unpaid bookings use live pricing.
+     * Paid bookings use their saved finalized base total.
+     */
+    private BigDecimal finalAmountForInvoice(Booking booking) {
+        return pricingService.finalTotalFor(booking);
     }
 
-    private BigDecimal normalizedAdjustment(BigDecimal adjustment) {
-        return adjustment == null ? BigDecimal.ZERO : adjustment;
-    }
-
-    private BigDecimal baseAmountForInvoice(Booking b) {
-        if (b.getQuotedRateAtLock() != null) {
-            return b.getQuotedRateAtLock();
-        }
-
-        int n = (b.getDogCount() != null ? b.getDogCount() : 1);
-        String svc = (b.getServiceType() == null ? "" : b.getServiceType()).toLowerCase();
-
-        if (svc.contains("after hours")) {
-            return new BigDecimal("90.00").multiply(BigDecimal.valueOf(n));
-        } else if (svc.contains("boarding")) {
-            return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
-        } else if (svc.contains("daycare")) {
-            var customer = b.getCustomer();
-            if (customer == null) return BigDecimal.ZERO;
-
-            LocalDate ws = pricingService.weekStartMonday(b.getDate());
-            LocalDate we = ws.plusDays(6);
-
-            var weekBookings = bookingRepository.findByCustomerAndDateBetween(customer, ws, we).stream()
-                    .filter(x -> x.getServiceType() != null && x.getServiceType().toLowerCase().contains("daycare"))
-                    .filter(x -> !"CANCELED".equalsIgnoreCase(x.getStatus()))
-                    .toList();
-
-            boolean atLeast4 = weekBookings.size() >= 4;
-            BigDecimal perDog = pricingService.quoteDaycareAtTier(b, atLeast4);
-            return perDog.multiply(BigDecimal.valueOf(n));
-        } else {
-            return pricingService.priceFor(b).multiply(BigDecimal.valueOf(n));
-        }
+    /**
+     * Returns the base booking total before adjustments.
+     *
+     * quotedRateAtLock is treated as a booking TOTAL,
+     * not a per-dog rate.
+     */
+    private BigDecimal baseAmountForInvoice(Booking booking) {
+        return pricingService.baseTotalFor(booking);
     }
 }

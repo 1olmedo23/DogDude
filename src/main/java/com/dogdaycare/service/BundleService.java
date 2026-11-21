@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -34,38 +35,81 @@ public class BundleService {
     }
 
     /**
-     * At payment time, compute the final eligible daycare set for the Mon–Sun week and
-     * stamp all of them with in_prepay_bundle=true, quoted_rate_at_lock=<tier>, bundle_locked_at=now.
-     * This overwrites earlier quotes for that week to the final tier (safe + idempotent).
+     * Finalize eligible weekly prepaid daycare prices
+     * BEFORE marking bookings paid.
+     *
+     * quotedRateAtLock stores the TOTAL for all dogs.
+     * Previously paid bookings are never modified.
      */
     @Transactional
-    public void lockAndStampWeekForPayment(User customer, LocalDate anyDateInWeek) {
+    public void lockAndStampWeekForPayment(
+            User customer,
+            LocalDate anyDateInWeek) {
+
         Objects.requireNonNull(customer, "customer required");
-        Objects.requireNonNull(anyDateInWeek, "anyDateInWeek required");
+        Objects.requireNonNull(
+                anyDateInWeek, "anyDateInWeek required"
+        );
 
-        LocalDate ws = pricingService.weekStartMonday(anyDateInWeek);
-        LocalDate we = pricingService.weekEndSunday(anyDateInWeek);
+        LocalDate ws =
+                pricingService.weekStartMonday(anyDateInWeek);
 
-        // Daycare bookings in week (not canceled)
+        LocalDate we =
+                pricingService.weekEndSunday(anyDateInWeek);
+
         List<Booking> daycare = bookingRepository
                 .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
-                        customer, "daycare", ws, we, "CANCELED");
+                        customer,
+                        "daycare",
+                        ws,
+                        we,
+                        "CANCELED"
+                );
 
-        // Eligible at payment time = wantsAdvancePay && advanceEligible
-        List<Booking> eligible = daycare.stream()
-                .filter(b -> b.isWantsAdvancePay() && b.isAdvanceEligible())
+        // All qualifying prepaid dog-days determine
+        // the weekly discount threshold.
+        int qualifyingDogDays =
+                PricingRules.weeklyPrepayDogDays(daycare);
+
+        boolean atLeast4 = qualifyingDogDays >= 4;
+
+        // Only unpaid, eligible standard daycare bookings
+        // can receive a new finalized price.
+        List<Booking> toLock = daycare.stream()
+                .filter(b -> !b.isPaid())
+                .filter(b -> PricingRules.isStandardDaycare(
+                        b.getServiceType()))
+                .filter(Booking::isWantsAdvancePay)
+                .filter(Booking::isAdvanceEligible)
                 .toList();
 
-        if (eligible.isEmpty()) return;
+        if (toLock.isEmpty()) {
+            return;
+        }
 
-        boolean atLeast4 = eligible.size() >= 4;
         OffsetDateTime now = OffsetDateTime.now();
 
-        for (Booking b : eligible) {
-            b.setInPrepayBundle(true);
-            b.setQuotedRateAtLock(pricingService.quoteDaycareAtTier(b, atLeast4));
-            b.setBundleLockedAt(now);
+        for (Booking booking : toLock) {
+
+            BigDecimal perDog =
+                    pricingService.quoteDaycareAtTier(
+                            booking,
+                            atLeast4
+                    );
+
+            int dogs = booking.getDogCount() == null
+                    ? 1
+                    : Math.max(1, booking.getDogCount());
+
+            BigDecimal total = perDog
+                    .multiply(BigDecimal.valueOf(dogs))
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            booking.setQuotedRateAtLock(total);
+            booking.setInPrepayBundle(true);
+            booking.setBundleLockedAt(now);
         }
-        bookingRepository.saveAll(eligible);
+
+        bookingRepository.saveAll(toLock);
     }
 }
