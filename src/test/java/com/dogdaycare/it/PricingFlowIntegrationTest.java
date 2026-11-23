@@ -769,4 +769,171 @@ class PricingFlowIntegrationTest {
                 .andExpect(jsonPath("$[0].paidToDate").value(0.0))
                 .andExpect(jsonPath("$[0].deltaUnpaid").value(120.0));
     }
+
+    @Test
+    void boarding_unpaidPickupFeeWaivedByEitherDaycareService() {
+
+        LocalDate sunday = LocalDate.of(2025, 2, 9);
+        LocalDate monday = sunday.plusDays(1);
+
+        Booking boarding = newBooking(sunday, "Boarding", 1);
+
+        // Original price: $75 boarding + $37.50 pickup fee.
+        assertThat(pricingService.finalTotalFor(boarding))
+                .isEqualByComparingTo("112.50");
+
+        // Half-day daycare on pickup day waives pickup fee.
+        Booking shortDaycare = newBooking(
+                monday,
+                "Daycare (6 AM - 3 PM)",
+                1
+        );
+
+        assertThat(pricingService.finalTotalFor(boarding))
+                .isEqualByComparingTo("75.00");
+        BigDecimal shortDaycareTotal =
+                pricingService.finalTotalFor(shortDaycare);
+
+        assertThat(shortDaycareTotal)
+                .isEqualByComparingTo("50.00");
+
+        assertThat(
+                pricingService.finalTotalFor(boarding)
+                        .add(shortDaycareTotal)
+        ).isEqualByComparingTo("125.00");
+
+        // Cancel half-day daycare.
+        shortDaycare.setStatus("CANCELED");
+        bookingRepo.save(shortDaycare);
+
+        // Pickup fee must return.
+        assertThat(pricingService.finalTotalFor(boarding))
+                .isEqualByComparingTo("112.50");
+
+        Booking longDaycare = newBooking(
+                monday,
+                "Daycare (6 AM - 8 PM)",
+                1
+        );
+
+        assertThat(pricingService.finalTotalFor(boarding))
+                .isEqualByComparingTo("75.00");
+
+        BigDecimal longDaycareTotal =
+                pricingService.finalTotalFor(longDaycare);
+
+        assertThat(longDaycareTotal)
+                .isEqualByComparingTo("60.00");
+
+        assertThat(
+                pricingService.finalTotalFor(boarding)
+                        .add(longDaycareTotal)
+        ).isEqualByComparingTo("135.00");
+    }
+
+    @Test
+    void boarding_paidAmountRemainsFrozenAfterPickupDaycareAdded() {
+
+        LocalDate sunday = LocalDate.of(2025, 2, 9);
+        LocalDate monday = sunday.plusDays(1);
+
+        Booking boarding = newBooking(sunday, "Boarding", 1);
+
+        BigDecimal originalTotal =
+                pricingService.finalTotalFor(boarding);
+
+        assertThat(originalTotal)
+                .isEqualByComparingTo("112.50");
+
+        // Simulate the finalized payment snapshot.
+        boarding.setQuotedRateAtLock(originalTotal);
+        boarding.setPaid(true);
+        boarding.setPaidAt(LocalDateTime.now(clock));
+        bookingRepo.save(boarding);
+
+        assertThat(pricingService.finalTotalFor(boarding))
+                .isEqualByComparingTo("112.50");
+
+        // Adding daycare afterward must not reprice
+        // a boarding charge that has already been paid.
+        newBooking(
+                monday,
+                "Daycare (6 AM - 3 PM)",
+                1
+        );
+
+        assertThat(pricingService.finalTotalFor(boarding))
+                .isEqualByComparingTo("112.50");
+
+        Booking savedBoarding = bookingRepo
+                .findById(boarding.getId())
+                .orElseThrow();
+
+        assertThat(savedBoarding.isPaid()).isTrue();
+
+        assertThat(savedBoarding.getQuotedRateAtLock())
+                .isEqualByComparingTo("112.50");
+    }
+
+    @Test
+    void adminInvoicing_boardingPickupWaiverAcrossWeeks()
+            throws Exception {
+
+        LocalDate sunday = LocalDate.of(2025, 2, 9);
+        LocalDate monday = sunday.plusDays(1);
+
+        LocalDate boardingWeek =
+                LocalDate.of(2025, 2, 3);
+
+        LocalDate daycareWeek =
+                LocalDate.of(2025, 2, 10);
+
+        // Sunday boarding with no pickup-day daycare.
+        Booking boarding = newBooking(
+                sunday,
+                "Boarding",
+                1
+        );
+
+        // Boarding initially includes the pickup fee.
+        mvc.perform(get("/admin/invoices/weekly")
+                        .param("start", boardingWeek.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].amount").value(112.50))
+                .andExpect(jsonPath("$[0].paidToDate").value(0.0))
+                .andExpect(jsonPath("$[0].deltaUnpaid").value(112.50));
+
+        // Book daycare on Monday, the boarding pickup day.
+        Booking daycare = newBooking(
+                monday,
+                "Daycare (6 AM - 3 PM)",
+                1
+        );
+
+        // Sunday invoice: boarding remains $75,
+        // with the $37.50 pickup fee waived.
+        mvc.perform(get("/admin/invoices/weekly")
+                        .param("start", boardingWeek.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].amount").value(75.0))
+                .andExpect(jsonPath("$[0].paidToDate").value(0.0))
+                .andExpect(jsonPath("$[0].deltaUnpaid").value(75.0));
+
+        // Monday invoice: daycare is charged separately.
+        mvc.perform(get("/admin/invoices/weekly")
+                        .param("start", daycareWeek.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].amount").value(50.0))
+                .andExpect(jsonPath("$[0].paidToDate").value(0.0))
+                .andExpect(jsonPath("$[0].deltaUnpaid").value(50.0));
+
+        // The combined charge must include boarding and
+        // daycare without the pickup fee.
+        BigDecimal combined =
+                pricingService.finalTotalFor(boarding)
+                        .add(pricingService.finalTotalFor(daycare));
+
+        assertThat(combined)
+                .isEqualByComparingTo("125.00");
+    }
 }

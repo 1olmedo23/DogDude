@@ -14,11 +14,7 @@ import org.mockito.ArgumentCaptor;
 import com.dogdaycare.model.SetForgetRule;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.List;
 import java.util.Optional;
 
@@ -1229,5 +1225,168 @@ class SetForgetServiceTest {
         booking.setStatus("APPROVED");
 
         return booking;
+    }
+
+    @Test
+    void editPlan_afterWeekPaid_preservesPaidAndUsesRegularRateForNewBooking() {
+
+        SetForgetPlan plan = activeTuesdayPlan();
+        plan.setDogCount(2);
+
+        LocalDate tuesday = LocalDate.of(2026, 9, 22);
+        LocalDate thursday = LocalDate.of(2026, 9, 24);
+        LocalDate monday = LocalDate.of(2026, 9, 21);
+        LocalDate sunday = LocalDate.of(2026, 9, 27);
+
+        // Existing Tuesday reservation was already paid.
+        Booking paidBooking = generatedBooking(
+                plan, tuesday, LocalTime.of(6, 30)
+        );
+
+        paidBooking.setId(950L);
+        paidBooking.setDogCount(2);
+        paidBooking.setPaid(true);
+        paidBooking.setPaidAt(
+                LocalDateTime.of(2026, 9, 14, 10, 0)
+        );
+        paidBooking.setQuotedRateAtLock(
+                new BigDecimal("100.00")
+        );
+
+        when(setForgetPlanRepository
+                .findByCustomerAndActiveTrue(customer))
+                .thenReturn(Optional.of(plan));
+
+        when(setForgetPlanRepository.save(
+                any(SetForgetPlan.class)
+        )).thenAnswer(inv -> inv.getArgument(0));
+
+        when(bookingRepository
+                .findBySetForgetPlanAndDateGreaterThanEqual(
+                        eq(plan),
+                        any(LocalDate.class)
+                )).thenReturn(List.of(paidBooking));
+
+        // Tuesday is occupied; Thursday is available.
+        when(bookingRepository
+                .findByCustomerAndDateAndStatusNotIgnoreCase(
+                        eq(customer),
+                        any(LocalDate.class),
+                        eq("CANCELED")
+                )).thenAnswer(inv -> {
+            LocalDate date = inv.getArgument(1);
+            return date.equals(tuesday)
+                    ? List.of(paidBooking)
+                    : List.of();
+        });
+
+        // Only allow the specific new Thursday booking.
+        when(bookingLimitService.canCustomerBook(
+                any(LocalDate.class),
+                anyString()
+        )).thenAnswer(inv -> {
+            LocalDate date = inv.getArgument(0);
+            return date.equals(thursday);
+        });
+
+        when(pricingService.weekStartMonday(
+                any(LocalDate.class)
+        )).thenAnswer(inv -> {
+            LocalDate date = inv.getArgument(0);
+            return date.minusDays(
+                    date.getDayOfWeek().getValue() - 1
+            );
+        });
+
+        when(pricingService.weekEndSunday(
+                any(LocalDate.class)
+        )).thenAnswer(inv -> {
+            LocalDate start = inv.getArgument(0);
+            return start.plusDays(6);
+        });
+
+        // This billing week was previously marked paid.
+        when(bundleService.hasWeekPaid(customer, monday))
+                .thenReturn(true);
+
+        when(bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateBetweenAndStatusNotIgnoreCase(
+                        eq(customer),
+                        eq("daycare"),
+                        eq(monday),
+                        eq(sunday),
+                        eq("CANCELED")
+                )).thenReturn(List.of(paidBooking));
+
+        // Regular Daycare 6-8: $60 per dog.
+        when(pricingService.previewDaycarePrice(
+                eq(customer),
+                eq(thursday),
+                eq("Daycare (6 AM - 8 PM)"),
+                eq(true),
+                eq(false)
+        )).thenReturn(new BigDecimal("60.00"));
+
+        // Customer edits plan to add Thursday.
+        setForgetService.saveOrUpdatePlan(
+                customer,
+                false,
+                2,
+                "THREE_MONTHS",
+                List.of(
+                        rule((short) 2,
+                                "Daycare (6 AM - 8 PM)",
+                                "06:30"),
+                        rule((short) 4,
+                                "Daycare (6 AM - 8 PM)",
+                                "06:30")
+                )
+        );
+
+        // The existing paid reservation must be preserved.
+        verify(bookingRepository, never())
+                .deleteAll(any(Iterable.class));
+
+        assertTrue(paidBooking.isPaid());
+        assertEquals(
+                0,
+                new BigDecimal("100.00")
+                        .compareTo(paidBooking.getQuotedRateAtLock())
+        );
+
+        // Capture the new recurring reservations.
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Booking>> captor =
+                ArgumentCaptor.forClass(List.class);
+
+        verify(bookingRepository).saveAll(captor.capture());
+
+        List<Booking> generated = captor.getValue();
+
+        Booking newThursday = generated.stream()
+                .filter(b -> thursday.equals(b.getDate()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(2, newThursday.getDogCount());
+        assertTrue(newThursday.isAdvanceEligible());
+        assertFalse(newThursday.isWantsAdvancePay());
+        assertFalse(newThursday.isPaid());
+
+        // Newly generated booking uses regular rate:
+        // 2 dogs x $60 = $120.
+        assertEquals(
+                0,
+                new BigDecimal("120.00")
+                        .compareTo(newThursday.getQuotedRateAtLock())
+        );
+
+        verify(pricingService).previewDaycarePrice(
+                customer,
+                thursday,
+                "Daycare (6 AM - 8 PM)",
+                true,
+                false
+        );
     }
 }

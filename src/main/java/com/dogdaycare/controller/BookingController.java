@@ -99,6 +99,41 @@ public class BookingController {
         var allVisible = all.stream()
                 .filter(b -> b.getDate() == null || !b.getDate().isBefore(visibleFrom))
                 .collect(Collectors.toList());
+        // Customer-facing booking totals:
+        // unpaid bookings use live pricing;
+        // paid bookings use their finalized amounts.
+        Map<Long, BigDecimal> bookingTotals = new HashMap<>();
+
+        for (Booking b : allVisible) {
+            if (b.getId() == null ||
+                    "CANCELED".equalsIgnoreCase(b.getStatus())) {
+                continue;
+            }
+
+            bookingTotals.put(
+                    b.getId(),
+                    pricingService.finalTotalFor(b)
+            );
+        }
+
+        model.addAttribute("bookingTotals", bookingTotals);
+        Map<Long, BigDecimal> boardingServiceTotals = new HashMap<>();
+
+        for (Booking b : allVisible) {
+            if (b.getId() == null
+                    || "CANCELED".equalsIgnoreCase(b.getStatus())
+                    || b.getServiceType() == null
+                    || !b.getServiceType().toLowerCase().contains("boarding")) {
+                continue;
+            }
+
+            boardingServiceTotals.put(
+                    b.getId(),
+                    pricingService.boardingServiceTotalFor(b)
+            );
+        }
+
+        model.addAttribute("boardingServiceTotals", boardingServiceTotals);
 
 // Build a date -> service label map for non-canceled bookings in that window
         Map<LocalDate, String> bookedByDate = allVisible.stream()
@@ -243,12 +278,28 @@ public class BookingController {
     @GetMapping("/week-paid")
     @ResponseBody
     public Map<String, Boolean> isWeekPaid(
-            @RequestParam("date") @DateTimeFormat(iso = ISO.DATE) LocalDate date,
+            @RequestParam("date")
+            @DateTimeFormat(iso = ISO.DATE) LocalDate date,
             Authentication authentication
     ) {
-        User customer = userRepository.findByUsername(authentication.getName()).orElseThrow();
-        boolean weekPaid = bundleService.hasWeekPaid(customer, pricingService.weekStartMonday(date));
-        return Map.of("weekPaid", weekPaid);
+        User customer = userRepository
+                .findByUsername(authentication.getName())
+                .orElseThrow();
+
+        boolean weekPaid = bundleService.hasWeekPaid(
+                customer,
+                pricingService.weekStartMonday(date)
+        );
+
+        boolean advanceEligible =
+                PricingRules.isAdvanceEligible(date, clock);
+
+        boolean canPrepay = !weekPaid && advanceEligible;
+
+        return Map.of(
+                "weekPaid", weekPaid,
+                "advanceEligible", canPrepay
+        );
     }
 
     @GetMapping
@@ -646,16 +697,21 @@ public class BookingController {
         }
 
         if (isBoarding) {
-            // Preview full stay total using simulated stay pricing
-            amount = pricingService.previewBoardingStayPrice(customer, date, boardingNights);
 
-            var total = amount.multiply(BigDecimal.valueOf(dogCount)).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal serviceTotal =
+                    pricingService.previewBoardingServicePrice(
+                            customer,
+                            date,
+                            boardingNights,
+                            dogCount
+                    );
 
-            note = "Boarding stay preview: " + boardingNights + " night(s) × " + dogCount +
-                    " (tiered nightly + one pickup fee unless next-day daycare).";
+            note = "Boarding service price for "
+                    + boardingNights + " night(s) and "
+                    + dogCount + " dog(s). ";
 
             return Map.of(
-                    "amount", total.toString(),
+                    "amount", serviceTotal.toPlainString(),
                     "currency", "USD",
                     "advanceEligible", false,
                     "wantsAdvancePayApplied", false,

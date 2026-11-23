@@ -451,4 +451,238 @@ class BookingControllerWebTests {
         verify(bookingLimitService, never())
                 .canCustomerBook(any(LocalDate.class), anyString());
     }
+
+    @Test
+    void getBooking_displaysSharedPricingTotalsForPaidAndUnpaidBookings()
+            throws Exception {
+
+        Booking unpaid = new Booking();
+        unpaid.setId(501L);
+        unpaid.setCustomer(customer);
+        unpaid.setServiceType("Daycare (6 AM - 8 PM)");
+        unpaid.setDate(LocalDate.of(2025, 11, 3));
+        unpaid.setTime(LocalTime.of(6, 0));
+        unpaid.setStatus("APPROVED");
+        unpaid.setDogCount(1);
+        unpaid.setPaid(false);
+
+        // An old estimate that should NOT be displayed.
+        unpaid.setQuotedRateAtLock(new BigDecimal("60.00"));
+
+        Booking paid = new Booking();
+        paid.setId(502L);
+        paid.setCustomer(customer);
+        paid.setServiceType("Daycare (6 AM - 8 PM)");
+        paid.setDate(LocalDate.of(2025, 11, 4));
+        paid.setTime(LocalTime.of(6, 0));
+        paid.setStatus("APPROVED");
+        paid.setDogCount(1);
+        paid.setPaid(true);
+
+        // Previously finalized base amount.
+        paid.setQuotedRateAtLock(new BigDecimal("50.00"));
+
+        when(bookingRepository.findByCustomer(customer))
+                .thenReturn(List.of(unpaid, paid));
+
+        // Shared PricingService supplies the customer totals.
+        when(pricingService.finalTotalFor(unpaid))
+                .thenReturn(new BigDecimal("45.00"));
+
+        when(pricingService.finalTotalFor(paid))
+                .thenReturn(new BigDecimal("50.00"));
+
+        mvc.perform(get("/booking")
+                        .with(user("customer@test.local")
+                                .roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("booking"))
+                .andExpect(model().attributeExists("bookingTotals"))
+                .andExpect(model().attribute(
+                        "bookingTotals",
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.hasEntry(
+                                        501L,
+                                        new BigDecimal("45.00")
+                                ),
+                                org.hamcrest.Matchers.hasEntry(
+                                        502L,
+                                        new BigDecimal("50.00")
+                                )
+                        )
+                ));
+
+        verify(pricingService).finalTotalFor(unpaid);
+        verify(pricingService).finalTotalFor(paid);
+    }
+
+    @Test
+    void weekPaid_usesBusinessClockForAdvanceEligibility()
+            throws Exception {
+
+        // October 31, 2025 at 1:59 AM Pacific.
+        when(clock.instant()).thenReturn(
+                Instant.parse("2025-10-31T08:59:00Z")
+        );
+
+        mvc.perform(get("/booking/week-paid")
+                        .param("date", "2025-10-31")
+                        .with(user("customer@test.local")
+                                .roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weekPaid").value(false))
+                .andExpect(jsonPath("$.advanceEligible").value(true));
+
+        // Exactly 2:00 AM Pacific.
+        when(clock.instant()).thenReturn(
+                Instant.parse("2025-10-31T09:00:00Z")
+        );
+
+        mvc.perform(get("/booking/week-paid")
+                        .param("date", "2025-10-31")
+                        .with(user("customer@test.local")
+                                .roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.advanceEligible").value(false));
+
+        // Even before the cutoff, an already-paid week
+        // must not qualify for additional prepaid pricing.
+        when(clock.instant()).thenReturn(
+                Instant.parse("2025-10-31T08:59:00Z")
+        );
+
+        when(bundleService.hasWeekPaid(
+                any(User.class),
+                any(LocalDate.class)
+        )).thenReturn(true);
+
+        mvc.perform(get("/booking/week-paid")
+                        .param("date", "2025-10-31")
+                        .with(user("customer@test.local")
+                                .roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weekPaid").value(true))
+                .andExpect(jsonPath("$.advanceEligible").value(false));
+    }
+
+    private void setupBoardingPickupDay() {
+
+        LocalDate boardingDate = LocalDate.of(2025, 11, 2);
+        LocalDate pickupDate = LocalDate.of(2025, 11, 3);
+
+        Booking boarding = new Booking();
+        boarding.setId(600L);
+        boarding.setCustomer(customer);
+        boarding.setServiceType("Boarding");
+        boarding.setDate(boardingDate);
+        boarding.setTime(LocalTime.of(6, 0));
+        boarding.setStatus("APPROVED");
+        boarding.setDogCount(1);
+
+        // Boarding exists the day before pickup.
+        when(bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                        eq(customer),
+                        eq("boarding"),
+                        eq(boardingDate),
+                        eq("CANCELED")
+                )).thenReturn(List.of(boarding));
+
+        // There is no boarding on the pickup date.
+        when(bookingRepository
+                .findByCustomerAndServiceTypeContainingIgnoreCaseAndDateAndStatusNotIgnoreCase(
+                        eq(customer),
+                        eq("boarding"),
+                        eq(pickupDate),
+                        eq("CANCELED")
+                )).thenReturn(List.of());
+
+        // No duplicate daycare booking on pickup day.
+        when(bookingRepository.findByCustomerAndDate(
+                customer, pickupDate
+        )).thenReturn(List.of());
+    }
+
+    @Test
+    void pickupDay_allowsDaycare6To3() throws Exception {
+
+        setupBoardingPickupDay();
+
+        mvc.perform(post("/booking")
+                        .param("serviceType", "Daycare (6 AM - 3 PM)")
+                        .param("date", "2025-11-03")
+                        .param("time", "06:00")
+                        .param("dogCount", "1")
+                        .param("wantsAdvancePay", "false")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "successMessage",
+                        "Booking submitted successfully! Total: $50.00"
+                ));
+
+        verify(bookingRepository).save(argThat(b ->
+                "Daycare (6 AM - 3 PM)".equals(b.getServiceType())
+                        && LocalDate.of(2025, 11, 3).equals(b.getDate())
+                        && "APPROVED".equals(b.getStatus())
+        ));
+    }
+
+    @Test
+    void pickupDay_allowsDaycare6To8() throws Exception {
+
+        setupBoardingPickupDay();
+
+        mvc.perform(post("/booking")
+                        .param("serviceType", "Daycare (6 AM - 8 PM)")
+                        .param("date", "2025-11-03")
+                        .param("time", "06:00")
+                        .param("dogCount", "1")
+                        .param("wantsAdvancePay", "false")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "successMessage",
+                        "Booking submitted successfully! Total: $50.00"
+                ));
+
+        verify(bookingRepository).save(argThat(b ->
+                "Daycare (6 AM - 8 PM)".equals(b.getServiceType())
+                        && LocalDate.of(2025, 11, 3).equals(b.getDate())
+                        && "APPROVED".equals(b.getStatus())
+        ));
+    }
+
+    @Test
+    void pickupDay_rejectsAfterHours() throws Exception {
+
+        setupBoardingPickupDay();
+
+        mvc.perform(post("/booking")
+                        .param(
+                                "serviceType",
+                                "Daycare After Hours (6 AM - 11 PM)"
+                        )
+                        .param("date", "2025-11-03")
+                        .param("time", "06:00")
+                        .param("dogCount", "1")
+                        .with(user("customer@test.local").roles("CUSTOMER"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/booking"))
+                .andExpect(flash().attribute(
+                        "errorMessage",
+                        "After Hours cannot be booked on a boarding " +
+                                "pickup day. Please choose Daycare (6 AM - 3 PM) " +
+                                "or Daycare (6 AM - 8 PM)."
+                ));
+
+        verify(bookingRepository, never())
+                .save(any(Booking.class));
+    }
+
 }

@@ -297,6 +297,122 @@ public class PricingService {
         return quoteDaycareAtTier(temp, atLeast4);
     }
 
+    /**
+     * Boarding nightly rate based on the customer's
+     * previous calendar month's qualifying dog-days.
+     *
+     * Excludes the pickup-day fee.
+     */
+    private BigDecimal boardingNightlyServiceRate(
+            User customer, LocalDate date) {
+
+        if (customer == null || date == null) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+
+        List<Booking> previousMonthBookings =
+                bookingRepository.findByCustomerAndDateBetween(
+                        customer,
+                        priorMonthStart(date),
+                        priorMonthEnd(date)
+                );
+
+        int qualifyingDogDays =
+                PricingRules.boardingQualifyingDogDays(
+                        previousMonthBookings
+                );
+
+        return PricingRules.boardingRatePerDog(qualifyingDogDays)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Customer-facing boarding estimate for the stay.
+     * Includes all dogs and nights, but no pickup fee.
+     *
+     * Does not change the full billing estimate.
+     */
+    public BigDecimal previewBoardingServicePrice(
+            User customer, LocalDate startDate,
+            int nights, int dogCount) {
+
+        if (customer == null || startDate == null) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+
+        int safeNights = Math.max(1, Math.min(30, nights));
+        int safeDogs = Math.max(1, Math.min(5, dogCount));
+
+        return boardingNightlyServiceRate(customer, startDate)
+                .multiply(BigDecimal.valueOf(safeNights))
+                .multiply(BigDecimal.valueOf(safeDogs))
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Customer-facing boarding service price for one
+     * existing booking, including all dogs.
+     *
+     * Excludes pickup fees and admin adjustments.
+     * Preserves the original nightly rate for paid bookings.
+     */
+    public BigDecimal boardingServiceTotalFor(Booking booking) {
+
+        if (booking == null
+                || booking.getCustomer() == null
+                || booking.getDate() == null
+                || !isBoarding(booking)) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+
+        int dogs = booking.getDogCount() == null
+                ? 1
+                : Math.max(1, booking.getDogCount());
+
+        BigDecimal dogMultiplier = BigDecimal.valueOf(dogs);
+
+        if (booking.isPaid()
+                && booking.getQuotedRateAtLock() != null) {
+
+            BigDecimal locked = booking.getQuotedRateAtLock()
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            // Recover the service component using the
+            // known boarding rates at the time of payment.
+            for (int tier : new int[]{0, 4, 12}) {
+
+                BigDecimal nightly =
+                        PricingRules.boardingRatePerDog(tier);
+
+                BigDecimal nightlyTotal =
+                        nightly.multiply(dogMultiplier);
+
+                BigDecimal withPickup =
+                        nightly.add(PricingRules.pickupFeePerDog(tier))
+                                .multiply(dogMultiplier);
+
+                if (locked.compareTo(nightlyTotal) == 0) {
+                    return nightlyTotal.setScale(
+                            2, RoundingMode.HALF_UP);
+                }
+
+                if (locked.compareTo(withPickup) == 0) {
+                    return nightlyTotal.setScale(
+                            2, RoundingMode.HALF_UP);
+                }
+            }
+
+            // An unrecognized historical locked amount
+            // must not be silently repriced.
+            return locked;
+        }
+
+        return boardingNightlyServiceRate(
+                booking.getCustomer(), booking.getDate())
+                .multiply(dogMultiplier)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
     public BigDecimal previewBoardingStayPrice(User u, LocalDate startDate, int nights) {
         if (u == null || startDate == null) return BigDecimal.ZERO;
 

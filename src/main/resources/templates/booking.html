@@ -1125,7 +1125,7 @@
                     <div class="hero-kpis">
                         <div class="hero-kpi">
                             <div id="kpi1Label" class="kpi-label">Advance Pay</div>
-                            <div id="kpi1Value" class="kpi-value">Select "Pay in adance" to unlock discounted pricing. (Payments will be made in person or over the phone)</div>
+                            <div id="kpi1Value" class="kpi-value">Select "Pay in advance" to unlock discounted pricing. (Payments will be made in person or over the phone)</div>
                         </div>
                         <div class="hero-kpi">
                             <div id="kpi2Label" class="kpi-label">Weekly Planning</div>
@@ -1176,7 +1176,7 @@
                                     <strong>Regular Rate</strong> <br> → $50/Daycare <br> → $60/Daycare + Evening
                                 </p>
                                 <p class="mb-3">
-                                    <strong>Daycare + After Hours</strong> → $90 flat rate
+                                    <strong>Daycare + After Hours</strong> → $75 per dog
                                 </p>
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Discounted Rates</u></h4>
@@ -1184,10 +1184,14 @@
                                     <strong>Select pay in advance to unlock discounts.</strong>
                                 </p>
                                 <p class="mb-1">
-                                    Prepay <strong>1–3 days</strong> <br> → $45/Daycare <br> → $50/Daycare + Evening
+                                    Prepay <strong>1–3 qualifying dog-days</strong><br>
+                                    → $45 per dog / Daycare 6AM–3PM<br>
+                                    → $50 per dog / Daycare 6AM–8PM
                                 </p>
                                 <p class="mb-2">
-                                    Prepay <strong>4+ days</strong> <br> → $40/Daycare <br> → $45/Daycare + Evening
+                                    Prepay <strong>4+ qualifying dog-days</strong><br>
+                                    → $40 per dog / Daycare 6AM–3PM<br>
+                                    → $45 per dog / Daycare 6AM–8PM
                                 </p>
                                 <p class="mb-3">
                                     To activate the discount, check <strong>Pay in advance</strong> when booking.
@@ -1195,14 +1199,13 @@
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Notes</u></h4>
                                 <p class="mb-1">When you pay in advance for a week, any bookings made after payment are counted as regular rate for that week.</p>
-                                <p class="mb-1">Daycare booked within 24 hours of drop off will not count toward the discounted rate.</p>
                                 <p class="mb-1">Discounted boarding rates are still upheld even if booked within 24 hours.</p>
                                 <p class="mb-1"><strong>Payment</strong> will be collected separately via phone or in person.</p><br>
                                 <p class="mb-3"><strong>A week is Monday through Sunday.</strong></p>
 
                                 <p class="mb-3">
-                                    Boarding is priced as a flat nightly rate. Based on your prior month of scheduled boardings,
-                                    you may qualify for discounted boarding rates, even within 24 hours.
+                                    Boarding rates are based on your previous calendar month's
+                                    booked daycare and boarding activity.
                                 </p>
 
                                 <h4 class="d-none d-md-block fw-bold mt-3 mb-2"><u>Cancellations</u></h4>
@@ -1294,9 +1297,8 @@
                                                             data-variant="primary"
                                                             data-service="Daycare (6 AM - 3 PM)"
                                                             th:attr="data-date=${d}"
-                                                            th:disabled="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))}"
-                                                            th:classappend="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))} ? ' disabled' : ''"
-                                                            th:title="${(pickupDays != null and pickupDays.contains(d))} ? 'Half-day daycare is unavailable on your boarding pickup day (already covered by the pickup fee).' : null">
+                                                            th:disabled="${d.isBefore(today)}"
+                                                            th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
                                                         Daycare <small>6AM – 3PM</small>
                                                     </button>
 
@@ -1313,8 +1315,9 @@
                                                             data-variant="primary"
                                                             data-service="Daycare After Hours (6 AM - 11 PM)"
                                                             th:attr="data-date=${d}"
-                                                            th:disabled="${d.isBefore(today)}"
-                                                            th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                            th:disabled="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))}"
+                                                            th:classappend="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))} ? ' disabled' : ''"
+                                                            th:title="${(pickupDays != null and pickupDays.contains(d))} ? 'After Hours is unavailable on boarding pickup days.' : null">
                                                         Daycare + After Hours <small>6AM – 11PM</small>
                                                     </button>
 
@@ -1394,8 +1397,8 @@
                                                             <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" th:disabled="${weekPaid}">
                                                             <label class="form-check-label">Pay in advance</label>
                                                             <div class="form-text" data-prepay-msg
-                                                                 th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Must be booked 24 hours in advance to qualify.'">
-                                                                ≥ 24 hours to qualify.
+                                                                 th:text="${weekPaid} ? 'This week is already paid. Additional daycare is at regular rate.' : 'Advance-pay pricing closes at 2:00 AM Pacific on the service date.'">
+                                                                Advance-pay pricing closes at 2:00 AM Pacific on the service date.
                                                             </div>
                                                         </div>
 
@@ -1518,7 +1521,7 @@
                                             <div class="form-check mb-2 small" id="bookingFlowAdvanceWrap">
                                                 <input class="form-check-input" type="checkbox" name="wantsAdvancePay" value="true" id="bookingFlowAdvancePay">
                                                 <label class="form-check-label" for="bookingFlowAdvancePay">Pay in advance</label>
-                                                <div class="form-text" id="bookingFlowPrepayMsg">Must be booked 24 hours in advance to qualify.</div>
+                                                <div class="form-text" id="bookingFlowPrepayMsg">Checking advance-pay eligibility...</div>
                                             </div>
 
                                             <div class="form-check mb-2 small" id="bookingFlowMultiWrap">
@@ -1611,9 +1614,8 @@
                                                             data-variant="primary"
                                                             data-service="Daycare (6 AM - 3 PM)"
                                                             th:attr="data-date=${d}"
-                                                            th:disabled="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))}"
-                                                            th:classappend="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))} ? ' disabled' : ''"
-                                                            th:title="${(pickupDays != null and pickupDays.contains(d))} ? 'Half-day daycare is unavailable on your boarding pickup day (already covered by the pickup fee).' : null">
+                                                            th:disabled="${d.isBefore(today)}"
+                                                            th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
                                                         Daycare <small>6AM – 3PM</small>
                                                     </button>
 
@@ -1630,8 +1632,9 @@
                                                             data-variant="primary"
                                                             data-service="Daycare After Hours (6 AM - 11 PM)"
                                                             th:attr="data-date=${d}"
-                                                            th:disabled="${d.isBefore(today)}"
-                                                            th:classappend="${d.isBefore(today)} ? ' disabled' : ''">
+                                                            th:disabled="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))}"
+                                                            th:classappend="${d.isBefore(today) or (pickupDays != null and pickupDays.contains(d))} ? ' disabled' : ''"
+                                                            th:title="${(pickupDays != null and pickupDays.contains(d))} ? 'After Hours is unavailable on boarding pickup days.' : null">
                                                         Daycare + After Hours <small>6AM – 11PM</small>
                                                     </button>
 
@@ -1930,12 +1933,9 @@
                                                               th:text="${b.status}">APPROVED</span>
 
                                                         <span class="badge bg-light text-dark ms-2"
-                                                              th:if="${b.quotedRateAtLock != null}"
-                                                              th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
-
-                                                        <span class="badge bg-light text-dark ms-2"
-                                                              th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
-                                                            est.
+                                                              th:if="${bookingTotals.containsKey(b.id)}"
+                                                              th:text="${#numbers.formatCurrency(bookingTotals[b.id])}">
+                                                            $0.00
                                                         </span>
 
                                                         <span class="badge rounded-pill text-bg-light border"
@@ -2002,13 +2002,10 @@
                                                               th:text="${b.status}">APPROVED</span>
 
                                                         <span class="badge bg-light text-dark ms-2"
-                                                              th:if="${b.quotedRateAtLock != null}"
-                                                              th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
-
-                                                        <span class="badge bg-light text-dark ms-2"
-                                                              th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
-                                                            est.
-                                                        </span>
+                                                              th:if="${bookingTotals.containsKey(b.id)}"
+                                                              th:text="${#numbers.formatCurrency(bookingTotals[b.id])}">
+                                                            $0.00
+                                                                                                                                                              </span>
 
                                                         <span class="badge rounded-pill text-bg-light border"
                                                               th:if="${b.dogCount > 1}"
@@ -2074,12 +2071,9 @@
                                                               th:text="${b.status}">APPROVED</span>
 
                                                         <span class="badge bg-light text-dark ms-2"
-                                                              th:if="${b.quotedRateAtLock != null}"
-                                                              th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
-
-                                                        <span class="badge bg-light text-dark ms-2"
-                                                              th:if="${b.quotedRateAtLock == null and b.status != 'CANCELED'}">
-                                                            est.
+                                                              th:if="${bookingTotals.containsKey(b.id)}"
+                                                              th:text="${#numbers.formatCurrency(bookingTotals[b.id])}">
+                                                            $0.00
                                                         </span>
 
                                                         <span class="badge rounded-pill text-bg-light border"
@@ -2145,9 +2139,11 @@
                                                                               (${b.status == 'CANCELED'} ? ' bg-danger-subtle text-danger' : ' bg-secondary')"
                                                               th:text="${b.status}">APPROVED</span>
 
-                                                        <span th:if="${b.quotedRateAtLock != null}"
-                                                              class="badge bg-light text-dark ms-2"
-                                                              th:text="${#numbers.formatCurrency(b.quotedRateAtLock)}">$0.00</span>
+                                                        <span class="badge bg-light text-dark ms-2"
+                                                              th:if="${boardingServiceTotals.containsKey(b.id)}"
+                                                              th:text="${#numbers.formatCurrency(boardingServiceTotals[b.id])}">
+                                                            $0.00
+                                                        </span>
 
                                                         <span class="badge rounded-pill text-bg-light border"
                                                               th:if="${b.dogCount > 1}"
@@ -2497,7 +2493,7 @@
             flowMultiDay.checked = false;
             flowMultiDay.disabled = false;
 
-            flowPrepayMsg.textContent = 'Must be booked 24 hours in advance to qualify.';
+            flowPrepayMsg.textContent = 'Select a date and time to check advance-pay eligibility.';
 
             boardingOnly.classList.add('d-none');
             daycareOnly.classList.remove('d-none');
@@ -2829,23 +2825,20 @@
                 }
 
                 const data = await res.json();
+
                 const weekPaid = !!data.weekPaid;
+                const eligible = !!data.advanceEligible;
 
-                const dt = new Date(`${dateStr}T${timeStr}:00`);
-                if (Number.isNaN(dt.getTime())) {
-                    throw new Error('Invalid booking date/time');
-                }
-
-                const now = new Date();
-                const hrs = (dt.getTime() - now.getTime()) / (1000 * 60 * 60);
-                const eligible = !weekPaid && hrs >= 24;
-
+                // The backend determines eligibility using the
+                // business time zone and the 2 AM cutoff.
                 refs.flowAdvancePay.disabled = !eligible;
                 refs.flowAdvancePay.checked = eligible ? wasChecked : false;
 
                 refs.flowPrepayMsg.textContent = weekPaid
                     ? 'This week is already paid. Additional daycare bookings are regular rate.'
-                    : (eligible ? '' : 'Must be booked 24 hours in advance to qualify.');
+                    : (eligible
+                        ? 'Eligible for advance-pay pricing.'
+                        : 'Advance-pay pricing closes at 2:00 AM Pacific on the service date.');
             } catch (err) {
                 console.error('refreshSharedPrepay failed:', err);
                 refs.flowAdvancePay.disabled = true;
@@ -3083,7 +3076,7 @@
                 kpis: [
                     {
                         label: 'Advance Pay',
-                        value: 'Select "Pay in adance" to unlock discounted pricing. (Payments will be made in person or over the phone)'
+                        value: 'Select "Pay in advance" to unlock discounted pricing. (Payments will be made in person or over the phone)'
                     },
                     {
                         label: 'Weekly Planning',
